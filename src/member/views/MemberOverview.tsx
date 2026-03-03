@@ -59,24 +59,37 @@ const MemberOverview: React.FC = () => {
 
   return (
     <div className="dashboard-pro">
-      {/* Stats Grid */}
-      <div className="stats-grid-pro">
-        {stats.map(stat => (
-          <Card key={stat.id} className="stat-card-pro">
-            <div className="stat-header">
-              <span className="stat-label">{stat.label}</span>
-              <div className="stat-icon" style={{ color: stat.color }}>
-                {stat.icon}
-              </div>
-            </div>
-            <div className="stat-value">{stat.value}</div>
-            <div className="stat-change positive">{stat.change}</div>
-          </Card>
-        ))}
-      </div>
+      {/* Page header with welcome message */}
+      <header className="dashboard-header-pro">
+        <div>
+          <h1 className="dashboard-title-pro">Dashboard</h1>
+          <p className="dashboard-subtitle-pro">
+            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
+          </p>
+        </div>
+      </header>
 
-      {/* Quick Actions */}
-      <div className="section-pro">
+      {/* Stats Section */}
+      <section className="section-pro">
+        <h2 className="section-title-pro">Your Stats</h2>
+        <div className="stats-grid-pro">
+          {stats.map(stat => (
+            <Card key={stat.id} className="stat-card-pro">
+              <div className="stat-header">
+                <span className="stat-label">{stat.label}</span>
+                <div className="stat-icon" style={{ color: stat.color }}>
+                  {stat.icon}
+                </div>
+              </div>
+              <div className="stat-value">{stat.value}</div>
+              <div className="stat-change positive">{stat.change}</div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick Actions Section */}
+      <section className="section-pro">
         <h2 className="section-title-pro">Quick Actions</h2>
         <div className="actions-grid-pro">
           {quickActions.map(action => (
@@ -90,11 +103,12 @@ const MemberOverview: React.FC = () => {
             </Card>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Account Information */}
-      <div className="section-pro">
-        <Card title="Your Account Information" subtitle="Manage your profile and preferences">
+      {/* Account Information Section */}
+      <section className="section-pro">
+        <h2 className="section-title-pro">Account Information</h2>
+        <Card>
           <div className="info-grid-pro">
             <div className="info-item-pro">
               <span className="info-label">Email</span>
@@ -118,7 +132,7 @@ const MemberOverview: React.FC = () => {
             </div>
           </div>
         </Card>
-      </div>
+      </section>
     </div>
   );
 };

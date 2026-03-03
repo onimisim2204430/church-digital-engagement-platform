@@ -19,7 +19,7 @@ import {
   ChevronsLeft, ChevronsRight, Image, Video, Music,
   File, Folder, Tag, Calendar, Type, MessageSquare,
   Heart, Star, List, BookOpen, ArrowUp, ArrowDown,
-  ChevronsUpDown
+  ChevronsUpDown, Lock, Database, Key, Link, Palette, Zap, Archive, Volume2, Flag
 } from 'lucide-react';
 
 // Navigation Icons
@@ -27,6 +27,7 @@ export const DashboardIcon = LayoutDashboard;
 export const ContentIcon = FileText;
 export const UsersIcon = Users;
 export const ModerationIcon = Shield;
+export const FlagIcon = Flag;
 export const EmailIcon = Mail;
 export const MailIcon = Mail;
 export const ReportsIcon = BarChart3;
@@ -113,3 +114,17 @@ export { BookOpen };
 export const SortAscIcon = ArrowUp;
 export const SortDescIcon = ArrowDown;
 export const SortIcon = ChevronsUpDown;
+
+// Additional Icons
+export const LockIcon = Lock;
+export const DatabaseIcon = Database;
+export const KeyIcon = Key;
+export const LinkIcon = Link;
+export const PaletteIcon = Palette;
+export const ZapIcon = Zap;
+export const ArchiveIcon = Archive;
+export const Volume2Icon = Volume2;
+export const ToggleLeftIcon = EyeOff;
+export const ToggleRightIcon = Eye;
+export const ClockIcon = Clock;
+export const ServerIcon = Globe;

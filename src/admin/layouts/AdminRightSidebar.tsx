@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from 'react';
+import Icon from '../../components/common/Icon';
 
 const AdminRightSidebar: React.FC = () => {
   const [dailyWord, setDailyWord] = useState('');
@@ -19,7 +20,7 @@ const AdminRightSidebar: React.FC = () => {
           {/* Critical Flag */}
           <div className="rounded-lg border border-rose-100 bg-rose-50/50 p-3 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-rose-500 text-sm">emergency</span>
+              <Icon name="emergency" size={14} className=" text-rose-500" />
               <span className="text-xs font-bold text-rose-600 uppercase">Critical Flag</span>
             </div>
             <p className="text-xs font-bold text-slate-deep leading-snug">
@@ -54,7 +55,7 @@ const AdminRightSidebar: React.FC = () => {
         </div>
         <div className="rounded-lg border border-border-light bg-slate-50 p-3 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-soft text-lg">calendar_today</span>
+            <Icon name="calendar_today" size={18} className=" text-slate-soft" />
             <span className="text-sm font-bold text-slate-deep">
               Today,{' '}
               {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -69,10 +70,10 @@ const AdminRightSidebar: React.FC = () => {
           <div className="flex justify-between items-center pt-2 border-t border-slate-200">
             <div className="flex gap-2">
               <button className="text-slate-soft hover:text-primary transition-colors">
-                <span className="material-symbols-outlined text-sm">image</span>
+                <Icon name="image" size={14} />
               </button>
               <button className="text-slate-soft hover:text-primary transition-colors">
-                <span className="material-symbols-outlined text-sm">link</span>
+                <Icon name="link" size={14} />
               </button>
             </div>
             <button className="rounded-md bg-primary px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-primary/90 shadow-sm transition-colors">

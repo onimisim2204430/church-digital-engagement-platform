@@ -310,3 +310,234 @@ class AdminPostViewSet(viewsets.ModelViewSet):
     def schedule_post(self, request, pk=None):
         """Schedule a post for future publication"""
         post = self.get_object()
+        
+        # Check ownership for moderators
+        self.check_post_ownership(post)
+        
+        # Update the publish date from request data
+        publish_date = request.data.get('publish_at')
+        if not publish_date:
+            return Response({
+                'error': 'publish_at field is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            post.scheduled_date = publish_date
+            post.status = 'SCHEDULED'
+            post.full_clean()
+            post.save()
+            
+            create_audit_log(
+                user=request.user,
+                action_type=ActionType.UPDATE,
+                description=f"Scheduled post: {post.title} for {publish_date}",
+                content_object=post,
+                request=request
+            )
+            
+            return Response({
+                'message': 'Post scheduled successfully',
+                'post': PostSerializer(post).data
+            })
+        except DjangoValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============================================================================
+# DAILY WORD VIEWSET (Admin)
+# ============================================================================
+
+class AdminDailyWordViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for managing daily word / devotional posts
+    Features:
+    - One post per scheduled_date
+    - Conflict detection with resolution dialog
+    - Full CRUD for devotional content
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_queryset(self):
+        """Filter to only devotional posts"""
+        return Post.objects.filter(
+            content_type__slug='devotional',
+            is_deleted=False
+        ).order_by('-scheduled_date', '-created_at')
+    
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            from .serializers import DailyWordCreateUpdateSerializer
+            return DailyWordCreateUpdateSerializer
+        from .serializers import DailyWordSerializer
+        return DailyWordSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new daily word with conflict detection
+        Returns 409 with existing post info if date already has content
+        """
+        serializer = self.get_serializer(data=request.data)
+        
+        # First validate the data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check for conflict before creating
+        scheduled_date = serializer.validated_data.get('scheduled_date')
+        if scheduled_date:
+            existing = Post.objects.filter(
+                scheduled_date=scheduled_date,
+                content_type__slug='devotional',
+                is_deleted=False
+            ).first()
+            
+            if existing:
+                from .serializers import DailyWordSerializer, DailyWordConflictSerializer
+                conflict_response = {
+                    'has_conflict': True,
+                    'existing_post': DailyWordSerializer(existing).data,
+                    'message': f'A devotional post already exists for {scheduled_date}: "{existing.title}" by {existing.author.get_full_name() or existing.author.username}'
+                }
+                return Response(conflict_response, status=status.HTTP_409_CONFLICT)
+        
+        # No conflict, proceed with creation
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def perform_create(self, serializer):
+        """Save the post with the current user as author"""
+        serializer.save(author=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def publish(self, request, pk=None):
+        """Publish a daily word immediately"""
+        post = self.get_object()
+        
+        if post.status == 'PUBLISHED':
+            return Response({
+                'message': 'Post is already published'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        post.publish()
+        
+        create_audit_log(
+            user=request.user,
+            action_type=ActionType.PUBLISH,
+            description=f"Published daily word: {post.title}",
+            content_object=post,
+            request=request
+        )
+        
+        from .serializers import DailyWordSerializer
+        return Response({
+            'message': 'Daily word published successfully',
+            'post': DailyWordSerializer(post).data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """Get today's daily word"""
+        from django.utils import timezone
+        today = timezone.now().date()
+        
+        post = Post.objects.filter(
+            scheduled_date=today,
+            content_type__slug='devotional',
+            status='PUBLISHED',
+            is_deleted=False
+        ).first()
+        
+        if not post:
+            return Response({
+                'message': 'No daily word for today'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        from .serializers import DailyWordSerializer
+        return Response(DailyWordSerializer(post).data)
+    
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """Get month calendar with daily word statuses"""
+        from django.utils import timezone
+        from datetime import date, timedelta
+        
+        month = request.query_params.get('month')
+        year = request.query_params.get('year')
+        
+        if not month or not year:
+            today = timezone.now().date()
+            month = today.month
+            year = today.year
+        
+        month = int(month)
+        year = int(year)
+        
+        # Get all posts for the month
+        from calendar import monthcalendar
+        cal = monthcalendar(year, month)
+        
+        response_data = {
+            'year': year,
+            'month': month,
+            'days': []
+        }
+        
+        for week in cal:
+            for day in week:
+                if day == 0:
+                    continue
+                
+                check_date = date(year, month, day)
+                post = Post.objects.filter(
+                    scheduled_date=check_date,
+                    content_type__slug='devotional',
+                    is_deleted=False
+                ).first()
+                
+                response_data['days'].append({
+                    'date': str(check_date),
+                    'day': day,
+                    'has_post': post is not None,
+                    'status': post.status if post else None,
+                    'title': post.title if post else None,
+                })
+        
+        return Response(response_data)
+
+
+# ============================================================================
+# WEEKLY EVENT VIEWSET (Admin & Public)
+# ============================================================================
+
+class AdminWeeklyEventViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for managing weekly flow events
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_queryset(self):
+        from .models import WeeklyEvent
+        return WeeklyEvent.objects.all().order_by('day_of_week', 'sort_order')
+    
+    def get_serializer_class(self):
+        from .serializers import WeeklyEventSerializer, WeeklyEventCreateUpdateSerializer
+        if self.action in ['create', 'update', 'partial_update']:
+            return WeeklyEventCreateUpdateSerializer
+        return WeeklyEventSerializer
+
+
+class PublicWeeklyEventViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public viewset for viewing weekly events
+    Unauthenticated access
+    """
+    permission_classes = []  # Public access
+    
+    def get_queryset(self):
+        from .models import WeeklyEvent
+        return WeeklyEvent.objects.all().order_by('day_of_week', 'sort_order')
+    
+    def get_serializer_class(self):
+        from .serializers import WeeklyEventSerializer
+        return WeeklyEventSerializer

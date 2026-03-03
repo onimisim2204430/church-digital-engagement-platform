@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
 import SharedNavigation from '../../shared/SharedNavigation';
 import seriesService, { Series } from '../../../services/series.service';
+import Icon from '../../../components/common/Icon';
 
 // Lazy load footer for performance
 const Footer = lazy(() =>
@@ -118,7 +119,7 @@ const SeriesPage: React.FC = () => {
                       : 'text-text-muted hover:bg-background-light/50 hover:text-text-main'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px]">grid_view</span>
+                  <Icon name="grid_view" className="text-[20px]" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
@@ -128,7 +129,7 @@ const SeriesPage: React.FC = () => {
                       : 'text-text-muted hover:bg-background-light/50 hover:text-text-main'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px]">view_list</span>
+                  <Icon name="view_list" className="text-[20px]" />
                 </button>
               </div>
             </div>
@@ -186,7 +187,7 @@ const SeriesPage: React.FC = () => {
                           />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center bg-accent/10">
-                            <span className="material-symbols-outlined text-4xl text-text-muted">collections_bookmark</span>
+                            <Icon name="collections_bookmark" size={36} className="text-text-muted" />
                           </div>
                         )}
                         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -199,7 +200,7 @@ const SeriesPage: React.FC = () => {
                         {/* Featured badge */}
                         {series.is_featured && (
                           <div className="absolute top-3 left-3 bg-primary/90 backdrop-blur-md px-2 py-1 rounded text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">star</span>
+                            <Icon name="star" size={14} />
                             Featured
                           </div>
                         )}
@@ -237,7 +238,7 @@ const SeriesPage: React.FC = () => {
           {!isLoading && seriesList.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center text-primary mb-2">
-                <span className="material-symbols-outlined text-[32px]">collections_bookmark</span>
+                <Icon name="collections_bookmark" className="text-[32px]" />
               </div>
               <h3 className="font-serif text-3xl font-normal text-text-main tracking-tight">No series found</h3>
               <p className="text-lg text-text-muted max-w-sm font-display">

@@ -7,6 +7,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { UserRole } from '../../types/auth.types';
+import Icon from '../../components/common/Icon';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -37,8 +38,10 @@ const navGroups: NavGroup[] = [
     label: 'Content Pipeline',
     items: [
       { id: 'content', label: 'Posts & Sermons', icon: 'movie', path: '/admin/content', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
+      { id: 'daily-words', label: 'Daily Words', icon: 'light_mode', path: '/admin/daily-words', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
       { id: 'series', label: 'Series', icon: 'library_books', path: '/admin/series', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
       { id: 'drafts', label: 'Post Drafts', icon: 'edit_note', path: '/admin/drafts', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
+      { id: 'weekly-flow', label: 'Weekly Flow', icon: 'schedule', path: '/admin/weekly-flow', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
       { id: 'podcasting', label: 'Podcasting', icon: 'podcasts', path: '/admin/podcasting', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
     ],
   },
@@ -105,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       )}
 
       <nav
-        className={`admin-sidebar-pro ${isOpen ? 'open' : ''} w-64 flex flex-col border-r border-border-light bg-white overflow-y-auto`}
+        className={`admin-sidebar-pro ${isOpen ? 'open' : ''} w-64 flex flex-col border-r-1 border-r-primary bg-white overflow-y-auto`}
         style={{ scrollbarWidth: 'none' }}
       >
         {/* Navigation Groups */}
@@ -134,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                           : 'text-slate-soft hover:bg-slate-50 hover:text-primary'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                      <Icon name={item.icon} size={18} className={active ? 'text-white' : ''} />
                       <span>{item.label}</span>
                     </button>
                   );
@@ -151,14 +154,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               onClick={() => navigate('/')}
               className="flex-1 flex items-center justify-center gap-1.5 rounded border border-border-light bg-white px-2 py-1.5 font-semibold text-slate-soft hover:border-primary hover:text-primary transition-colors"
             >
-              <span className="material-symbols-outlined text-sm">public</span>
+              <Icon name="public" size={16} />
               <span>Public</span>
             </button>
             <button
               onClick={() => navigate('/member')}
               className="flex-1 flex items-center justify-center gap-1.5 rounded border border-border-light bg-white px-2 py-1.5 text-xs font-semibold text-slate-soft hover:border-primary hover:text-primary transition-colors"
             >
-              <span className="material-symbols-outlined text-sm">home</span>
+              <Icon name="home" size={16} />
               <span>Member</span>
             </button>
           </div>
@@ -178,7 +181,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               className="rounded p-1.5 text-slate-soft hover:text-red-500 hover:bg-red-50 transition-colors"
               title="Sign out"
             >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
+              <Icon name="logout" size={18} />
             </button>
           </div>
         </div>

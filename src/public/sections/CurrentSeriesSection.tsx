@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import Icon from '../../components/common/Icon';
 
 /**
  * CurrentSeriesSection Component - Lazy loaded below-fold content
@@ -30,7 +31,7 @@ const CurrentSeriesSection: React.FC = memo(() => {
                 aria-label="View full series collection"
               >
                 View Series Collection
-                <span className="material-symbols-outlined text-sm ml-1" aria-hidden="true">arrow_forward</span>
+                <Icon name="arrow_forward" size={16} className="ml-1" ariaHidden />
               </a>
             </div>
           </div>

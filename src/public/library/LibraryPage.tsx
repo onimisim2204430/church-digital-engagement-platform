@@ -21,6 +21,7 @@ import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicLayout } from '../layouts';
 import publicContentService, { PublicContentType, PublicPost } from '../../services/publicContent.service';
+import Icon from '../../components/common/Icon';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -61,7 +62,7 @@ const FilterSection = memo(({
         {/* Search Input */}
         <div className="relative group">
           <span className="absolute left-0 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors">
-            <span className="material-symbols-outlined">search</span>
+            <Icon name="search" />
           </span>
           <input 
             className="w-full bg-transparent border-b border-border-subtle focus:border-primary px-8 py-3 outline-none ring-0 placeholder:text-text-muted/60 text-text-main text-base font-medium transition-colors" 
@@ -205,7 +206,7 @@ const FilterTag = memo(({ label, onRemove }: { label: string; onRemove: () => vo
   <div className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm font-medium rounded-sm">
     {label}
     <button onClick={onRemove} className="hover:text-primary/70" aria-label={`Remove ${label} filter`}>
-      <span className="material-symbols-outlined text-[14px] align-middle">close</span>
+      <Icon name="close" size={14} className="align-middle" />
     </button>
   </div>
 ));
@@ -242,7 +243,7 @@ const SermonCard = memo(({ post }: { post: PublicPost }) => {
           />
         ) : (
           <div className="w-full h-full bg-accent-sand/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-4xl text-text-muted">article</span>
+            <Icon name="article" size={36} className="text-text-muted" />
           </div>
         )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
@@ -301,7 +302,7 @@ const SermonGrid = memo(({ posts, isLoading }: { posts: PublicPost[]; isLoading:
   if (posts.length === 0) {
     return (
       <div className="text-center py-20">
-        <span className="material-symbols-outlined text-6xl text-text-muted mb-4 block">search_off</span>
+        <Icon name="search_off" className="text-6xl text-text-muted mb-4 block" />
         <p className="text-text-muted text-lg">No content found matching your filters.</p>
       </div>
     );
@@ -331,10 +332,10 @@ const LibraryFooter = memo(() => {
         <p className="text-text-muted text-sm">© 2024 Serene Sanctuary. Digital Sabbath.</p>
         <div className="flex gap-6">
           <a href="#" className="text-text-muted hover:text-primary transition-colors" aria-label="Follow us on social media">
-            <span className="material-symbols-outlined text-xl">brand_family</span>
+            <Icon name="brand_family" size={20} />
           </a>
           <a href="#" className="text-text-muted hover:text-primary transition-colors" aria-label="Subscribe to RSS feed">
-            <span className="material-symbols-outlined text-xl">rss_feed</span>
+            <Icon name="rss_feed" size={20} />
           </a>
         </div>
       </div>

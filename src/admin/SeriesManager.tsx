@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import seriesService, { Series } from '../services/series.service';
 
+import Icon from '../components/common/Icon';
 // Dynamically fetch and sum views for a series
 const SeriesViewsCell: React.FC<{ seriesId: string }> = ({ seriesId }) => {
   const [views, setViews] = useState<number | null>(null);
@@ -21,7 +22,7 @@ const SeriesViewsCell: React.FC<{ seriesId: string }> = ({ seriesId }) => {
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [seriesId]);
-  if (loading) return <span className="inline-flex items-center gap-1 text-slate-300"><span className="material-symbols-outlined text-xs animate-spin">progress_activity</span>...</span>;
+  if (loading) return <span className="inline-flex items-center gap-1 text-slate-300"><Icon name="progress_activity" className=" text-xs animate-spin" />...</span>;
   return <span>{(views || 0).toLocaleString()} views</span>;
 };
 
@@ -96,7 +97,7 @@ const SeriesManager: React.FC = () => {
             onClick={handleCreateNew}
             className="bg-primary hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" size={14} />
             New Series
           </button>
         </div>
@@ -107,7 +108,7 @@ const SeriesManager: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <div className="relative w-80">
             <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-              <span className="material-symbols-outlined text-lg">search</span>
+              <Icon name="search" size={18} />
             </span>
             <input
               type="text"
@@ -139,7 +140,7 @@ const SeriesManager: React.FC = () => {
           {/* Error state */}
           {!loading && error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-              <span className="material-symbols-outlined text-4xl text-red-400">error_outline</span>
+              <Icon name="error_outline" size={36} className=" text-red-400" />
               <p className="mt-3 text-red-700 font-semibold">{error}</p>
               <button onClick={fetchSeries} className="mt-4 text-sm text-primary underline">
                 Try again
@@ -151,7 +152,7 @@ const SeriesManager: React.FC = () => {
           {!loading && !error && filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
-                <span className="material-symbols-outlined text-3xl text-slate-400">account_tree</span>
+                <Icon name="account_tree" size={32} className=" text-slate-400" />
               </div>
               <p className="text-slate-600 font-semibold text-lg">
                 {searchTerm ? 'No series match your search' : 'No series yet'}
@@ -182,7 +183,7 @@ const SeriesManager: React.FC = () => {
                       <img src={s.cover_image} alt={s.title} className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-2xl text-slate-300">account_tree</span>
+                        <Icon name="account_tree" size={24} className=" text-slate-300" />
                       </div>
                     )}
                   </div>
@@ -206,7 +207,7 @@ const SeriesManager: React.FC = () => {
                         <>
                           <span className="w-1 h-1 rounded-full bg-slate-300" />
                           <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px]">person</span>
+                            <Icon name="person" size={12} />
                             {s.author_name}
                           </span>
                         </>
@@ -226,7 +227,7 @@ const SeriesManager: React.FC = () => {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="material-symbols-outlined text-slate-300 text-lg">chevron_right</span>
+                    <Icon name="chevron_right" size={18} className=" text-slate-300" />
                   </div>
                 </div>
               ))}

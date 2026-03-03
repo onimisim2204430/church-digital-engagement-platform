@@ -6,34 +6,19 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { UserRole } from '../types/auth.types';
 import postService, { Post } from '../services/post.service';
 import draftService, { Draft } from '../services/draft.service';
+import Icon from '../components/common/Icon';
 import PostCreate from './PostCreate';
 import PostEdit from './PostEdit';
 
-// Icons as inline components
-const PlusIcon = ({ size = 20 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>add</span>
-);
-const EditIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>edit</span>
-);
-const DeleteIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>delete</span>
-);
-const EyeIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>visibility</span>
-);
-const DraftIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>edit_note</span>
-);
-const ScheduleIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>schedule</span>
-);
-const PublishedIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>check_circle</span>
-);
-const TrashIcon = ({ size = 18 }: { size?: number }) => (
-  <span className="material-symbols-outlined" style={{ fontSize: size }}>delete_outline</span>
-);
+// Icons - Using Icon component
+const PlusIcon = ({ size = 20 }: { size?: number }) => <Icon name="add" size={size} />;
+const EditIcon = ({ size = 18 }: { size?: number }) => <Icon name="edit" size={size} />;
+const DeleteIcon = ({ size = 18 }: { size?: number }) => <Icon name="delete" size={size} />;
+const EyeIcon = ({ size = 18 }: { size?: number }) => <Icon name="visibility" size={size} />;
+const DraftIcon = ({ size = 18 }: { size?: number }) => <Icon name="edit_note" size={size} />;
+const ScheduleIcon = ({ size = 18 }: { size?: number }) => <Icon name="schedule" size={size} />;
+const PublishedIcon = ({ size = 18 }: { size?: number }) => <Icon name="check_circle" size={size} />;
+const TrashIcon = ({ size = 18 }: { size?: number }) => <Icon name="delete_outline" size={size} />;
 
 type ViewMode = 'list' | 'create' | 'edit';
 type ContentTab = 'ALL' | 'PUBLISHED' | 'DRAFTS' | 'TRASH';
@@ -601,10 +586,9 @@ const ContentManager: React.FC = () => {
 
             {/* Search */}
             <div className="relative flex-1 max-w-md">
-              <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
-                <span className="material-symbols-outlined text-lg">search</span>
-              </span>
-              <input
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+                <Icon name="search" size={20} /></div>
+                <input
                 type="text"
                 placeholder="Search by title, author..."
                 value={searchTerm}
@@ -679,7 +663,7 @@ const ContentManager: React.FC = () => {
           {!loading && !loadingDrafts && !loadingDeleted && filteredItems.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
-                <span className="material-symbols-outlined text-3xl text-slate-400">description</span>
+                <Icon name="description" size={32} className="text-slate-400" />
               </div>
               <p className="text-slate-600 font-semibold text-base">
                 {searchTerm || filterType ? 'No content matches your filters' : 'No content yet'}
@@ -717,11 +701,9 @@ const ContentManager: React.FC = () => {
                       <img src={item.coverImage} alt={item.title} className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-2xl text-slate-300">
-                          {item.type === 'SERMON' ? 'mic' : 
-                           item.type === 'ARTICLE' ? 'article' : 
-                           item.type === 'ANNOUNCEMENT' ? 'campaign' : 'description'}
-                        </span>
+                        <Icon name={item.type === 'SERMON' ? 'mic' : 
+                                    item.type === 'ARTICLE' ? 'article' : 
+                                    item.type === 'ANNOUNCEMENT' ? 'campaign' : 'description'} size={22} className="text-slate-300" />
                       </div>
                     )}
                   </div>
@@ -749,7 +731,7 @@ const ContentManager: React.FC = () => {
 
                     <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 flex-wrap">
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[12px]">person</span>
+                        <Icon name="person" size={12} />
                         {item.author.name}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-slate-300" />
@@ -760,7 +742,7 @@ const ContentManager: React.FC = () => {
                         <>
                           <span className="w-1 h-1 rounded-full bg-slate-300" />
                           <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px]">visibility</span>
+                            <Icon name="visibility" size={12} />
                             {item.views.toLocaleString()} views
                           </span>
                         </>
@@ -769,7 +751,7 @@ const ContentManager: React.FC = () => {
                         <>
                           <span className="w-1 h-1 rounded-full bg-slate-300" />
                           <span className="flex items-center gap-1 text-amber-600" title={item.lastAutosaveAt}>
-                            <span className="material-symbols-outlined text-[12px]">schedule</span>
+                            <Icon name="schedule" size={12} />
                             Saved {item.timeSinceSave}
                           </span>
                         </>
@@ -865,7 +847,7 @@ const ContentManager: React.FC = () => {
                         </button>
                       </>
                     )}
-                    <span className="material-symbols-outlined text-slate-300 text-lg">chevron_right</span>
+                    <Icon name="chevron_right" size={20} className="text-slate-300" />
                   </div>
                 </div>
               ))}

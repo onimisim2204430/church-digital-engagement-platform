@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback } from 'react';
 import postService from '../../services/post.service';
+import Icon from '../../components/common/Icon';
 
 interface Props { value: string; onChange: (url: string) => void; disabled?: boolean; }
 

@@ -339,3 +339,138 @@ class DraftListSerializer(serializers.ModelSerializer):
         if obj.last_autosave_at:
             return timesince(obj.last_autosave_at) + " ago"
         return "Never"
+
+
+# ============================================================================
+# DAILY WORD SERIALIZERS (for devotional content with scheduled dates)
+# ============================================================================
+
+class DailyWordSerializer(serializers.ModelSerializer):
+    """Serializer for daily word / devotional posts (read-only or list)"""
+    author_name = serializers.CharField(source='author.get_full_name', read_only=True)
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+    day_of_week_display = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Post
+        fields = [
+            'id', 'title', 'content', 'scheduled_date', 'day_of_week_display',
+            'author', 'author_name', 'author_email', 'status', 'published_at',
+            'featured_image', 'audio_url', 'category', 'views_count',
+            'comments_enabled', 'reactions_enabled', 'is_featured',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'author', 'views_count', 'created_at', 'updated_at']
+    
+    def get_day_of_week_display(self, obj):
+        """Get day of week from scheduled_date"""
+        if obj.scheduled_date:
+            days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            return days[obj.scheduled_date.weekday()]
+        return None
+
+
+class DailyWordCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating daily word posts (admin only)"""
+    
+    class Meta:
+        model = Post
+        fields = [
+            'title', 'content', 'scheduled_date', 'category',
+            'featured_image', 'audio_url', 'comments_enabled', 'reactions_enabled',
+            'is_featured', 'featured_priority'
+        ]
+    
+    def validate(self, attrs):
+        """Validate and enforce unique scheduled_date for devotional posts"""
+        # Will be called via the viewset's create/update which should set content_type
+        return attrs
+    
+    def create(self, validated_data):
+        """Create a new daily word post"""
+        from apps.users.models import User
+        request = self.context.get('request')
+        author = request.user if request else User.objects.first()
+        
+        # Set content_type to 'devotional' if not already set
+        try:
+            devotional_type = PostContentType.objects.get(slug='devotional')
+        except PostContentType.DoesNotExist:
+            # Fallback: create devotional type if it doesn't exist
+            devotional_type = PostContentType.objects.create(
+                slug='devotional',
+                name='Devotional',
+                is_system=True
+            )
+        
+        post = Post.objects.create(
+            author=author,
+            content_type=devotional_type,
+            post_type=PostType.DEVOTIONAL,
+            status=PostStatus.SCHEDULED,
+            **validated_data
+        )
+        return post
+    
+    def update(self, instance, validated_data):
+        """Update an existing daily word post"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Ensure content_type is devotional
+        try:
+            devotional_type = PostContentType.objects.get(slug='devotional')
+            instance.content_type = devotional_type
+            instance.post_type = PostType.DEVOTIONAL
+        except PostContentType.DoesNotExist:
+            pass
+        
+        instance.full_clean()  # This will call Post.clean() and check uniqueness
+        instance.save()
+        return instance
+
+
+class DailyWordConflictSerializer(serializers.Serializer):
+    """Response serializer when a daily word conflict is detected"""
+    has_conflict = serializers.BooleanField()
+    existing_post = DailyWordSerializer(allow_null=True)
+    message = serializers.CharField()
+
+
+# ============================================================================
+# WEEKLY EVENT SERIALIZERS
+# ============================================================================
+
+class WeeklyEventSerializer(serializers.ModelSerializer):
+    """Serializer for weekly event model"""
+    day_of_week_display = serializers.CharField(source='get_day_of_week_display', read_only=True)
+    linked_post_title = serializers.CharField(source='linked_post.title', read_only=True, allow_null=True)
+    linked_post_id = serializers.UUIDField(source='linked_post.id', read_only=True, allow_null=True)
+    
+    class Meta:
+        from .models import WeeklyEvent
+        model = WeeklyEvent
+        fields = [
+            'id', 'day_of_week', 'day_of_week_display', 'title', 'time',
+            'description', 'linked_post', 'linked_post_id', 'linked_post_title',
+            'sort_order', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class WeeklyEventCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating weekly events (admin only)"""
+    
+    class Meta:
+        from .models import WeeklyEvent
+        model = WeeklyEvent
+        fields = [
+            'day_of_week', 'title', 'time', 'description',
+            'linked_post', 'sort_order'
+        ]
+    
+    def validate_day_of_week(self, value):
+        """Validate day of week is 0-6"""
+        if not (0 <= value <= 6):
+            raise serializers.ValidationError("Day of week must be 0-6 (0=Monday, 6=Sunday)")
+        return value

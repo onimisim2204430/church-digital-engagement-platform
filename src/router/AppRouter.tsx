@@ -27,6 +27,7 @@ import RegisterPage from '../public/RegisterPage';
 import AdminAuth from '../pages/AdminAuth';
 import Forbidden from '../pages/Forbidden';
 import VerifyEmail from '../pages/VerifyEmail';
+import DailyWordDetailPage from '../public/DailyWordDetailPage';
 
 // Member pages
 import MemberOverview from '../member/views/MemberOverview';
@@ -47,8 +48,11 @@ import UserManager from '../admin/UserManager';
 import InteractionModeration from '../admin/InteractionModeration';
 import EmailCampaigns from '../admin/EmailCampaigns';
 import ModerationReports from '../admin/ModerationReports';
-import AppSettings from '../admin/AppSettings';
+import AdminSettings from '../admin/AdminSettings';
+//import AppSettings from '../admin/AppSettings';
 import DraftsManager from '../admin/DraftsManager';
+import DailyWordsPage from '../admin/DailyWordsPage';
+import WeeklyFlowPage from '../admin/WeeklyFlowPage';
 import AdminPlaceholder from '../admin/AdminPlaceholder';
 import AdminLayout from '../admin/layouts/AdminLayout';
 import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
@@ -70,6 +74,7 @@ const AppRouter: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/content" element={<Navigate to="/library" replace />} />
         <Route path="/content/:id" element={<Navigate to="/library" replace />} />
+        <Route path="/daily-word/:date" element={<DailyWordDetailPage />} />
         
         {/* Admin Authentication (Separate from member auth) */}
         <Route path="/admin-auth" element={<AdminAuth />} />
@@ -118,7 +123,9 @@ const AppRouter: React.FC = () => {
           <Route path="series" element={<SeriesManager />} />
           <Route path="series/new" element={<SeriesDetailManager />} />
           <Route path="series/:id" element={<SeriesDetailManager />} />
+          <Route path="daily-words" element={<DailyWordsPage />} />
           <Route path="drafts" element={<DraftsManager />} />
+          <Route path="weekly-flow" element={<WeeklyFlowPage />} />
           <Route path="podcasting" element={<AdminPlaceholder title="Podcasting" icon="podcasts" description="Manage and publish podcast episodes directly from here." />} />
           <Route path="users" element={<AdminOnlyRoute><UserManager /></AdminOnlyRoute>} />
           <Route path="moderation" element={<InteractionModeration />} />
@@ -128,7 +135,7 @@ const AppRouter: React.FC = () => {
           <Route path="volunteers" element={<AdminPlaceholder title="Volunteers" icon="manage_accounts" description="Coordinate volunteer roles, schedules and assignments." />} />
           <Route path="email" element={<EmailCampaigns />} />
           <Route path="reports" element={<ModerationReports />} />
-          <Route path="settings" element={<AdminOnlyRoute><AppSettings /></AdminOnlyRoute>} />
+          <Route path="settings" element={<AdminOnlyRoute><AdminSettings /></AdminOnlyRoute>} />
         </Route>
         
         {/* Error Pages */}

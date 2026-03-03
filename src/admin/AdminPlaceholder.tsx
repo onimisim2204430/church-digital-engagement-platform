@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import Icon from '../components/common/Icon';
 
 interface AdminPlaceholderProps {
   title: string;
@@ -17,14 +18,14 @@ const AdminPlaceholder: React.FC<AdminPlaceholderProps> = ({
 }) => (
   <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 text-center px-6">
     <div className="size-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-      <span className="material-symbols-outlined text-5xl text-primary">{icon}</span>
+      <Icon name={icon} size={48} className=" text-primary" />
     </div>
     <div className="space-y-2">
       <h1 className="text-2xl font-bold text-slate-deep">{title}</h1>
       <p className="text-sm text-slate-soft max-w-sm">{description}</p>
     </div>
     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
-      <span className="material-symbols-outlined text-[14px]">construction</span>
+      <Icon name="construction" size={14} />
       Coming Soon
     </span>
   </div>

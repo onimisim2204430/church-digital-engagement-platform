@@ -16,6 +16,7 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminContentService } from '../services/admin-content.service';
 
+import Icon from '../components/common/Icon';
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface ActivityItem {
@@ -146,7 +147,7 @@ MetricCard.displayName = 'MetricCard';
 const ActivityFeedItem = memo(({ activity }: { activity: ActivityItem }) => (
   <div className="flex gap-3 items-start min-w-0">
     <div className="size-8 rounded-full bg-slate-100 border border-border-light flex-shrink-0 flex items-center justify-center text-slate-soft">
-      <span className="material-symbols-outlined text-sm">{activity.icon}</span>
+      <Icon name={activity.icon} size={14} />
     </div>
     <div className="border-b border-slate-50 pb-2 min-w-0 flex-1">
       <p className="text-sm text-slate-deep overflow-hidden">
@@ -181,7 +182,7 @@ const MapPanel = memo(() => {
       </div>
       <div className="flex-1 bg-sky-50/30 relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center opacity-5">
-          <span className="material-symbols-outlined text-primary" style={{ fontSize: '300px' }}>public</span>
+          <span className="text-primary" style={{ fontSize: '300px' }}>public</span>
         </div>
         <div className="absolute inset-0 grid grid-cols-3 grid-rows-2 gap-4 p-6 pointer-events-none">
           {REGIONS.map((r, i) => (
@@ -255,7 +256,7 @@ const PipelineColumn = memo(({ status, items, onAddClick }: PipelineColumnProps)
         {icon ? (
           <span className={`material-symbols-outlined text-sm ${STATUS_ICON_COLORS[status]}`}>{icon}</span>
         ) : (
-          <button onClick={onAddClick} className="material-symbols-outlined text-sm text-slate-soft hover:text-primary">add</button>
+          <button onClick={onAddClick} className="text-sm text-slate-soft hover:text-primary">add</button>
         )}
       </div>
       {items.map((item) => <PipelineCard key={item.id} item={item} />)}
@@ -342,7 +343,7 @@ const DashboardOverview: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-deep flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-base">view_kanban</span>
+            <Icon name="view_kanban" size={16} className=" text-primary" />
             Content Pipeline Status
           </h2>
           <button onClick={goToContent} className="text-sm text-primary font-bold hover:underline">

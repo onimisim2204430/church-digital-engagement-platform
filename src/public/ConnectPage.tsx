@@ -5,6 +5,7 @@
 
 import React, { memo, useMemo, useCallback, useState } from 'react';
 import { PublicLayout } from './layouts';
+import Icon from '../components/common/Icon';
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -112,7 +113,7 @@ const MINISTRIES: MinistryCard[] = [
 const FeaturedGroupCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
   <div className="group relative flex flex-col md:col-span-2 bg-surface rounded-xl p-6 md:p-8 shadow-[0_2px_20px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.15)] hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden border border-accent-sand/20">
     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-      <span className="material-symbols-outlined !text-9xl text-accent-sand">groups</span>
+      <Icon name="groups" size={144} className="text-accent-sand" ariaHidden />
     </div>
     <div className="flex flex-col md:flex-row gap-6 md:items-center h-full z-10">
       <div className="h-24 w-24 md:h-32 md:w-32 shrink-0 rounded-full overflow-hidden border-4 border-background-light shadow-inner">
@@ -137,18 +138,18 @@ const FeaturedGroupCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
         <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-md">{ministry.description}</p>
         <div className="flex items-center gap-4 mt-2 text-sm text-text-main font-medium">
           <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined !text-lg text-primary">schedule</span>
+            <Icon name="schedule" size={18} className="text-primary" ariaHidden />
             <span>{ministry.schedule}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined !text-lg text-primary">location_on</span>
+            <Icon name="location_on" size={18} className="text-primary" ariaHidden />
             <span>{ministry.location}</span>
           </div>
         </div>
       </div>
       <div className="mt-4 md:mt-0 md:self-end">
         <button className="h-12 w-12 rounded-full bg-primary text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
-          <span className="material-symbols-outlined">arrow_forward</span>
+          <Icon name="arrow_forward" size={20} ariaHidden />
         </button>
       </div>
     </div>
@@ -158,7 +159,7 @@ const FeaturedGroupCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
 const SandServeCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
   <div className={`group relative flex flex-col justify-between ${ministry.bgColor} rounded-xl p-8 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden`}>
     <div className="absolute -bottom-8 -right-8 opacity-20 text-text-main rotate-12">
-      <span className="material-symbols-outlined !text-[140px]">{ministry.icon}</span>
+      <Icon name={ministry.icon || 'help'} size={140} ariaHidden />
     </div>
     <div>
       <span className="block text-text-main/70 text-xs font-bold uppercase tracking-widest mb-4">{ministry.category}</span>
@@ -167,7 +168,7 @@ const SandServeCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
     </div>
     <div className="mt-8 flex items-center gap-2 text-text-main font-bold text-sm group-hover:gap-3 transition-all">
       <span>{ministry.buttonText}</span>
-      <span className="material-symbols-outlined !text-lg">arrow_forward</span>
+      <Icon name="arrow_forward" size={18} ariaHidden />
     </div>
   </div>
 ));
@@ -196,7 +197,7 @@ const StandardGroupCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
         <span>{ministry.location}</span>
       </div>
       <button className="text-primary hover:text-primary/80 transition-colors">
-        <span className="material-symbols-outlined">arrow_forward</span>
+        <Icon name="arrow_forward" size={20} />
       </button>
     </div>
   </div>
@@ -206,9 +207,7 @@ const OutlinedServeCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
   <div className="group flex flex-col justify-between bg-white border border-accent-sand rounded-xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer">
     <div>
       <div className="flex items-center justify-between mb-4">
-        <span className="material-symbols-outlined text-4xl text-accent-sand group-hover:text-primary transition-colors">
-          {ministry.icon}
-        </span>
+        <Icon name={ministry.icon || 'help'} size={40} className="text-accent-sand group-hover:text-primary transition-colors" ariaHidden />
         <span className="text-text-muted/60 text-xs font-bold uppercase tracking-widest">{ministry.category}</span>
       </div>
       <h3 className="text-xl font-display font-medium text-text-main mb-2">{ministry.title}</h3>
@@ -216,7 +215,7 @@ const OutlinedServeCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
     </div>
     <div className="mt-6 flex items-center gap-2 text-primary font-bold text-sm group-hover:gap-3 transition-all">
       <span>{ministry.buttonText}</span>
-      <span className="material-symbols-outlined !text-lg">arrow_forward</span>
+      <Icon name="arrow_forward" size={18} ariaHidden />
     </div>
   </div>
 ));
@@ -239,7 +238,7 @@ const FeaturedEventCard = memo<{ ministry: MinistryCard }>(({ ministry }) => (
       <p className="text-text-muted text-base leading-relaxed mb-6 max-w-lg">{ministry.description}</p>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-text-main">
-          <span className="material-symbols-outlined !text-lg text-primary">calendar_month</span>
+          <Icon name="calendar_month" size={18} className="text-primary" ariaHidden />
           <span>{ministry.date}</span>
         </div>
         <button className="px-5 py-2 rounded-full bg-background-light border border-accent-sand hover:border-primary hover:text-primary transition-colors text-sm font-bold text-text-main">

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PublicLayout } from '../../layouts';
 import seriesService, { SeriesDetail, SeriesPost } from '../../../services/series.service';
+import Icon from '../../../components/common/Icon';
 
 interface Discussion {
   id: number;
@@ -122,7 +123,7 @@ const SeriesPanel: React.FC = () => {
           {hasVideo && (
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button className="group flex min-w-[200px] items-center justify-center gap-3 rounded-full bg-primary px-8 py-4 text-lg font-bold text-background-dark hover:scale-105 transition-transform">
-                <span className="material-symbols-outlined text-2xl">play_circle</span>
+                <Icon name="play_circle" size={24} />
                 Watch Latest
               </button>
               <button className="flex min-w-[200px] items-center justify-center gap-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-8 py-4 text-lg font-bold text-white hover:bg-white/20 transition-all">
@@ -148,7 +149,7 @@ const SeriesPanel: React.FC = () => {
                 />
               ) : (
                 <div className="h-10 w-10 rounded-full bg-primary/20 ring-2 ring-primary/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary text-lg">person</span>
+                  <Icon name="person" size={18} className="text-primary" />
                 </div>
               )}
               <span className="text-lg font-medium text-slate-800">{authorName}</span>
@@ -206,7 +207,7 @@ const SeriesPanel: React.FC = () => {
                             --:--
                           </div>
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-                            <span className="material-symbols-outlined text-white text-5xl">play_circle</span>
+                            <Icon name="play_circle" size={48} className="text-white" />
                           </div>
                         </Link>
                       </div>
@@ -221,11 +222,11 @@ const SeriesPanel: React.FC = () => {
                         </p>
                         <div className="flex items-center gap-6">
                           <Link to={postUrl} className="flex items-center gap-2 text-sm font-bold text-primary uppercase tracking-widest hover:opacity-80 transition-opacity">
-                            <span className="material-symbols-outlined text-lg">headphones</span>
+                            <Icon name="headphones" size={18} />
                             Listen
                           </Link>
                           <Link to={postUrl} className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-primary uppercase tracking-widest transition-colors">
-                            <span className="material-symbols-outlined text-lg">menu_book</span>
+                            <Icon name="menu_book" size={18} />
                             Read
                           </Link>
                         </div>
@@ -252,7 +253,7 @@ const SeriesPanel: React.FC = () => {
           <aside className="lg:col-span-4 space-y-12">
             <div className="rounded-2xl bg-white p-8 shadow-sm border border-primary/5">
               <h4 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">folder_open</span>
+                <Icon name="folder_open" className="text-primary" />
                 Series Resources
               </h4>
               <div className="space-y-4">
@@ -267,10 +268,10 @@ const SeriesPanel: React.FC = () => {
                     className="group flex items-center justify-between p-4 rounded-xl bg-[#fcfaf7] border border-transparent hover:border-primary/20 hover:bg-white transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-slate-400 group-hover:text-primary">{item.icon}</span>
+                      <Icon name="{item.icon}" className="text-slate-400 group-hover:text-primary" />
                       <span className="text-sm font-medium text-slate-700">{item.label}</span>
                     </div>
-                    <span className="material-symbols-outlined text-slate-300 text-sm">{item.action}</span>
+                    <Icon name="{item.action}" size={14} className="text-slate-300" />
                   </a>
                 ))}
               </div>
@@ -315,7 +316,7 @@ const SeriesPanel: React.FC = () => {
                 <p className="text-slate-600 text-sm italic font-light leading-relaxed">{discussion.comment}</p>
                 <div className="flex items-center gap-4 pt-2">
                   <button className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                    <span className="material-symbols-outlined text-sm">volunteer_activism</span>
+                    <Icon name="volunteer_activism" size={14} />
                     {discussion.amens} Amens
                   </button>
                   <button className="text-xs font-bold text-slate-400">Reply</button>
@@ -325,7 +326,7 @@ const SeriesPanel: React.FC = () => {
           </div>
 
           <button className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-primary text-background-dark font-bold text-lg hover:scale-105 transition-transform shadow-lg shadow-primary/20">
-            <span className="material-symbols-outlined">forum</span>
+            <Icon name="forum" />
             Enter Community Space
           </button>
         </div>

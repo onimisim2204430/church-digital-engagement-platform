@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PublicLayout } from '../../layouts';
 import publicContentService, { PublicPost } from '../../../services/publicContent.service';
+import Icon from '../../../components/common/Icon';
 
 interface SermonDetailProps {
   sermonId?: string;
@@ -65,7 +66,7 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
       <PublicLayout currentPage="library">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <span className="material-symbols-outlined text-6xl text-graphite mb-4 block">error_outline</span>
+            <Icon name="error_outline" size={96} className="text-graphite mb-4 block" />
             <p className="text-graphite text-lg">{error || 'Sermon not found'}</p>
           </div>
         </div>
@@ -85,7 +86,7 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-            <span className="material-symbols-outlined text-6xl text-white opacity-40">article</span>
+            <Icon name="article" size={96} className="text-white opacity-40" />
           </div>
         )}
       </div>
@@ -96,17 +97,17 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
           <aside className="hidden md:block w-10 flex-shrink-0">
             <div className="sticky-sidebar flex flex-col gap-6 text-graphite">
               <button className="hover:text-primary transition-colors" title="Share">
-                <span className="material-symbols-outlined">share</span>
+                <Icon name="share" />
               </button>
               <button className="hover:text-primary transition-colors" title="Save">
-                <span className="material-symbols-outlined">bookmark</span>
+                <Icon name="bookmark" />
               </button>
               <div className="w-full h-px bg-rule"></div>
               <button className="hover:text-primary transition-colors" title="Download Audio">
-                <span className="material-symbols-outlined">headphones</span>
+                <Icon name="audio_file" />
               </button>
               <button className="hover:text-primary transition-colors" title="Download Notes">
-                <span className="material-symbols-outlined">description</span>
+                <Icon name="description" />
               </button>
             </div>
           </aside>
@@ -191,7 +192,7 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
               </div>
               <button className="flex items-center gap-2 text-primary font-bold text-[12px] uppercase tracking-widest group">
                 Next Sermon
-                <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <Icon name="arrow_forward" size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </article>
@@ -199,10 +200,10 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-rule px-6 py-4 flex justify-between items-center z-50">
-        <button className="text-graphite"><span className="material-symbols-outlined">share</span></button>
-        <button className="text-graphite"><span className="material-symbols-outlined">bookmark</span></button>
-        <button className="text-graphite"><span className="material-symbols-outlined">headphones</span></button>
-        <button className="text-graphite"><span className="material-symbols-outlined">description</span></button>
+        <button className="text-graphite"><Icon name="share" /></button>
+        <button className="text-graphite"><Icon name="bookmark" /></button>
+        <button className="text-graphite"><Icon name="audio_file" /></button>
+        <button className="text-graphite"><Icon name="description" /></button>
       </div>
 
       <style>{`

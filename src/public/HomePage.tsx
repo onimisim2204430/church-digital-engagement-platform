@@ -16,8 +16,11 @@
  * - CLS < 0.1 (via aspect ratio boxes)
  */
 
-import React, { useEffect, useCallback, useMemo, lazy, Suspense, memo } from 'react';
+import React, { useEffect, useCallback, useMemo, lazy, Suspense, memo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SharedNavigation from './shared/SharedNavigation';
+import Icon from '../components/common/Icon';
+import { weeklyFlowService } from '../services/weeklyFlow.service';
 
 // ============================================================================
 // LAZY LOADED COMPONENTS (Code Splitting for Below-Fold Content)
@@ -66,7 +69,7 @@ SectionSkeleton.displayName = 'SectionSkeleton';
  */
 const HeroSection = memo(() => {
   return (
-    <section className="relative px-6 py-12 md:py-20 lg:py-28 max-w-[1200px] mx-auto">
+    <section className="relative px-6 py-12 md:py-20 lg:py-1 max-w-[1200px] mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         <div className="flex flex-col gap-6 order-2 lg:order-1">
           <div className="flex items-center gap-3">
@@ -81,7 +84,7 @@ const HeroSection = memo(() => {
           </p>
           <div className="pt-4 flex flex-wrap gap-4">
             <button className="flex items-center gap-2 bg-primary text-white h-14 px-8 rounded-btn font-bold text-lg tracking-wide shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300">
-              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">play_circle</span>
+              <Icon name="play_circle" size={20} ariaHidden />
               Watch Sermon
             </button>
             <button className="flex items-center gap-2 bg-white text-text-main border border-accent-sand h-14 px-8 rounded-btn font-bold text-lg tracking-wide hover:border-primary/50 transition-all duration-300">
@@ -125,15 +128,51 @@ HeroSection.displayName = 'HeroSection';
  * Weekly Flow Section - Memoized for performance
  */
 const WeeklyFlowSection = memo(() => {
-  const days = useMemo(() => [
-    { day: 'Mon', event: 'Morning Prayer', time: '8:00 AM', isActive: false },
-    { day: 'Tue', event: 'Study Circle', time: '7:00 PM', isActive: false },
-    { day: 'Wed', event: 'Restorative', time: '12:00 PM', isActive: false },
-    { day: 'Thu', event: 'Youth Hub', time: '6:30 PM', isActive: false },
-    { day: 'Fri', event: 'Shabbat Eve', time: 'Sunset', isActive: false },
-    { day: 'Sat', event: 'Sabbath Hike', time: '10:00 AM', isActive: false },
-    { day: 'Sun', event: 'Live Stream', time: '10:00 AM', isActive: true },
-  ], []);
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadWeeklyEvents = async () => {
+      try {
+        setLoading(true);
+        const data = await weeklyFlowService.getAllWithCache();
+        setEvents(data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load weekly events:', err);
+        setError('Failed to load weekly flow');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadWeeklyEvents();
+  }, []);
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const handleDayClick = (dayOfWeek: number) => {
+    // Calculate date for this day of week
+    const today = new Date();
+    const dayDifference = dayOfWeek - today.getDay();
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + dayDifference);
+    const dateStr = targetDate.toISOString().split('T')[0];
+    
+    navigate(`/daily-word/${dateStr}`);
+  };
+
+  if (error) {
+    return (
+      <section className="py-20 px-6 max-w-[1200px] mx-auto" aria-labelledby="weekly-flow-heading">
+        <div className="text-center text-text-muted">
+          <p>{error}</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 px-6 max-w-[1200px] mx-auto" aria-labelledby="weekly-flow-heading">
@@ -145,21 +184,47 @@ const WeeklyFlowSection = memo(() => {
         <p className="text-text-muted max-w-sm text-lg">Join us for live gatherings and guided moments of intentional rest throughout the week.</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        {days.map(({ day, event, time, isActive }) => (
-          <div 
-            key={day} 
-            className={`p-6 bg-surface rounded-card border border-accent-sand/20 text-center flex flex-col items-center transition-transform hover:scale-105 ${isActive ? 'bg-primary/10 border-2 border-primary/20' : ''}`}
-          >
-            <span className={`text-xs uppercase tracking-widest ${isActive ? 'text-primary font-bold' : 'text-text-muted'} mb-2`}>{day}</span>
-            <div className={`w-1.5 h-1.5 ${isActive ? 'w-2 h-2 bg-primary rounded-full mb-4 animate-pulse' : 'bg-accent-sand/50 rounded-full mb-4'}`} aria-hidden="true"></div>
-            <p className={`text-base font-medium ${isActive ? 'font-bold text-primary uppercase' : 'text-text-muted'}`}>
-              {event}
-            </p>
-            <p className={`text-xs ${isActive ? 'text-primary' : 'text-text-muted/60'} mt-1`}>
-              {time}
-            </p>
-          </div>
-        ))}
+        {loading ? (
+          // Loading skeleton
+          [...Array(7)].map((_, i) => (
+            <div key={i} className="p-6 bg-surface rounded-card border border-accent-sand/20 animate-pulse">
+              <div className="h-3 bg-accent-sand/20 rounded mb-2"></div>
+              <div className="h-2 w-2 bg-accent-sand/20 rounded-full mb-4 mx-auto"></div>
+              <div className="h-4 bg-accent-sand/20 rounded mb-2"></div>
+              <div className="h-2 bg-accent-sand/20 rounded"></div>
+            </div>
+          ))
+        ) : (
+          events.map((event) => {
+            const dayName = dayNames[event.day_of_week];
+            const today = new Date();
+            const isToday = today.getDay() === event.day_of_week;
+            
+            return (
+              <button
+                key={event.id}
+                onClick={() => handleDayClick(event.day_of_week)}
+                className={`p-6 bg-surface rounded-card border border-accent-sand/20 text-center flex flex-col items-center transition-transform hover:scale-105 cursor-pointer ${
+                  isToday ? 'bg-primary/10 border-2 border-primary/20' : ''
+                }`}
+              >
+                <span className={`text-xs uppercase tracking-widest ${isToday ? 'text-primary font-bold' : 'text-text-muted'} mb-2`}>
+                  {dayName}
+                </span>
+                <div 
+                  className={`w-1.5 h-1.5 ${isToday ? 'w-2 h-2 bg-primary rounded-full mb-4 animate-pulse' : 'bg-accent-sand/50 rounded-full mb-4'}`} 
+                  aria-hidden="true"
+                ></div>
+                <p className={`text-base font-medium ${isToday ? 'font-bold text-primary uppercase' : 'text-text-muted'}`}>
+                  {event.title}
+                </p>
+                <p className={`text-xs ${isToday ? 'text-primary' : 'text-text-muted/60'} mt-1`}>
+                  {event.time}
+                </p>
+              </button>
+            );
+          })
+        )}
       </div>
     </section>
   );
@@ -211,13 +276,13 @@ const SpiritualPracticesSection = memo(() => {
               className="p-2 rounded-full bg-white border border-accent-sand/30 hover:border-primary transition-colors"
               aria-label="Previous practices"
             >
-              <span className="material-symbols-outlined text-base">chevron_left</span>
+              <Icon name="chevron_left" size={16} />
             </button>
             <button 
               className="p-2 rounded-full bg-white border border-accent-sand/30 hover:border-primary transition-colors"
               aria-label="Next practices"
             >
-              <span className="material-symbols-outlined text-base">chevron_right</span>
+              <Icon name="chevron_right" size={16} />
             </button>
           </div>
         </div>
@@ -231,13 +296,13 @@ const SpiritualPracticesSection = memo(() => {
               role="listitem"
             >
               <div className={`w-12 h-12 rounded-full bg-${practice.color}/10 flex items-center justify-center mb-6 group-hover:bg-${practice.color} group-hover:text-white transition-colors text-${practice.color}`} aria-hidden="true">
-                <span className="material-symbols-outlined">{practice.icon}</span>
+                <Icon name={practice.icon} size={24} />
               </div>
               <h3 className="text-2xl font-serif mb-2">{practice.title}</h3>
               <p className="text-lg text-text-muted mb-6">{practice.desc}</p>
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase tracking-widest text-text-muted font-bold">{practice.time}</span>
-                <span className="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
+                <Icon name="arrow_forward" size={20} className="text-primary group-hover:translate-x-1 transition-transform" ariaHidden />
               </div>
             </article>
           ))}

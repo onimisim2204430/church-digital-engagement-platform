@@ -10,8 +10,8 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 
-from .models import Post, PostStatus, PostContentType
-from .serializers import PostSerializer, PostListSerializer
+from .models import Post, PostStatus, PostContentType, WeeklyEvent
+from .serializers import PostSerializer, PostListSerializer, DailyWordSerializer, WeeklyEventSerializer
 
 
 class PublicPostViewSet(viewsets.ReadOnlyModelViewSet):
@@ -111,3 +111,138 @@ def public_content_types(request):
         'results': result,
         'count': len(result)
     })
+
+
+# ============================================================================
+# PUBLIC DAILY WORD ENDPOINTS
+# ============================================================================
+
+class PublicDailyWordViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public API for daily word / devotional content
+    - GET /api/v1/public/daily-words/ - List published daily words
+    - GET /api/v1/public/daily-words/today/ - Get today's word
+    - GET /api/v1/public/daily-words/calendar/ - Get month calendar
+    Routes by scheduled_date as well
+    """
+    permission_classes = [AllowAny]  # Public access
+    serializer_class = DailyWordSerializer
+    
+    def get_queryset(self):
+        """Only return published devotional posts"""
+        return Post.objects.filter(
+            content_type__slug='devotional',
+            status='PUBLISHED',
+            is_deleted=False
+        ).order_by('-scheduled_date')
+    
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """Get today's daily word"""
+        today = timezone.now().date()
+        
+        post = self.get_queryset().filter(scheduled_date=today).first()
+        
+        if not post:
+            return Response({
+                'message': 'No daily word for today'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.get_serializer(post)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """Get calendar view of daily words for a month"""
+        from datetime import date as date_class
+        from calendar import monthcalendar
+        
+        month = request.query_params.get('month')
+        year = request.query_params.get('year')
+        
+        if not month or not year:
+            today = timezone.now().date()
+            month = today.month
+            year = today.year
+        
+        try:
+            month = int(month)
+            year = int(year)
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'month and year must be integers'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Build calendar
+        cal = monthcalendar(year, month)
+        
+        response_data = {
+            'year': year,
+            'month': month,
+            'days': []
+        }
+        
+        # Get all posts for this month
+        posts_dict = {}
+        for post in self.get_queryset().filter(
+            scheduled_date__year=year,
+            scheduled_date__month=month
+        ):
+            posts_dict[post.scheduled_date] = post
+        
+        # Build day array
+        for week in cal:
+            for day in week:
+                if day == 0:
+                    continue
+                
+                check_date = date_class(year, month, day)
+                post = posts_dict.get(check_date)
+                
+                response_data['days'].append({
+                    'date': str(check_date),
+                    'day': day,
+                    'has_post': post is not None,
+                    'title': post.title if post else None,
+                    'featured_image': post.featured_image if post else None,
+                })
+        
+        return Response(response_data)
+    
+    @action(detail=False, methods=['get'], url_path='by-date/(?P<date>[^/.]+)')
+    def by_date(self, request, date=None):
+        """Get daily word for specific date (YYYY-MM-DD)"""
+        try:
+            from datetime import datetime
+            lookup_date = datetime.strptime(date, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'Invalid date format. Use YYYY-MM-DD'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        post = self.get_queryset().filter(scheduled_date=lookup_date).first()
+        
+        if not post:
+            return Response({
+                'message': f'No daily word found for {date}'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = self.get_serializer(post)
+        return Response(serializer.data)
+
+
+# ============================================================================
+# PUBLIC WEEKLY EVENTS
+# ============================================================================
+
+class PublicWeeklyEventViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public API for weekly flow events
+    - GET /api/v1/public/weekly-events/ - List all weekly events
+    """
+    permission_classes = [AllowAny]  # Public access
+    serializer_class = WeeklyEventSerializer
+    
+    def get_queryset(self):
+        return WeeklyEvent.objects.all().order_by('day_of_week', 'sort_order')
+

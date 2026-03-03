@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
+import Icon from '../../components/common/Icon';
 
 interface MegaMenuProps {
   currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events';
@@ -19,25 +20,25 @@ const MegaMenu: React.FC<MegaMenuProps> = memo(({ currentPage }) => {
         <ul className="space-y-3">
           <li>
             <a href="#" className="flex items-center gap-3 text-text-main hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-lg text-accent-sage" aria-hidden="true">psychology</span>
+              <Icon name="psychology" size={18} className="text-accent-sage" ariaHidden />
               Mental Wellness
             </a>
           </li>
           <li>
             <a href="#" className="flex items-center gap-3 text-text-main hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-lg text-accent-sage" aria-hidden="true">favorite</span>
+              <Icon name="favorite" size={18} className="text-accent-sage" ariaHidden />
               Spiritual Disciplines
             </a>
           </li>
           <li>
             <a href="#" className="flex items-center gap-3 text-text-main hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-lg text-accent-sage" aria-hidden="true">group</span>
+              <Icon name="group" size={18} className="text-accent-sage" ariaHidden />
               Family & Community
             </a>
           </li>
           <li>
             <a href="#" className="flex items-center gap-3 text-text-main hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-lg text-accent-sage" aria-hidden="true">auto_stories</span>
+              <Icon name="auto_stories" size={18} className="text-accent-sage" ariaHidden />
               Biblical Studies
             </a>
           </li>
@@ -49,13 +50,13 @@ const MegaMenu: React.FC<MegaMenuProps> = memo(({ currentPage }) => {
           >
             {isLibraryPage ? (
               <>
-                <span className="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
+                <Icon name="arrow_back" size={18} ariaHidden />
                 Back to Homepage
               </>
             ) : (
               <>
                 Go To Library
-                <span className="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
+                <Icon name="arrow_forward" size={18} ariaHidden />
               </>
             )}
           </Link>

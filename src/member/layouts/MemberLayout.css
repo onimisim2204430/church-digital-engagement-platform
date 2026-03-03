@@ -5,7 +5,10 @@
 
 .member-layout {
   min-height: 100vh;
-  background: var(--bg-primary);
+  /* match public site background color - grain texture comes from global overlay in App.tsx */
+  background: #F9F8F6;
+  position: relative;
+  z-index: 2;
 }
 
 .member-main-content {

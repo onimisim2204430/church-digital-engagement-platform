@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import seriesService, { SeriesDetail, SeriesPost, SERIES_VISIBILITY_OPTIONS } from '../services/series.service';
 import postService, { Post } from '../services/post.service';
 import ImageUploadInput from './components/ImageUploadInput';
+import Icon from '../components/common/Icon';
 
 type TabKey = 'posts' | 'edit' | 'analytics' | 'resources' | 'settings';
 
@@ -318,7 +319,7 @@ const SeriesDetailManager: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-3 text-slate-500">
-          <span className="material-symbols-outlined text-4xl animate-spin">progress_activity</span>
+          <Icon name="progress_activity" size={36} className=" animate-spin" />
           <p className="text-sm font-medium">Loading series...</p>
         </div>
       </div>
@@ -329,7 +330,7 @@ const SeriesDetailManager: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <span className="material-symbols-outlined text-5xl text-red-300">error_outline</span>
+          <Icon name="error_outline" size={48} className=" text-red-300" />
           <p className="mt-3 text-red-600 font-semibold">{error || 'Series not found'}</p>
           <button onClick={fetchSeries} className="mt-4 text-primary text-sm underline">Retry</button>
         </div>
@@ -361,10 +362,10 @@ const SeriesDetailManager: React.FC = () => {
               onClick={() => navigate('/admin/series')}
               className="hover:text-primary transition-colors flex items-center gap-1"
             >
-              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+              <Icon name="arrow_back" size={14} />
               Series Management
             </button>
-            <span className="material-symbols-outlined text-[10px]">chevron_right</span>
+            <Icon name="chevron_right" size={10} />
             <span className="text-slate-900 truncate max-w-xs">
               {isCreateMode ? 'New Series' : series?.title}
             </span>
@@ -378,9 +379,7 @@ const SeriesDetailManager: React.FC = () => {
                   <img src={series.cover_image} alt={series.title} className="h-full w-full object-cover" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-slate-300">
-                      {isCreateMode ? 'add_circle' : 'account_tree'}
-                    </span>
+                    <Icon name={isCreateMode ? 'add_circle' : 'account_tree'} size={32} className=" text-slate-300" />
                   </div>
                 )}
               </div>
@@ -414,20 +413,20 @@ const SeriesDetailManager: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2 hidden md:flex">
                     {authorName && (
                       <span className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">person</span>
+                        <Icon name="person" size={14} />
                         Author: <strong>{authorName}</strong>
                       </span>
                     )}
                     {authorName && <span className="w-1 h-1 rounded-full bg-slate-300" />}
                     <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                      <Icon name="calendar_today" size={14} />
                       Created: <strong>{series ? fmtDate(series.created_at) : ''}</strong>
                     </span>
                     {series?.date_range?.start && (
                       <>
                         <span className="w-1 h-1 rounded-full bg-slate-300" />
                         <span className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[14px]">event</span>
+                          <Icon name="event" size={14} />
                           Active: <strong>
                             {fmtDate(series.date_range.start)}
                             {series.date_range.end ? ` – ${fmtDate(series.date_range.end)}` : ' – Present'}
@@ -449,7 +448,7 @@ const SeriesDetailManager: React.FC = () => {
                   rel="noreferrer"
                   className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center gap-2"
                 >
-                  <span className="material-symbols-outlined text-[18px]">visibility</span>
+                  <Icon name="visibility" size={18} />
                   View
                 </a>
               )}
@@ -459,9 +458,7 @@ const SeriesDetailManager: React.FC = () => {
                   disabled={editSaving || !editForm.title.trim()}
                   className="bg-primary hover:opacity-90 text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-sm flex items-center gap-2"
                 >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {editSaving ? 'hourglass_empty' : 'add_circle'}
-                  </span>
+                  <Icon name={editSaving ? 'hourglass_empty' : 'add_circle'} size={18} />
                   {editSaving ? 'Creating...' : 'Create Series'}
                 </button>
               )}
@@ -479,7 +476,7 @@ const SeriesDetailManager: React.FC = () => {
               ].map(m => (
                 <div key={m.label} className="flex items-center gap-3">
                   <div className={`p-1.5 rounded ${m.bg}`}>
-                    <span className="material-symbols-outlined text-lg">{m.icon}</span>
+                    <Icon name={m.icon} size={18} />
                   </div>
                   <div>
                     <p className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">{m.label}</p>
@@ -506,7 +503,7 @@ const SeriesDetailManager: React.FC = () => {
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
-                <span className="material-symbols-outlined text-lg">{tab.icon}</span>
+                <Icon name={tab.icon} size={18} />
                 {tab.label}
                 {'count' in tab && tab.count !== undefined && (
                   <span className={`py-0.5 px-2 rounded-full text-xs ${
@@ -531,7 +528,7 @@ const SeriesDetailManager: React.FC = () => {
               {/* Success banner */}
               {createSuccess && (
                 <div className="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-4 text-sm font-medium">
-                  <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
+                  <Icon name="check_circle" size={18} className=" text-green-500" />
                   <div>
                     <p className="font-semibold">Series created successfully!</p>
                     <p className="text-xs text-green-600 mt-0.5">Redirecting to the new series page...</p>
@@ -542,7 +539,7 @@ const SeriesDetailManager: React.FC = () => {
               {/* Error banner */}
               {editError && (
                 <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4 text-sm font-medium">
-                  <span className="material-symbols-outlined text-red-400 text-lg">error_outline</span>
+                  <Icon name="error_outline" size={18} className=" text-red-400" />
                   {editError}
                 </div>
               )}
@@ -638,7 +635,7 @@ const SeriesDetailManager: React.FC = () => {
                               <p className="text-xs text-slate-400 mt-0.5">{descs[opt.value]}</p>
                             </div>
                             {isActive && (
-                              <span className="material-symbols-outlined text-primary text-base flex-shrink-0">check_circle</span>
+                              <Icon name="check_circle" size={16} className=" text-primary flex-shrink-0" />
                             )}
                           </label>
                         );
@@ -697,9 +694,7 @@ const SeriesDetailManager: React.FC = () => {
                       disabled={editSaving || createSuccess || !editForm.title.trim()}
                       className="flex-1 px-5 py-3 rounded-lg bg-primary hover:opacity-90 text-white text-sm font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
                     >
-                      <span className="material-symbols-outlined text-sm">
-                        {editSaving ? 'hourglass_empty' : 'add_circle'}
-                      </span>
+                      <Icon name={editSaving ? 'hourglass_empty' : 'add_circle'} size={14} />
                       {editSaving ? 'Creating...' : 'Create Series'}
                     </button>
                     <button
@@ -730,7 +725,7 @@ const SeriesDetailManager: React.FC = () => {
                   <div className="flex items-center justify-between gap-4">
                     <div className="relative w-72">
                       <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                        <span className="material-symbols-outlined text-lg">search</span>
+                        <Icon name="search" size={18} />
                       </span>
                       <input
                         className="w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -744,7 +739,7 @@ const SeriesDetailManager: React.FC = () => {
                         onClick={() => setShowAddPost(true)}
                         className="border border-primary text-primary hover:bg-primary/5 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-sm">add</span>
+                        <Icon name="add" size={14} />
                         Add Post
                       </button>
                       <button
@@ -752,9 +747,7 @@ const SeriesDetailManager: React.FC = () => {
                         disabled={savingOrder}
                         className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 disabled:opacity-60"
                       >
-                        <span className="material-symbols-outlined text-sm">
-                          {savingOrder ? 'hourglass_empty' : 'save'}
-                        </span>
+                        <Icon name={savingOrder ? 'hourglass_empty' : 'save'} size={14} />
                         {savingOrder ? 'Saving...' : 'Save Order'}
                       </button>
                     </div>
@@ -763,7 +756,7 @@ const SeriesDetailManager: React.FC = () => {
                   {/* Empty state */}
                   {filteredPosts.length === 0 && (
                     <div className="text-center py-16 text-slate-500">
-                      <span className="material-symbols-outlined text-5xl text-slate-300">article</span>
+                      <Icon name="article" size={48} className=" text-slate-300" />
                       <p className="mt-2 font-semibold">No posts in this series yet</p>
                       <p className="text-xs mt-1 text-slate-400 mb-4">
                         Add posts to this series to get started
@@ -772,7 +765,7 @@ const SeriesDetailManager: React.FC = () => {
                         onClick={() => setShowAddPost(true)}
                         className="border border-primary text-primary hover:bg-primary/5 px-5 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-sm">add</span>
+                        <Icon name="add" size={14} />
                         Add Post
                       </button>
                     </div>
@@ -795,7 +788,7 @@ const SeriesDetailManager: React.FC = () => {
                           ].join(' ')}
                         >
                           <div className="text-slate-300 cursor-grab active:cursor-grabbing">
-                            <span className="material-symbols-outlined">drag_indicator</span>
+                            <Icon name="drag_indicator" />
                           </div>
                           <div className="flex flex-col gap-0.5">
                             <button
@@ -804,7 +797,7 @@ const SeriesDetailManager: React.FC = () => {
                               className="p-0.5 text-slate-300 hover:text-primary transition-colors disabled:opacity-20 disabled:cursor-default"
                               title="Move up"
                             >
-                              <span className="material-symbols-outlined text-base leading-none">keyboard_arrow_up</span>
+                              <Icon name="keyboard_arrow_up" size={16} className=" leading-none" />
                             </button>
                             <button
                               onClick={() => handleMovePost(post.id, 'down')}
@@ -812,7 +805,7 @@ const SeriesDetailManager: React.FC = () => {
                               className="p-0.5 text-slate-300 hover:text-primary transition-colors disabled:opacity-20 disabled:cursor-default"
                               title="Move down"
                             >
-                              <span className="material-symbols-outlined text-base leading-none">keyboard_arrow_down</span>
+                              <Icon name="keyboard_arrow_down" size={16} className=" leading-none" />
                             </button>
                           </div>
                           <div className="h-10 w-10 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden">
@@ -820,7 +813,7 @@ const SeriesDetailManager: React.FC = () => {
                               <img src={post.featured_image} alt="" className="h-full w-full object-cover" />
                             ) : (
                               <div className="h-full w-full flex items-center justify-center">
-                                <span className="material-symbols-outlined text-lg text-slate-300">article</span>
+                                <Icon name="article" size={18} className=" text-slate-300" />
                               </div>
                             )}
                           </div>
@@ -854,9 +847,7 @@ const SeriesDetailManager: React.FC = () => {
                               className="p-1.5 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
                               title="Remove from series"
                             >
-                              <span className="material-symbols-outlined">
-                                {removingId === post.id ? 'hourglass_empty' : 'delete'}
-                              </span>
+                              <Icon name={removingId === post.id ? 'hourglass_empty' : 'delete'} />
                             </button>
                           </div>
                         </div>
@@ -872,13 +863,13 @@ const SeriesDetailManager: React.FC = () => {
                   {/* Status banners */}
                   {editSuccess && (
                     <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3 text-sm font-medium">
-                      <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
+                      <Icon name="check_circle" size={18} className=" text-green-500" />
                       Series updated successfully.
                     </div>
                   )}
                   {editError && (
                     <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-3 text-sm font-medium">
-                      <span className="material-symbols-outlined text-red-400 text-lg">error_outline</span>
+                      <Icon name="error_outline" size={18} className=" text-red-400" />
                       {editError}
                     </div>
                   )}
@@ -960,7 +951,7 @@ const SeriesDetailManager: React.FC = () => {
                       {/* Card: Visibility */}
                       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
-                          <span className="material-symbols-outlined text-[18px] text-primary/70">lock_open</span>
+                          <Icon name="lock_open" size={18} className=" text-primary/70" />
                           <div>
                             <h3 className="text-sm font-bold text-slate-800">Visibility</h3>
                             <p className="text-xs text-slate-400">Who can access this series</p>
@@ -1002,7 +993,7 @@ const SeriesDetailManager: React.FC = () => {
                                   <p className="text-xs text-slate-400 mt-0.5">{descs[opt.value]}</p>
                                 </div>
                                 {isActive && (
-                                  <span className="material-symbols-outlined text-primary text-base">check_circle</span>
+                                  <Icon name="check_circle" size={16} className=" text-primary" />
                                 )}
                               </label>
                             );
@@ -1013,7 +1004,7 @@ const SeriesDetailManager: React.FC = () => {
                       {/* Card: Featured */}
                       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
-                          <span className="material-symbols-outlined text-[18px] text-amber-500">star</span>
+                          <Icon name="star" size={18} className=" text-amber-500" />
                           <div>
                             <h3 className="text-sm font-bold text-slate-800">Featured</h3>
                             <p className="text-xs text-slate-400">Promote on the homepage</p>
@@ -1070,9 +1061,7 @@ const SeriesDetailManager: React.FC = () => {
                           disabled={editSaving || !editForm.title.trim()}
                           className="w-full px-5 py-2.5 rounded-lg bg-primary hover:opacity-90 text-white text-sm font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
                         >
-                          <span className="material-symbols-outlined text-sm">
-                            {editSaving ? 'hourglass_empty' : 'check'}
-                          </span>
+                          <Icon name={editSaving ? 'hourglass_empty' : 'check'} size={14} />
                           {editSaving ? 'Saving...' : 'Save Changes'}
                         </button>
                         <button
@@ -1106,7 +1095,7 @@ const SeriesDetailManager: React.FC = () => {
               {/* ── Analytics tab ───────────────────────────────────── */}
               {activeTab === 'analytics' && (
                 <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
-                  <span className="material-symbols-outlined text-5xl text-slate-300">analytics</span>
+                  <Icon name="analytics" size={48} className=" text-slate-300" />
                   <p className="text-slate-700 font-semibold mt-4 text-lg">Analytics Coming Soon</p>
                   <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto">
                     Detailed per-post engagement, retention curves, and share analytics will be available here in a future update.
@@ -1119,7 +1108,7 @@ const SeriesDetailManager: React.FC = () => {
                 <div className="max-w-7xl mx-auto flex gap-6">
                   {/* Left: Placeholder or future resource content */}
                   <div className="flex-1 flex flex-col items-center justify-center">
-                    <span className="material-symbols-outlined text-5xl text-slate-300">folder_open</span>
+                    <Icon name="folder_open" size={48} className=" text-slate-300" />
                     <p className="text-slate-700 font-semibold mt-4 text-lg">Series Resources</p>
                     <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto">
                       Attach discussion guides, PDFs, and supplementary materials to this series.
@@ -1143,7 +1132,7 @@ const SeriesDetailManager: React.FC = () => {
                     {/* Card: Series Information */}
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                       <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5">
-                        <span className="material-symbols-outlined text-[18px] text-primary/70">info</span>
+                        <Icon name="info" size={18} className=" text-primary/70" />
                         <div>
                           <h3 className="text-sm font-bold text-slate-800">Series Information</h3>
                           <p className="text-xs text-slate-400">Read-only metadata about this series</p>
@@ -1158,7 +1147,7 @@ const SeriesDetailManager: React.FC = () => {
                           { icon: 'visibility', label: 'Total Views', value: totalViews.toLocaleString() },
                         ].map(row => (
                           <div key={row.label} className="flex items-center gap-4 px-6 py-3.5">
-                            <span className="material-symbols-outlined text-base text-slate-300 flex-shrink-0">{row.icon}</span>
+                            <Icon name={row.icon} size={16} className=" text-slate-300 flex-shrink-0" />
                             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider w-32 flex-shrink-0">{row.label}</span>
                             <span className="text-sm text-slate-800 font-medium truncate">{row.value}</span>
                           </div>
@@ -1168,7 +1157,7 @@ const SeriesDetailManager: React.FC = () => {
                     {/* Card: Public URL */}
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                       <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5">
-                        <span className="material-symbols-outlined text-[18px] text-primary/70">open_in_new</span>
+                        <Icon name="open_in_new" size={18} className=" text-primary/70" />
                         <div>
                           <h3 className="text-sm font-bold text-slate-800">Public Page</h3>
                           <p className="text-xs text-slate-400">The live URL for this series</p>
@@ -1176,7 +1165,7 @@ const SeriesDetailManager: React.FC = () => {
                       </div>
                       <div className="px-6 py-5">
                         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                          <span className="material-symbols-outlined text-slate-400 text-sm flex-shrink-0">link</span>
+                          <Icon name="link" size={14} className=" text-slate-400 flex-shrink-0" />
                           <span className="text-xs text-slate-500 truncate flex-1">/library/series/{series?.slug}</span>
                           <a
                             href={`/library/series/${series?.slug}`}
@@ -1185,7 +1174,7 @@ const SeriesDetailManager: React.FC = () => {
                             className="flex-shrink-0 text-xs font-semibold text-primary hover:underline flex items-center gap-1"
                           >
                             Open
-                            <span className="material-symbols-outlined text-xs">open_in_new</span>
+                            <Icon name="open_in_new" className=" text-xs" />
                           </a>
                         </div>
                       </div>
@@ -1195,7 +1184,7 @@ const SeriesDetailManager: React.FC = () => {
                   <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-5">
                     <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
                       <div className="px-5 py-4 border-b border-red-100 flex items-center gap-2.5 bg-red-50/60">
-                        <span className="material-symbols-outlined text-[18px] text-red-500">warning</span>
+                        <Icon name="warning" size={18} className=" text-red-500" />
                         <div>
                           <h3 className="text-sm font-bold text-red-700">Danger Zone</h3>
                           <p className="text-xs text-red-400">Irreversible actions</p>
@@ -1216,7 +1205,7 @@ const SeriesDetailManager: React.FC = () => {
                             }}
                             className="mt-1 w-full px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                           >
-                            <span className="material-symbols-outlined text-sm">archive</span>
+                            <Icon name="archive" size={14} />
                             Archive (Set Hidden)
                           </button>
                         </div>
@@ -1235,7 +1224,7 @@ const SeriesDetailManager: React.FC = () => {
                               }}
                               className="mt-1 w-full px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
-                              <span className="material-symbols-outlined text-sm">delete_forever</span>
+                              <Icon name="delete_forever" size={14} />
                               Delete Series
                             </button>
                               {/* Remove Post Confirmation Modal */}
@@ -1243,7 +1232,7 @@ const SeriesDetailManager: React.FC = () => {
                                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => { if (e.target === e.currentTarget) setRemoveConfirmId(null); }}>
                                   <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
                                     <div className="flex items-center gap-3 mb-4">
-                                      <span className="material-symbols-outlined text-red-400 text-2xl">remove_circle</span>
+                                      <Icon name="remove_circle" size={24} className=" text-red-400" />
                                       <h2 className="text-lg font-bold text-slate-900">Remove Post</h2>
                                     </div>
                                     <p className="text-slate-700 mb-4">Are you sure you want to remove this post from the series? This will not delete the post.</p>
@@ -1268,7 +1257,7 @@ const SeriesDetailManager: React.FC = () => {
                                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => { if (e.target === e.currentTarget) { setShowDeleteSeriesModal(false); setDeleteSeriesInput(""); } }}>
                                   <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
                                     <div className="flex items-center gap-3 mb-4">
-                                      <span className="material-symbols-outlined text-red-400 text-2xl">delete_forever</span>
+                                      <Icon name="delete_forever" size={24} className=" text-red-400" />
                                       <h2 className="text-lg font-bold text-slate-900">Delete Series</h2>
                                     </div>
                                     <p className="text-slate-700 mb-4">Are you sure you want to delete <span className="font-semibold">"{series?.title}"</span>? This cannot be undone. Posts assigned to it will not be deleted but will no longer be grouped.</p>
@@ -1332,14 +1321,14 @@ const SeriesDetailManager: React.FC = () => {
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary text-xl">playlist_add</span>
+                <Icon name="playlist_add" size={20} className=" text-primary" />
                 <h2 className="text-base font-bold text-slate-900">Add Post to Series</h2>
               </div>
               <button
                 onClick={() => setShowAddPost(false)}
                 className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <Icon name="close" size={18} />
               </button>
             </div>
 
@@ -1347,7 +1336,7 @@ const SeriesDetailManager: React.FC = () => {
             <div className="px-6 py-3 border-b border-slate-100 flex-shrink-0">
               <div className="relative">
                 <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                  <span className="material-symbols-outlined text-lg">search</span>
+                  <Icon name="search" size={18} />
                 </span>
                 <input
                   className="w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -1363,11 +1352,11 @@ const SeriesDetailManager: React.FC = () => {
             <div className="overflow-y-auto flex-1">
               {loadingAvailablePosts ? (
                 <div className="flex items-center justify-center py-12 text-slate-400">
-                  <span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span>
+                  <Icon name="progress_activity" size={32} className=" animate-spin" />
                 </div>
               ) : availablePosts.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
-                  <span className="material-symbols-outlined text-4xl text-slate-200">article</span>
+                  <Icon name="article" size={36} className=" text-slate-200" />
                   <p className="mt-2 text-sm font-medium">
                     {addPostSearch ? 'No posts match your search' : 'All posts are already in this series'}
                   </p>
@@ -1386,7 +1375,7 @@ const SeriesDetailManager: React.FC = () => {
                             <img src={post.featured_image} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="h-full w-full flex items-center justify-center">
-                              <span className="material-symbols-outlined text-base text-slate-300">article</span>
+                              <Icon name="article" size={16} className=" text-slate-300" />
                             </div>
                           )}
                         </div>
@@ -1413,12 +1402,12 @@ const SeriesDetailManager: React.FC = () => {
                         >
                           {addingPostId === post.id ? (
                             <>
-                              <span className="material-symbols-outlined text-sm">hourglass_empty</span>
+                              <Icon name="hourglass_empty" size={14} />
                               Adding…
                             </>
                           ) : (
                             <>
-                              <span className="material-symbols-outlined text-sm">add</span>
+                              <Icon name="add" size={14} />
                               Add
                             </>
                           )}
@@ -1472,7 +1461,7 @@ function SeriesResourcesSidebar() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-slate-900">Series Resources</h3>
         <button className="text-primary hover:text-primary-dark p-1">
-          <span className="material-symbols-outlined text-lg">add_circle</span>
+          <Icon name="add_circle" size={18} />
         </button>
       </div>
       <ul className="space-y-3">
@@ -1491,7 +1480,7 @@ function SeriesResourcesSidebar() {
               className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => setResources(resources.filter(r => r.id !== resource.id))}
             >
-              <span className="material-symbols-outlined text-base">close</span>
+              <Icon name="close" size={16} />
             </button>
           </li>
         ))}

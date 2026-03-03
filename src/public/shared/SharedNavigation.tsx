@@ -12,6 +12,7 @@
 import { memo, useMemo, useState, useEffect, Suspense, lazy } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import Icon from '../../components/common/Icon';
 
 // Lazy load MegaMenu for better performance
 const MegaMenu = lazy(() => 
@@ -78,7 +79,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
         <div className={`h-20 flex items-center justify-between ${fullWidth ? 'w-full px-8' : 'max-w-[1200px] mx-auto px-6'}`}>
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 text-text-main" aria-label="Serene Sanctuary Home">
-          <span className="material-symbols-outlined text-primary" aria-hidden="true">spa</span>
+          <Icon name="spa" size={24} className="text-primary" ariaHidden />
           <span className="font-display font-semibold tracking-tight text-text-main">Serene Sanctuary</span>
         </Link>
 
@@ -97,7 +98,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
               aria-expanded={showMegaMenu}
               aria-haspopup="true"
             >
-              Library <span className="material-symbols-outlined text-sm" aria-hidden="true">expand_more</span>
+              Library <Icon name="expand_more" size={16} ariaHidden />
             </button>
             {showMegaMenu && (
               <Suspense fallback={
@@ -162,9 +163,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
             aria-label={showMobileMenu ? "Close menu" : "Open menu"}
             aria-expanded={showMobileMenu}
           >
-            <span className="material-symbols-outlined">
-              {showMobileMenu ? 'close' : 'menu'}
-            </span>
+            <Icon name={showMobileMenu ? 'close' : 'menu'} size={24} />
           </button>
         </div>
       </div>
@@ -189,7 +188,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
             {/* Sidebar Header */}
             <div className="flex items-center justify-between p-6 border-b border-accent-sand/30">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-2xl text-primary" aria-hidden="true">spa</span>
+                <Icon name="spa" size={28} className="text-primary" ariaHidden />
                 <span className="font-display font-semibold text-base tracking-tight text-text-main">Menu</span>
               </div>
               <button 
@@ -197,7 +196,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                 className="p-2 text-text-main hover:text-primary transition-colors"
                 aria-label="Close menu"
               >
-                <span className="material-symbols-outlined">close</span>
+                <Icon name="close" size={24} />
               </button>
             </div>
 
@@ -210,7 +209,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <span className="material-symbols-outlined text-base">home</span>
+                <Icon name="home" size={16} />
                 Home
               </Link>
               
@@ -221,7 +220,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <span className="material-symbols-outlined text-base">library_books</span>
+                <Icon name="library_books" size={16} />
                 Library
               </Link>
               
@@ -232,7 +231,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <span className="material-symbols-outlined text-base">collections_bookmark</span>
+                <Icon name="collections_bookmark" size={16} />
                 Series
               </Link>
               
@@ -243,7 +242,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <span className="material-symbols-outlined text-base">self_improvement</span>
+                <Icon name="self_improvement" size={16} />
                 Practices
               </Link>
               
@@ -254,7 +253,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                <span className="material-symbols-outlined text-base">group</span>
+                <Icon name="group" size={16} />
                 Connect
               </Link>
 
@@ -270,7 +269,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   }}
                   className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-btn bg-primary text-white text-sm font-bold tracking-wide hover:bg-primary/90 transition-all duration-300"
                 >
-                  <span className="material-symbols-outlined text-base">login</span>
+                  <Icon name="login" size={16} />
                   Login
                 </button>
               ) : (
@@ -281,7 +280,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   }}
                   className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-btn bg-primary text-white text-sm font-bold tracking-wide hover:bg-primary/90 transition-all duration-300"
                 >
-                  <span className="material-symbols-outlined text-base">dashboard</span>
+                  <Icon name="dashboard" size={16} />
                   Portal
                 </button>
               )}

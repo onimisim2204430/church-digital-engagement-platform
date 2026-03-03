@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { PublicLayout } from './layouts';
+import Icon from '../components/common/Icon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,20 +103,20 @@ const ActionButton = memo<{ status: Event['status'] }>(({ status }) => {
       return (
         <button className="w-full md:w-auto px-4 py-2 border border-border-subtle text-primary font-bold text-sm rounded hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
           Register
-          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+          <Icon name="arrow_forward" size={16} />
         </button>
       );
     case 'approaching':
       return (
         <button className="w-full md:w-auto px-4 py-2 bg-surface border border-accent-warning text-yellow-700 font-bold text-sm rounded hover:bg-accent-warning hover:text-white transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
           Register
-          <span className="material-symbols-outlined text-[16px]">bolt</span>
+          <Icon name="bolt" size={16} />
         </button>
       );
     case 'full':
       return (
         <button className="w-full md:w-auto px-4 py-2 border border-border-subtle text-text-muted font-bold text-sm rounded hover:border-text-muted hover:text-text-main transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[16px]">hourglass_empty</span>
+          <Icon name="hourglass_empty" size={16} />
           Waitlist
         </button>
       );
@@ -123,7 +124,7 @@ const ActionButton = memo<{ status: Event['status'] }>(({ status }) => {
       return (
         <button className="w-full md:w-auto px-4 py-2 border border-border-subtle text-text-main font-bold text-sm rounded hover:bg-text-main hover:text-white hover:border-text-main transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
           Details
-          <span className="material-symbols-outlined text-[16px]">info</span>
+          <Icon name="info" size={16} />
         </button>
       );
     default:
@@ -160,7 +161,7 @@ const EventRow = memo<{ event: Event }>(({ event }) => {
           <div className="md:hidden">
             {event.status === 'approaching' ? (
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-accent-warning/10 border border-accent-warning/20 text-xs font-bold text-yellow-700">
-                <span className="material-symbols-outlined text-[12px]">warning</span> Low
+                <Icon name="warning" size={12} className="inline" /> Low
               </span>
             ) : (
               <span className="inline-flex items-center px-2 py-1 rounded bg-background-light border border-border-subtle text-xs font-medium text-text-muted">
@@ -198,7 +199,7 @@ const EventRow = memo<{ event: Event }>(({ event }) => {
 
         {/* Location */}
         <div className="col-span-2 flex items-center gap-2 mb-3 md:mb-0 text-sm font-medium text-text-muted">
-          <span className="material-symbols-outlined text-[16px] md:hidden">location_on</span>
+          <Icon name="location_on" size={16} className="md:hidden" />
           {event.location}
         </div>
 
@@ -256,7 +257,7 @@ const MetricCard = memo<MetricCardProps>(({ icon, iconBg, iconColor, label, valu
   <div className="bg-surface p-5 rounded border border-border-subtle shadow-sm hover:shadow-md transition-shadow">
     <div className="flex items-center gap-3 mb-2">
       <div className={`p-1.5 ${iconBg} rounded ${iconColor}`}>
-        <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        <Icon name={icon} size={20} />
       </div>
       <span className="font-mono text-xs font-bold uppercase text-text-muted">{label}</span>
     </div>
@@ -264,7 +265,7 @@ const MetricCard = memo<MetricCardProps>(({ icon, iconBg, iconColor, label, valu
       <span className="font-display text-2xl font-bold text-text-main">{value}</span>
       {trend && (
         <span className="text-xs text-accent-success font-medium flex items-center">
-          <span className="material-symbols-outlined text-[14px]">trending_up</span> {trend}
+          <Icon name="trending_up" size={14} className="mr-1" /> {trend}
         </span>
       )}
       {subValue && <span className="text-xs text-text-muted font-medium">{subValue}</span>}
@@ -334,7 +335,7 @@ const EventsPage: React.FC = () => {
                     : 'text-text-muted hover:text-primary hover:bg-background-light'
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                <Icon name="calendar_month" size={18} />
               </button>
               <button
                 onClick={handleViewTable}
@@ -344,7 +345,7 @@ const EventsPage: React.FC = () => {
                     : 'text-text-muted hover:text-primary hover:bg-background-light'
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">table_rows</span>
+                <Icon name="table_rows" size={18} />
               </button>
             </div>
           </div>
@@ -377,7 +378,7 @@ const EventsPage: React.FC = () => {
                 disabled={currentPage === 1}
                 className="p-2 rounded hover:bg-surface border border-transparent hover:border-border-subtle transition-all disabled:opacity-50 text-text-muted"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                <Icon name="chevron_left" size={20} />
               </button>
               <div className="flex gap-1">
                 {PAGES.map((page) => (
@@ -399,7 +400,7 @@ const EventsPage: React.FC = () => {
                 disabled={currentPage === 3}
                 className="p-2 rounded hover:bg-surface border border-transparent hover:border-border-subtle transition-all text-text-muted"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                <Icon name="chevron_right" size={20} />
               </button>
             </div>
           </div>

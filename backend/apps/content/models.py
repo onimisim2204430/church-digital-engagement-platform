@@ -148,6 +148,14 @@ class Post(models.Model):
         help_text="Content category/topic (e.g., Mental Health, Prayer, Marriage)"
     )
     
+    # Scheduling (for daily words and time-based content)
+    scheduled_date = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Date when this content is scheduled to appear (for daily words, etc.)"
+    )
+    
     # Publishing
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
@@ -195,6 +203,10 @@ class Post(models.Model):
             models.Index(fields=['is_published', '-published_at']),
             models.Index(fields=['is_featured', '-featured_priority']),
             models.Index(fields=['series', 'series_order']),
+            # Indexes for daily word / scheduled content
+            models.Index(fields=['scheduled_date']),
+            models.Index(fields=['scheduled_date', 'status']),
+            models.Index(fields=['scheduled_date', 'is_deleted']),
         ]
     
     def __str__(self):
@@ -216,6 +228,28 @@ class Post(models.Model):
         if self.content_type:
             return self.content_type.slug
         return self.post_type.lower()
+    
+    def clean(self):
+        """
+        Validate the post before saving.
+        Enforce one post per scheduled_date for devotional/daily word content.
+        """
+        super().clean()
+        
+        # Only check uniqueness for posts with a scheduled_date (daily words, etc.)
+        if self.scheduled_date and self.content_type and self.content_type.slug == 'devotional':
+            # Check if another post exists for this date
+            existing = Post.objects.filter(
+                scheduled_date=self.scheduled_date,
+                content_type__slug='devotional',
+                is_deleted=False
+            ).exclude(pk=self.pk)  # Exclude self when updating
+            
+            if existing.exists():
+                existing_post = existing.first()
+                raise ValidationError({
+                    'scheduled_date': f'A devotional post already exists for {self.scheduled_date}: "{existing_post.title}" by {existing_post.author.get_full_name() or existing_post.author.username}. Please replace, reschedule, or cancel.'
+                })
     
     def publish(self):
         """
@@ -504,3 +538,76 @@ class Draft(models.Model):
                 return text[:max_length] + '...'
             return text
         return ""
+
+
+class WeeklyEvent(models.Model):
+    """
+    Represents a recurring weekly event (e.g., Sunday Service, Monday Prayer, etc.)
+    Displayed in the Weekly Flow section on the public homepage.
+    Can optionally link to a daily word or other post for that day.
+    """
+    
+    DAY_CHOICES = [
+        (0, 'Monday'),
+        (1, 'Tuesday'),
+        (2, 'Wednesday'),
+        (3, 'Thursday'),
+        (4, 'Friday'),
+        (5, 'Saturday'),
+        (6, 'Sunday'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    day_of_week = models.IntegerField(
+        choices=DAY_CHOICES,
+        unique=True,
+        db_index=True,
+        help_text="Day of week (0=Monday, 6=Sunday)"
+    )
+    title = models.CharField(
+        max_length=100,
+        help_text="Event name (e.g., 'Morning Prayer', 'Study Circle')"
+    )
+    time = models.CharField(
+        max_length=50,
+        help_text="Event time (e.g., '8:00 AM', 'Sunset')"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the event"
+    )
+    
+    # Optional link to a daily word or other related post
+    linked_post = models.ForeignKey(
+        Post,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='weekly_events',
+        help_text="Optional: Daily word or other post for this day"
+    )
+    
+    # Display ordering
+    sort_order = models.SmallIntegerField(
+        default=0,
+        help_text="Display order (lower numbers appear first)"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['day_of_week', 'sort_order']
+        verbose_name = "Weekly Event"
+        verbose_name_plural = "Weekly Events"
+        indexes = [
+            models.Index(fields=['day_of_week']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_day_of_week_display()} - {self.title} ({self.time})"
+    
+    def get_day_name(self):
+        """Get the full day name"""
+        return self.get_day_of_week_display()
