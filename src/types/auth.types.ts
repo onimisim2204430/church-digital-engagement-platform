@@ -23,6 +23,7 @@ export interface User {
   website?: string;
   profilePicture?: string;
   bio?: string;
+  lastLogin?: string | null;
   emailVerified?: boolean;
   emailVerifiedAt?: string | null;
 }
@@ -50,4 +51,16 @@ export interface AuthState {
   tokens: AuthTokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** Module-level permission codes extracted from the JWT payload. */
+  permissions: string[];
+}
+
+/** Decoded JWT access token payload (our custom fields). */
+export interface JwtPayload {
+  user_id: string;
+  role?: string;
+  permissions?: string[];
+  exp?: number;
+  iat?: number;
+  token_type?: string;
 }

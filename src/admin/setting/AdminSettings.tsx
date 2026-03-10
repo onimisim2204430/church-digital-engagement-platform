@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FEATURE_TOGGLES, NAV_ITEMS } from './constants/admin-settings.constants';
 import SidebarNav from './components/SidebarNav';
-import SettingsHeader from './components/SettingsHeader';
 import SuccessToast from './components/SuccessToast';
 import TabSkeleton from './components/TabSkeleton';
 import { FeatureToggle, SettingsTab } from './types/admin-settings.types';
@@ -153,25 +152,51 @@ const AdminSettings: React.FC = () => {
     searchQuery,
   ]);
 
+  // Tabs that manage their own scroll/layout — no padding or overflow-y wrapper
+  const FULL_BLEED_TABS: SettingsTab[] = ['roles', 'users'];
+  const isFullBleed = FULL_BLEED_TABS.includes(activeTab);
+
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div 
+      className="flex h-full min-h-0 overflow-hidden"
+      style={{
+        background: 'var(--admin-bg-secondary)',
+      }}
+    >
       <SuccessToast message={successMessage} />
 
-      <SidebarNav
-        navItems={NAV_ITEMS}
-        activeTab={activeTab}
-        sidebarCollapsed={sidebarCollapsed}
-        onSelectTab={handleSelectTab}
-        onToggleCollapsed={handleToggleCollapsed}
-      />
+      <aside className="flex flex-col flex-shrink-0 min-h-0 overflow-hidden">
+        <SidebarNav
+          navItems={NAV_ITEMS}
+          activeTab={activeTab}
+          sidebarCollapsed={sidebarCollapsed}
+          onSelectTab={handleSelectTab}
+          onToggleCollapsed={handleToggleCollapsed}
+        />
+      </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <SettingsHeader title={pageTitle} />
-        <div className="overflow-y-auto flex-1 p-8 overscroll-contain">
-          <Suspense fallback={<TabSkeleton />}>
-            {activeContent}
-          </Suspense>
-        </div>
+      <main 
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
+        style={{
+          background: 'var(--admin-bg-secondary)',
+        }}
+      >
+        {isFullBleed ? (
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <Suspense fallback={<TabSkeleton />}>
+              {activeContent}
+            </Suspense>
+          </div>
+        ) : (
+          <div
+            className="overflow-y-auto flex-1 min-h-0 p-8 overscroll-contain"
+            style={{ background: 'var(--admin-bg-secondary)' }}
+          >
+            <Suspense fallback={<TabSkeleton />}>
+              {activeContent}
+            </Suspense>
+          </div>
+        )}
       </main>
     </div>
   );

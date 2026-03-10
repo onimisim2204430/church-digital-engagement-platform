@@ -3,9 +3,9 @@
  * All static data lifted here — zero allocation on re-render
  */
 
-import type { GivingItem, CategoryOption, VisibilityOption, StatusOption } from '../types/giving.types';
+import type { CategoryOption, VisibilityOption, StatusOption } from '../types/giving.types';
 
-export const MOCK_ITEMS: GivingItem[] = [
+export const MOCK_ITEMS = [
   {
     id: '1', category: 'Tithes', title: 'Weekly Tithe', description: 'Honour God with the first portion of all you receive. Your faithful giving sustains the ministry, staff, and mission of this community.', icon: 'volunteer_activism', visibility: 'PUBLIC', status: 'active', is_featured: true, is_recurring_enabled: true, suggested_amounts: [50, 100, 200, 500], goal_amount: null, raised_amount: 0, deadline: '', verse: '"Bring the full tithe into the storehouse." — Malachi 3:10', cover_image: '', display_order: 1, created_at: '2024-01-15T10:00:00Z', updated_at: '2024-10-01T09:00:00Z', total_donations: 48200, donor_count: 318,
   },
@@ -30,23 +30,24 @@ export const MOCK_ITEMS: GivingItem[] = [
 ];
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
-  { value: 'Tithes', label: 'Tithes', icon: 'volunteer_activism', desc: 'Regular firstfruits giving' },
-  { value: 'Offerings', label: 'Offerings', icon: 'favorite', desc: 'Free-will or designated gifts' },
-  { value: 'Projects', label: 'Projects', icon: 'construction', desc: 'Capital & building projects' },
-  { value: 'Fundraising', label: 'Fundraising', icon: 'campaign', desc: 'Time-bound campaigns' },
+  { value: 'tithe', label: 'Tithes', icon: 'volunteer_activism', desc: 'Regular firstfruits giving' },
+  { value: 'offering', label: 'Offerings', icon: 'favorite', desc: 'Free-will or designated gifts' },
+  { value: 'project', label: 'Projects', icon: 'construction', desc: 'Capital & building projects' },
+  { value: 'mission', label: 'Missions', icon: 'public', desc: 'Missionary & outreach support' },
+  { value: 'seed', label: 'Seed', icon: 'campaign', desc: 'Faith seed offerings' },
+  { value: 'other', label: 'Other', icon: 'more_horiz', desc: 'Other giving categories' },
 ];
 
 export const VISIBILITY_OPTIONS: VisibilityOption[] = [
-  { value: 'PUBLIC', label: 'Public', icon: 'public', desc: 'Visible to all visitors' },
-  { value: 'MEMBERS_ONLY', label: 'Members Only', icon: 'group', desc: 'Authenticated members only' },
-  { value: 'HIDDEN', label: 'Hidden', icon: 'visibility_off', desc: 'Not shown anywhere' },
+  { value: 'public', label: 'Public', icon: 'public', desc: 'Visible to all visitors' },
+  { value: 'members_only', label: 'Members Only', icon: 'group', desc: 'Authenticated members only' },
+  { value: 'hidden', label: 'Hidden', icon: 'visibility_off', desc: 'Not shown anywhere' },
 ];
 
 export const STATUS_OPTIONS: StatusOption[] = [
   { value: 'active', label: 'Active', color: 'green' },
-  { value: 'paused', label: 'Paused', color: 'amber' },
-  { value: 'completed', label: 'Completed', color: 'blue' },
   { value: 'draft', label: 'Draft', color: 'slate' },
+  { value: 'archived', label: 'Archived', color: 'blue' },
 ];
 
 export const AVAILABLE_ICONS = [

@@ -1,12 +1,15 @@
 /**
  * Member Top Bar Component
  * Professional header with mobile hamburger, theme toggle, user menu
- * Matches Admin design but with member-specific actions
+ * Real-time notifications via WebSocket + REST API fallback
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useNotificationWebSocket } from '../../hooks/useNotificationWebSocket';
+import notificationService, { Notification } from '../../services/notification.service';
 import {
   SunIcon,
   MoonIcon,
@@ -29,7 +32,7 @@ interface TopBarProps {
   subtitle?: string;
   breadcrumbs?: Breadcrumb[];
   actions?: React.ReactNode;
-  onMenuClick?: () => void; // Mobile hamburger
+  onMenuClick?: () => void;
 }
 
 const MemberTopBar: React.FC<TopBarProps> = ({
@@ -41,9 +44,13 @@ const MemberTopBar: React.FC<TopBarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const toast = useToast();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +71,107 @@ const MemberTopBar: React.FC<TopBarProps> = ({
     localStorage.setItem('member-theme', themeValue);
     document.documentElement.setAttribute('data-theme', themeValue);
   };
+
+  // Fetch notifications on mount and when dropdown opens
+  const fetchNotifications = useCallback(async () => {
+    setLoadingNotifications(true);
+    try {
+      const response = await notificationService.getUnreadNotifications(1, 10);
+      setNotifications(response.results || []);
+      setUnreadCount(response.unread_count || 0);
+    } catch (error) {
+      console.error('[Notifications] Failed to fetch:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+    }
+  }, [user?.id, fetchNotifications]);
+
+  // Fallback poll: refresh unread count every 60 s in case a WebSocket message
+  // was missed (e.g. browser was backgrounded, connection briefly dropped).
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(async () => {
+      try {
+        const r = await notificationService.getUnreadNotifications(1, 1);
+        setUnreadCount(r.unread_count ?? 0);
+      } catch {
+        // silent — network may be temporarily unavailable
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
+  // WebSocket integration
+  const handleWebSocketNotification = useCallback((notification: Notification) => {
+    console.log('[TopBar] WebSocket notification received:', notification);
+    
+    // Show toast notification
+    const notifType = notification.notification_type || '';
+    if (notifType.includes('PAYMENT_SUCCESS')) {
+      toast.success(`${notification.title}`, 5000);
+    } else if (notifType.includes('PAYMENT_FAILED')) {
+      toast.error(`${notification.title}`, 5000);
+    } else {
+      toast.info(`${notification.title}`, 5000);
+    }
+    
+    // Update local notification list
+    setNotifications(prev => [notification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  }, [toast]);
+
+  useNotificationWebSocket({
+    onNotification: handleWebSocketNotification,
+    onConnect: () => console.log('[TopBar] WebSocket connected'),
+    onDisconnect: () => console.log('[TopBar] WebSocket disconnected'),
+    enabled: Boolean(user?.id),
+  });
+
+  // Handle notification dropdown toggle
+  const handleNotificationToggle = useCallback(() => {
+    const newState = !showNotifications;
+    setShowNotifications(newState);
+    
+    // Refresh notifications when opening
+    if (newState && user?.id) {
+      fetchNotifications();
+    }
+  }, [showNotifications, user?.id, fetchNotifications]);
+
+  // Handle notification click
+  const handleNotificationClick = useCallback(async (notification: Notification) => {
+    try {
+      // Mark as read
+      await notificationService.markAsRead(notification.id);
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // Navigate based on notification type
+      const notifType = notification.notification_type || '';
+      
+      if (notifType.includes('PAYMENT')) {
+        // Navigate to giving history with payment ID from metadata
+        const paymentId = notification.metadata?.payment_id || notification.metadata?.reference;
+        if (paymentId) {
+          navigate(`/member/giving?payment=${paymentId}`);
+        } else {
+          navigate('/member/giving');
+        }
+      }
+      
+      // Close dropdown
+      setShowNotifications(false);
+    } catch (error) {
+      console.error('[Notifications] Failed to handle click:', error);
+    }
+  }, [navigate]);
 
   // Click outside to close menus
   useEffect(() => {
@@ -95,6 +203,21 @@ const MemberTopBar: React.FC<TopBarProps> = ({
     if (firstName) return firstName.substring(0, 2).toUpperCase();
     if (user.email) return user.email.substring(0, 2).toUpperCase();
     return 'M';
+  };
+
+  const formatNotificationTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
   };
 
   return (
@@ -154,23 +277,64 @@ const MemberTopBar: React.FC<TopBarProps> = ({
           {/* Notifications */}
           <div className="topbar-dropdown" ref={notifMenuRef}>
             <button 
-              className="topbar-icon-btn"
-              onClick={() => setShowNotifications(!showNotifications)}
+              className="topbar-icon-btn notif-btn-wrapper"
+              onClick={handleNotificationToggle}
               title="Notifications"
             >
               <BellIcon size={18} />
+              {unreadCount > 0 && (
+                <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </button>
 
             {showNotifications && (
               <div className="dropdown-menu notifications-menu">
                 <div className="dropdown-header">
                   <h3>Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="unread-count">{unreadCount} unread</span>
+                  )}
                 </div>
+                
                 <div className="notifications-list">
-                  <div className="notification-empty">
-                    <BellIcon size={32} />
-                    <p>No new notifications</p>
-                  </div>
+                  {loadingNotifications ? (
+                    <div className="notification-loading">
+                      <p>Loading...</p>
+                    </div>
+                  ) : notifications.length > 0 ? (
+                    <>
+                      {notifications.map((notif) => {
+                        const isPayment = notif.notification_type?.includes('PAYMENT');
+                        const isSystem = notif.notification_type?.includes('SYSTEM');
+                        
+                        return (
+                          <div 
+                            key={notif.id} 
+                            className={`notification-item ${isPayment ? 'payment' : ''}`}
+                            onClick={() => handleNotificationClick(notif)}
+                          >
+                            <div className="notification-content">
+                              <div className="notification-header">
+                                <h4 className="notification-title">{notif.title}</h4>
+                                <span className="notification-time">
+                                  {formatNotificationTime(notif.created_at)}
+                                </span>
+                              </div>
+                              <p className="notification-message">{notif.message}</p>
+                              {isPayment && (
+                                <span className="notification-badge">Payment</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <div className="notification-empty">
+                      <BellIcon size={32} />
+                      <p>No new notifications</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

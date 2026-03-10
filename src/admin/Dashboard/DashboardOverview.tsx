@@ -17,6 +17,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { adminContentService } from '../../services/admin-content.service';
 import Icon from '../../components/common/Icon';
@@ -37,11 +38,11 @@ const PipelineColumn = lazy(() => import('./components/PipelineColumn'));
 
 // Skeleton fallbacks for perceived performance
 const MapSkeleton = () => (
-  <div className="xl:col-span-2 rounded-lg border border-border-light bg-white h-[360px] animate-pulse" />
+  <div className="xl:col-span-2 rounded-lg border border-border-light dark:border-slate-700 bg-white dark:bg-slate-800/60 h-[360px] animate-pulse" />
 );
 
 const PipelineSkeleton = () => (
-  <div className="rounded-lg border border-border-light bg-white h-48 animate-pulse" />
+  <div className="rounded-lg border border-border-light dark:border-slate-700 bg-white dark:bg-slate-800/60 h-48 animate-pulse" />
 );
 
 // Set display names for lazy-loaded components
@@ -52,6 +53,7 @@ const PipelineSkeleton = () => (
 
 const DashboardOverview: React.FC = () => {
   const navigate = useNavigate();
+  const { user, hasPermission } = useAuth();
   const [totalPosts, setTotalPosts] = useState<number>(0);
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -60,7 +62,14 @@ const DashboardOverview: React.FC = () => {
 
     const fetchStats = async () => {
       try {
-        // Attempt to pass signal for cancel-safe requests; fall back if not supported
+        // Skip the fetch if the current user lacks content.posts permission.
+        // Without this guard a moderator gets HTTP 403 from Django which can
+        // trigger api.service interceptors to redirect the whole app to /403.
+        if (user?.role !== 'ADMIN' && !hasPermission('content.posts')) {
+          setTotalPosts(0);
+          setLoadingStats(false);
+          return;
+        }
         const postsData = await adminContentService.getPosts();
         
         if (controller.signal.aborted) return;
@@ -118,9 +127,9 @@ const DashboardOverview: React.FC = () => {
           <MapPanel />
         </Suspense>
 
-        <div className="rounded-lg border border-border-light bg-white flex flex-col h-[360px]">
-          <div className="border-b border-border-light px-4 py-3 flex justify-between items-center bg-slate-50/30 flex-shrink-0">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-deep">Live Interaction Feed</h2>
+        <div className="rounded-lg border border-border-light dark:border-slate-700 bg-white dark:bg-slate-800/60 flex flex-col h-[360px]">
+          <div className="border-b border-border-light dark:border-slate-700 px-4 py-3 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/40 flex-shrink-0">
+            <h2 className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Live Interaction Feed</h2>
             <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
           </div>
           {/* 
@@ -138,7 +147,7 @@ const DashboardOverview: React.FC = () => {
       {/* Content Pipeline */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-deep flex items-center gap-2">
+          <h2 className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Icon name="view_kanban" size={16} className=" text-primary" />
             Content Pipeline Status
           </h2>

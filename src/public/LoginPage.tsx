@@ -1,7 +1,5 @@
 /**
  * Login Page
- * 
- * User authentication page with email and password.
  */
 
 import React, { useState } from 'react';
@@ -14,7 +12,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -25,11 +23,13 @@ const LoginPage: React.FC = () => {
 
     try {
       const result = await login(email, password);
-      // Redirect based on user role - members stay on public pages, admins go to dashboard
       if (result?.role === 'ADMIN') {
         navigate('/admin');
+      } else if (result?.role === 'MODERATOR') {
+        // Moderators go to member portal — they can navigate to admin from there
+        navigate('/member');
       } else {
-        navigate('/'); // Members return to homepage
+        navigate('/');
       }
     } catch (err: any) {
       setError(err.response?.data?.non_field_errors?.[0] || 'Login failed. Please check your credentials.');
@@ -46,11 +46,7 @@ const LoginPage: React.FC = () => {
           <p>Sign in to your account</p>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
@@ -79,22 +75,15 @@ const LoginPage: React.FC = () => {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="btn-primary" 
-            disabled={isLoading}
-          >
+          <button type="submit" className="btn-primary" disabled={isLoading}>
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         <div className="auth-footer">
-          <p>
-            Don't have an account? <Link to="/register">Create one</Link>
-          </p>
-          <p>
-            <Link to="/">Return to homepage</Link>
-          </p>
+          <p><Link to="/forgot-password">Forgot your password?</Link></p>
+          <p>Don't have an account? <Link to="/register">Create one</Link></p>
+          <p><Link to="/">Return to homepage</Link></p>
         </div>
       </div>
     </div>

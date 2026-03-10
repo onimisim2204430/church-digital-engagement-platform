@@ -1,0 +1,26 @@
+{% extends "emails/base.txt" %}
+{% block preheader_text %}Transaction confirmation{% endblock %}
+{% block content %}
+TRANSACTION DETAILS
+===================
+
+Hi {% if user_name %}{{ user_name }}{% else %}there{% endif %},
+
+Your transaction has been processed successfully.
+
+{% for row in details %}
+  {{ row.label }}: {{ row.value }}
+{% endfor %}
+
+{% if metadata_items %}
+METADATA
+--------
+{% for item in metadata_items %}
+  {{ item.key }}: {{ item.value }}
+{% endfor %}
+{% endif %}
+
+{% if action_url %}View receipt: {{ action_url }}{% endif %}
+
+Questions? Contact us{% if support_email %} at {{ support_email }}{% endif %}.
+{% endblock %}

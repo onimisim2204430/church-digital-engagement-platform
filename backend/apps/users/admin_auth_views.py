@@ -14,6 +14,28 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from .models import User, UserRole
 from .serializers import UserSerializer
+from .utils.permissions_cache import get_cached_permissions, set_cached_permissions
+
+
+def _build_token_for_user(user) -> RefreshToken:
+    """
+    Create a RefreshToken with ``role`` and ``permissions`` baked into
+    the access token payload, and warm the Redis permissions cache.
+
+    Used by both AdminRegistrationView and AdminLoginView so the logic
+    lives in one place.
+    """
+    refresh = RefreshToken.for_user(user)
+
+    # Embed role + permissions into access token
+    perms = get_cached_permissions(str(user.id))
+    refresh.access_token['role'] = user.role
+    refresh.access_token['permissions'] = perms
+
+    # Warm cache (no-op if already populated)
+    set_cached_permissions(str(user.id), perms)
+
+    return refresh
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -89,8 +111,8 @@ class AdminRegistrationView(APIView):
         user.is_superuser = True
         user.save()
         
-        # Generate tokens
-        refresh = RefreshToken.for_user(user)
+        # Generate tokens with role + permissions baked in
+        refresh = _build_token_for_user(user)
         
         return Response({
             'message': 'Admin account created successfully',
@@ -131,38 +153,38 @@ class AdminLoginView(APIView):
         """Authenticate admin user."""
         email = request.data.get('email')
         password = request.data.get('password')
-        
+
         if not email or not password:
             return Response(
                 {'error': 'Email and password are required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Authenticate user
         user = authenticate(request, username=email, password=password)
-        
+
         if not user:
             return Response(
                 {'error': 'Invalid email or password'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
-        # Check if user is admin
-        if user.role != UserRole.ADMIN:
+
+        # Only ADMIN and MODERATOR can access the admin panel
+        if user.role not in (UserRole.ADMIN, UserRole.MODERATOR):
             return Response(
-                {'error': 'Access denied. Admin privileges required.'},
+                {'error': 'Access denied. Admin or moderator privileges required.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         if not user.is_active:
             return Response(
                 {'error': 'Account is suspended'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        # Generate tokens
-        refresh = RefreshToken.for_user(user)
-        
+
+        # Generate tokens with role + permissions baked in
+        refresh = _build_token_for_user(user)
+
         return Response({
             'message': 'Login successful',
             'user': UserSerializer(user).data,

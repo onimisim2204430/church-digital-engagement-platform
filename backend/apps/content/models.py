@@ -90,6 +90,7 @@ class PostType(models.TextChoices):
 class PostStatus(models.TextChoices):
     """Post publishing status"""
     DRAFT = 'DRAFT', 'Draft'
+    SCHEDULED = 'SCHEDULED', 'Scheduled'
     PUBLISHED = 'PUBLISHED', 'Published'
 
 

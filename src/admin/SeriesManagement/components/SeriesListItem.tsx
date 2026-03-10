@@ -1,3 +1,6 @@
+/**
+ * SeriesListItem.tsx — restyled to admin CSS var system
+ */
 import React from 'react';
 import { Series } from '../types/series-manager.types';
 import SeriesViewsCell from './SeriesViewsCell';
@@ -9,68 +12,105 @@ interface SeriesListItemProps {
   onClick: () => void;
 }
 
+const VISIBILITY_STYLES: Record<string, React.CSSProperties> = {
+  PUBLIC:       { background: 'rgba(16,185,129,.10)', color: 'var(--em)',   border: '1px solid rgba(16,185,129,.25)' },
+  MEMBERS_ONLY: { background: 'rgba(59,130,246,.10)', color: '#60a5fa',     border: '1px solid rgba(59,130,246,.25)' },
+  HIDDEN:       { background: 'rgba(148,163,184,.08)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' },
+};
+const VISIBILITY_LABELS: Record<string, string> = {
+  PUBLIC: 'Public', MEMBERS_ONLY: 'Members Only', HIDDEN: 'Hidden',
+};
+
+const mono = "'JetBrains Mono', monospace";
+const syne = "'Syne', sans-serif";
+
 const SeriesListItem: React.FC<SeriesListItemProps> = ({ series: s, onClick }) => {
+  const visBadge = VISIBILITY_STYLES[s.visibility] || VISIBILITY_STYLES.HIDDEN;
+
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all cursor-pointer"
+      style={{
+        background: 'var(--bg2)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 10,
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: 14,
+        cursor: 'pointer',
+        transition: 'border-color .14s ease, background .14s ease, box-shadow .14s ease',
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = 'rgba(16,185,129,.4)';
+        el.style.background = 'var(--bg3)';
+        el.style.boxShadow = '0 0 0 1px rgba(16,185,129,.12)';
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = 'var(--border-color)';
+        el.style.background = 'var(--bg2)';
+        el.style.boxShadow = 'none';
+      }}
     >
       {/* Cover thumbnail */}
-      <div className="h-14 w-14 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden border border-slate-200">
-        {s.cover_image ? (
-          <img src={s.cover_image} alt={s.title} className="h-full w-full object-cover" />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center">
-            <Icon name="account_tree" size={24} className="text-slate-300" />
-          </div>
-        )}
+      <div style={{
+        width: 48, height: 48, flexShrink: 0, borderRadius: 8,
+        overflow: 'hidden', border: '1px solid var(--border-color)',
+        background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {s.cover_image
+          ? <img src={s.cover_image} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <Icon name="account_tree" size={20} style={{ color: 'var(--text-tertiary)' } as any} />}
       </div>
 
-      {/* Series info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-base font-bold text-slate-900 truncate">{s.title}</h3>
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 5 }}>
+          <h3 style={{ fontFamily: syne, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {s.title}
+          </h3>
           {s.is_featured && (
-            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold border border-amber-200">
+            <span style={{
+              padding: '2px 7px', borderRadius: 9999,
+              background: 'rgba(245,158,11,.12)', color: '#f59e0b',
+              border: '1px solid rgba(245,158,11,.28)',
+              fontFamily: mono, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em',
+            }}>
               Featured
             </span>
           )}
-          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${getVisibilityBadgeClass(s.visibility)}`}>
-            {s.visibility === 'MEMBERS_ONLY' ? 'Members Only' : s.visibility === 'PUBLIC' ? 'Public' : 'Hidden'}
+          <span style={{
+            padding: '2px 7px', borderRadius: 9999,
+            fontFamily: mono, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em',
+            ...visBadge,
+          }}>
+            {VISIBILITY_LABELS[s.visibility] || s.visibility}
           </span>
         </div>
-        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontFamily: mono, fontSize: 10.5, color: 'var(--text-tertiary)' }}>
           <span>{s.published_post_count} / {s.post_count} posts published</span>
-          <span className="w-1 h-1 rounded-full bg-slate-300" />
+          <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
           <SeriesViewsCell seriesId={s.id} />
           {s.author_name && (
             <>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
-              <span className="flex items-center gap-1">
-                <Icon name="person" size={12} />
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Icon name="person" size={11} />
                 {s.author_name}
               </span>
             </>
           )}
           {s.date_range?.start && (
             <>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
-              <span>
-                {new Date(s.date_range.start).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </span>
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
+              <span>{new Date(s.date_range.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </>
           )}
         </div>
       </div>
 
-      {/* Action arrow */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <Icon name="chevron_right" size={18} className="text-slate-300" />
-      </div>
+      {/* Arrow */}
+      <Icon name="chevron_right" size={17} style={{ color: 'var(--text-tertiary)', flexShrink: 0 } as any} />
     </div>
   );
 };

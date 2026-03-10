@@ -2,7 +2,7 @@
  * Pure helper functions for Giving/Seed Manager
  */
 
-import type { GivingItem, GivingStatus, GivingVisibility } from '../types/giving.types';
+import type { CreateGivingItemRequest } from '../../../services/giving.service';
 
 export const formatCurrency = (n: number): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -13,29 +13,30 @@ export const fmtDate = (iso: string): string =>
 export const getProgressPct = (raised: number, goal: number): number =>
   goal > 0 ? Math.min(Math.round((raised / goal) * 100), 100) : 0;
 
-export const statusStyle = (status: GivingStatus): string => {
-  switch (status) {
+export const statusStyle = (status: string): string => {
+  switch (status.toLowerCase()) {
     case 'active': return 'bg-green-100 text-green-700 border-green-200';
     case 'paused': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'archived':
     case 'completed': return 'bg-blue-100 text-blue-700 border-blue-200';
     default: return 'bg-slate-100 text-slate-600 border-slate-200';
   }
 };
 
-export const visibilityStyle = (v: GivingVisibility): string => {
-  switch (v) {
-    case 'PUBLIC': return 'bg-green-100 text-green-700 border-green-200';
-    case 'MEMBERS_ONLY': return 'bg-blue-100 text-blue-700 border-blue-200';
+export const visibilityStyle = (v: string): string => {
+  switch (v.toLowerCase()) {
+    case 'public': return 'bg-green-100 text-green-700 border-green-200';
+    case 'members_only': return 'bg-blue-100 text-blue-700 border-blue-200';
     default: return 'bg-slate-100 text-slate-500 border-slate-200';
   }
 };
 
-export const emptyForm = (): Omit<GivingItem, 'id' | 'created_at' | 'updated_at' | 'total_donations' | 'donor_count' | 'raised_amount'> => ({
-  category: 'Offerings',
+export const emptyForm = (): CreateGivingItemRequest => ({
+  category: 'offering',
   title: '',
   description: '',
   icon: 'favorite',
-  visibility: 'PUBLIC',
+  visibility: 'public',
   status: 'draft',
   is_featured: false,
   is_recurring_enabled: false,

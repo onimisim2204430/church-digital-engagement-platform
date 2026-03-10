@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
-from apps.users.permissions import IsModerator
+from apps.users.permissions import IsModerator, HasModulePermission
 from apps.content.views import create_audit_log
 from apps.moderation.models import ActionType
 from .models import Comment, Reaction, Question
@@ -21,9 +21,12 @@ from .serializers import (
 class AdminCommentViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for moderating comments
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with community.moderation permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('community.moderation')]
     serializer_class = CommentSerializer
     queryset = Comment.objects.filter(is_deleted=False)
     
@@ -86,9 +89,12 @@ class AdminCommentViewSet(viewsets.ModelViewSet):
 class AdminQuestionViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for managing questions
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with community.moderation permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('community.moderation')]
     serializer_class = QuestionSerializer
     queryset = Question.objects.all()
     

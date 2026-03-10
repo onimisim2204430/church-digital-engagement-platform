@@ -1,0 +1,40 @@
+{% extends "emails/base.html" %}
+
+{% block preheader_text %}{{ preview_text|default:"Latest from " }}{{ site_name }}{% endblock %}
+
+{% block content %}
+  {% if headline %}
+  <h2>{{ headline }}</h2>
+  {% endif %}
+
+  <p>Hi {% if user_name %}{{ user_name }}{% else %}there{% endif %},</p>
+
+  {% if intro_text %}
+  <p>{{ intro_text }}</p>
+  {% endif %}
+
+  {% block bulk_content %}
+  <!-- Override this block in specific campaign templates -->
+  {% endblock %}
+
+  {% if articles %}
+  {% for article in articles %}
+    <div style="border-bottom: 1px solid #EBE9E4; padding: 24px 0;">
+      {% if article.image_url %}
+      <img src="{{ article.image_url }}" alt="{{ article.title }}" style="width:100%;border-radius:8px;margin-bottom:12px;">
+      {% endif %}
+      <h3 style="margin: 0 0 8px; font-family: Georgia, 'Times New Roman', serif; font-size: 17px; font-weight: normal; color: #2C2C2A;">{{ article.title }}</h3>
+      <p style="margin: 0 0 12px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.65; color: #4A4A47;">{{ article.excerpt }}</p>
+      {% if article.url %}
+      <a href="{{ article.url }}" class="btn-secondary" style="font-size: 13px; padding: 8px 20px;">Read More →</a>
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 32px 0;">
+    <a href="{{ cta_url }}" class="btn-primary">{{ cta_label|default:"Learn More" }}</a>
+  </div>
+  {% endif %}
+{% endblock %}

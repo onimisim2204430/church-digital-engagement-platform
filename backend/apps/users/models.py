@@ -288,3 +288,76 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.suspension_reason = None
         self.suspension_expires_at = None
         self.save()
+
+
+class ModeratorPermission(models.Model):
+    """
+    Stores granular module-level permissions for MODERATOR users.
+
+    Each moderator gets exactly one row here (OneToOneField).  The
+    `permissions` JSONField holds a list of permission code strings
+    (e.g. ``['fin.hub', 'content.posts']``) from PERMISSION_CODES in
+    ``apps/users/permission_codes.py``.
+
+    Changes to this record automatically invalidate the Redis cache via
+    the ``post_save`` signal defined at the bottom of this module.
+    """
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='mod_permissions',
+        help_text='Moderator user these permissions apply to',
+    )
+    permissions = models.JSONField(
+        default=list,
+        help_text='List of permission code strings granted to this moderator',
+    )
+    sub_role_label = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Human-readable label for the moderator sub-role (e.g. "Finance Moderator")',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='permissions_granted',
+        help_text='Admin who last updated these permissions',
+    )
+
+    class Meta:
+        db_table = 'moderator_permissions'
+        verbose_name = 'Moderator Permission'
+        verbose_name_plural = 'Moderator Permissions'
+
+    def __str__(self):
+        return f'Permissions for {self.user.email} ({self.sub_role_label or "custom"})'
+
+    def has_permission(self, code: str) -> bool:
+        """Return True if *code* is in the granted permissions list."""
+        return code in self.permissions
+
+    def get_permissions_set(self) -> set:
+        """Return permissions as a set for O(1) membership checks."""
+        return set(self.permissions)
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=ModeratorPermission)
+def invalidate_permissions_cache_on_save(sender, instance, **kwargs):
+    """
+    Invalidate Redis permissions cache whenever a ModeratorPermission record
+    is saved, so the next request re-fetches fresh data.
+    """
+    try:
+        from apps.users.utils.permissions_cache import invalidate_permissions_cache
+        invalidate_permissions_cache(str(instance.user_id))
+    except Exception:
+        # Never let a cache miss crash a DB save
+        pass

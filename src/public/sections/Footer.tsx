@@ -38,9 +38,9 @@ const Footer: React.FC<FooterProps> = memo(({ fullWidth = true }) => {
           <nav className="flex flex-col" aria-labelledby="footer-contact-heading">
             <h2 id="footer-contact-heading" className="text-base font-bold uppercase tracking-widest text-text-main mb-6">Contact</h2>
             <ul className="space-y-4 text-lg text-text-muted">
-              <li><a href="#" className="hover:text-primary transition-colors">Connect Form</a></li>
+              <li><Link to="/connect" className="hover:text-primary transition-colors">Connect Form</Link></li>
               <li><Link to="/giving" className="hover:text-primary transition-colors">Giving</Link></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><Link to="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
             </ul>
           </nav>
         </div>
@@ -50,14 +50,16 @@ const Footer: React.FC<FooterProps> = memo(({ fullWidth = true }) => {
           </p>
           <div className="flex gap-6" role="list" aria-label="Social media links">
             <a 
-              href="#" 
+              href="https://facebook.com" 
               className="text-text-muted hover:text-primary transition-colors"
               aria-label="Follow us on social media"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <Icon name="brand_family" size={22} />
             </a>
             <a 
-              href="#" 
+              href="/rss.xml" 
               className="text-text-muted hover:text-primary transition-colors"
               aria-label="Subscribe to our RSS feed"
             >

@@ -10,24 +10,179 @@ Endpoints:
 - POST /api/v1/auth/change-password/ - Change password
 """
 
+import threading
+
 from rest_framework import status, generics, permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
+import logging
+
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.utils import timezone
+from django.conf import settings
+from django.db import transaction
 
 from .models import User, UserRole
 from .permissions import IsAdmin
+from .utils.permissions_cache import get_cached_permissions, set_cached_permissions
+from apps.notifications.services import NotificationService
+from apps.notifications.constants import NotificationPriority, NotificationType, SourceModule
+from apps.email.services import EmailService
+from apps.email.constants import EmailType
+
+logger = logging.getLogger('admin_auth')
+
+
+def _enqueue_member_update_alert(
+    *,
+    target_user: User,
+    actor: User,
+    notification_type: str,
+    title: str,
+    message: str,
+    metadata: dict | None = None,
+    template_slug: str = 'notification',
+    email_context: dict | None = None,
+    email_subject: str | None = None,
+) -> None:
+    """
+    True fire-and-forget: spawns a tiny daemon thread so the HTTP response
+    returns the instant the DB transaction commits — zero Redis/network
+    latency added to the request.  The thread enqueues both Celery tasks
+    (< 20 ms total) and exits.
+    """
+    # Capture primitives NOW (before the thread runs) — no ORM objects
+    # are shared across threads to avoid cross-thread lazy-evaluation.
+    _user_id   = str(getattr(target_user, 'id', ''))
+    _user_email = target_user.email
+    _user_name  = target_user.get_full_name()
+    _notif_type = notification_type
+    _title      = title
+    _message    = message
+    _payload    = (metadata or {}).copy()
+    _payload.setdefault('changed_at', timezone.now().isoformat())
+    if actor:
+        _payload.setdefault('changed_by_id', str(getattr(actor, 'id', '')))
+        _payload.setdefault('changed_by_email', getattr(actor, 'email', ''))
+    _action_url  = getattr(settings, 'FRONTEND_MEMBER_DASHBOARD_URL', '') or ''
+    _site_name   = getattr(settings, 'SITE_NAME', 'Church Platform')
+    _email_type  = str(EmailType.NOTIFICATION)
+    _template_slug = template_slug
+    _email_subject = email_subject
+    _extra_ctx = (email_context or {}).copy()
+
+    def _run():
+        # Notification — single Redis write via Celery .delay()
+        try:
+            NotificationService.notify_user_async(
+                user=target_user,
+                notification_type=_notif_type,
+                title=_title,
+                message=_message,
+                metadata=_payload,
+                priority=NotificationPriority.MEDIUM,
+                source_module=SourceModule.ADMIN,
+            )
+            logger.info(
+                '[NOTIFICATION] Queued role/permission notification via Celery',
+                extra={'target_user_id': _user_id, 'type': _notif_type},
+            )
+        except Exception:
+            logger.exception(
+                'Failed to queue role/permission notification',
+                extra={'target_user_id': _user_id, 'type': _notif_type},
+            )
+
+        # Email — single Redis write via Celery .delay()
+        try:
+            from apps.email.tasks import send_email_by_params_task
+            ctx = {
+                'user_name': _user_name,
+                'notification_title': _title,
+                'notification_body': _message,
+                'action_label': 'Go to Dashboard',
+                'action_url': _action_url,
+                'site_name': _site_name,
+            }
+            if _email_subject:
+                ctx['subject'] = _email_subject
+            ctx.update(_extra_ctx)
+            send_email_by_params_task.delay(
+                to_email=_user_email,
+                template_slug=_template_slug,
+                context=ctx,
+                email_type=_email_type,
+                user_id=_user_id,
+            )
+            logger.info(
+                '[EMAIL] Queued role/permission email via send_email_by_params_task',
+                extra={'target_user_id': _user_id, 'to_email': _user_email},
+            )
+        except Exception:
+            logger.exception(
+                'Failed to queue role/permission email',
+                extra={'target_user_id': _user_id, 'type': _notif_type},
+            )
+
+    threading.Thread(target=_run, daemon=True).start()  # returns in < 1 ms
+
+
+def _build_token_for_user(user):
+    """Create a RefreshToken with role+permissions baked into the access payload."""
+    from rest_framework_simplejwt.tokens import RefreshToken as _Refresh
+    refresh = _Refresh.for_user(user)
+    perms = get_cached_permissions(str(user.id))
+    refresh.access_token['role'] = user.role
+    refresh.access_token['permissions'] = perms
+    set_cached_permissions(str(user.id), perms)
+    return refresh
 from .serializers import (
     UserSerializer,
     UserRegistrationSerializer,
     UserLoginSerializer,
     TokenResponseSerializer,
     UserProfileUpdateSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer,
+    ChangeEmailSerializer,
 )
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    Replaces SimpleJWT's default token refresh view.
+
+    On every access-token refresh we re-read the user's *current* role and
+    permissions from Redis/DB and bake them into the new access token.
+    """
+
+    def post(self, request, *args, **kwargs):
+        # Let the parent view validate the refresh token first
+        response = super().post(request, *args, **kwargs)
+        if response.status_code != 200:
+            return response
+
+        # Decode user_id from the *new* access token in the response
+        # (NOT the incoming refresh token which may be rotated/blacklisted)
+        try:
+            from rest_framework_simplejwt.tokens import AccessToken as _AT
+            new_access = _AT(response.data['access'])
+            user_id = new_access['user_id']
+            user = User.objects.get(pk=user_id)
+        except Exception as exc:
+            logger.warning(f"[TOKEN-REFRESH] Could not enrich token: {exc}")
+            return response
+
+        # Rebuild a fresh token with role+permissions baked in
+        new_refresh = _build_token_for_user(user)
+        response.data['access'] = str(new_refresh.access_token)
+        if 'refresh' in response.data:
+            response.data['refresh'] = str(new_refresh)
+        logger.warning(f"[TOKEN-REFRESH] Enriched → {user.email} role={user.role} perms={get_cached_permissions(str(user.id))}")
+        return response
 
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -44,7 +199,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        refresh = RefreshToken.for_user(user)
+        refresh = _build_token_for_user(user)
         
         return Response({
             'user': UserSerializer(user).data,
@@ -68,7 +223,7 @@ class UserLoginView(APIView):
         serializer.is_valid(raise_exception=True)
         
         user = serializer.validated_data['user']
-        refresh = RefreshToken.for_user(user)
+        refresh = _build_token_for_user(user)
         
         return Response({
             'user': UserSerializer(user).data,
@@ -100,6 +255,20 @@ class UserLogoutView(APIView):
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class SelfPermissionsView(APIView):
+    """
+    GET /api/v1/auth/my-permissions/
+    Returns the current authenticated user's own role + permissions from the DB.
+    Used by the frontend to resolve permissions without relying on JWT claims.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        perms = get_cached_permissions(str(user.id))
+        return Response({'role': user.role, 'permissions': perms})
+
+
 class CurrentUserView(generics.RetrieveUpdateAPIView):
     """Get or update current user profile."""
     permission_classes = [permissions.IsAuthenticated]
@@ -121,21 +290,48 @@ class CurrentUserView(generics.RetrieveUpdateAPIView):
         return super().patch(request, *args, **kwargs)
 
 
-class ChangePasswordView(APIView):
-    """Change user password endpoint."""
+class ChangeEmailView(APIView):
+    """
+    Change the authenticated user's email address.
+    Requires the current password to confirm identity.
+    After a successful change, email_verified is reset to False —
+    the user should re-verify via the existing email-verification flow.
+    """
     permission_classes = [permissions.IsAuthenticated]
-    
-    @extend_schema(
-        request=ChangePasswordSerializer,
-        responses={200: OpenApiResponse(description='Password changed successfully'), 400: OpenApiResponse(description='Validation errors')},
-        tags=['User Profile']
-    )
+
     def post(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer = ChangeEmailSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        
-        return Response({'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
+        user = serializer.save()
+        return Response(
+            {
+                'message': 'Email updated successfully. Please verify your new email address.',
+                'email': user.email,
+                'email_verified': user.email_verified,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ChangePasswordView(APIView):
+    """
+    DISABLED – password changes must go through the email-verification reset flow.
+    Use POST /api/v1/auth/password-reset/request/ and /confirm/ instead.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        return Response(
+            {
+                'error': (
+                    'Direct password changes are not allowed. '
+                    'Please use the email verification flow: '
+                    'POST /api/v1/auth/password-reset/request/ to receive a code, '
+                    'then POST /api/v1/auth/password-reset/confirm/ to set your new password.'
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
 
 # Admin User Management Views
@@ -179,7 +375,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         CRITICAL: Excludes ADMIN users - they are system-level and must not appear in user management.
         """
         # EXCLUDE ADMIN USERS - they are protected system accounts
-        queryset = User.objects.exclude(role=UserRole.ADMIN).select_related('suspended_by')
+        queryset = User.objects.exclude(role=UserRole.ADMIN).select_related('suspended_by', 'mod_permissions')
         
         # Filter by role (only MEMBER and MODERATOR are manageable)
         role = self.request.query_params.get('role')
@@ -252,12 +448,12 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             "reason": "optional suspension reason"
         }
         """
-        from django.db import transaction
         from apps.moderation.models import AuditLog
         
         user = self.get_object()
         old_role = user.role
         old_suspended = user.is_suspended
+        role_changed = False
         
         # Extract fields
         new_suspended = request.data.get('is_suspended')
@@ -271,12 +467,12 @@ class AdminUserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Atomic update
+        # Atomic update — DB writes only, no side-effects outside the transaction
+        changes = []
         with transaction.atomic():
-            changes = []
-            
             # Update role if changed
             if new_role and new_role != old_role:
+                role_changed = True
                 user.role = new_role
                 changes.append(f'Role: {old_role} → {new_role}')
                 
@@ -322,12 +518,34 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             
             if changes:
                 user.save()
-                return Response({
-                    'message': 'User updated successfully',
-                    'changes': changes
-                })
-            else:
-                return Response({'message': 'No changes made'})
+
+        # Fire notifications/email AFTER the transaction has committed — fire-and-forget via Celery
+        if changes and role_changed:
+            actor_name = request.user.get_full_name() or request.user.email
+            reason_text = reason or ''
+            msg = f'Your role was changed from {old_role} to {new_role} by {actor_name}.'
+            if reason_text:
+                msg = f'{msg} Reason: {reason_text}'
+
+            _enqueue_member_update_alert(
+                target_user=user,
+                actor=request.user,
+                notification_type=NotificationType.ROLE_UPDATED,
+                title='Your account role was updated',
+                message=msg,
+                metadata={
+                    'old_role': old_role,
+                    'new_role': new_role,
+                    'reason': reason_text,
+                },
+            )
+
+        if changes:
+            return Response({
+                'message': 'User updated successfully',
+                'changes': changes
+            })
+        return Response({'message': 'No changes made'})
     
     @action(detail=True, methods=['patch'])
     def change_role(self, request, pk=None):
@@ -360,8 +578,32 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             )
         
         old_role = user.role
-        user.role = new_role
-        user.save()
+        role_changed = old_role != new_role
+
+        with transaction.atomic():
+            user.role = new_role
+            user.save()
+
+        # Fire notification/email after the transaction commits — fire-and-forget via Celery
+        if role_changed:
+            actor_name = request.user.get_full_name() or request.user.email
+            reason_text = reason or ''
+            msg = f'Your role was changed from {old_role} to {new_role} by {actor_name}.'
+            if reason_text:
+                msg = f'{msg} Reason: {reason_text}'
+
+            _enqueue_member_update_alert(
+                target_user=user,
+                actor=request.user,
+                notification_type=NotificationType.ROLE_UPDATED,
+                title='Your account role was updated',
+                message=msg,
+                metadata={
+                    'old_role': old_role,
+                    'new_role': new_role,
+                    'reason': reason_text,
+                },
+            )
         
         # Create audit log
         from apps.content.views import create_audit_log
@@ -551,3 +793,233 @@ class CsrfTokenView(APIView):
         from django.middleware.csrf import get_token
         csrf_token = get_token(request)
         return Response({'detail': 'CSRF cookie set', 'csrfToken': csrf_token}, status=200)
+
+
+# ==============================================================================
+# RBAC — Moderator Permission Management
+# ==============================================================================
+
+class PermissionCodeListView(APIView):
+    """
+    Return a structured list of all available module permission codes.
+
+    ``GET /api/v1/admin/permissions/codes/``
+
+    Response shape::
+
+        {
+          "codes": {
+            "Finance": [
+              {"code": "fin.hub", "label": "Financial Hub", "description": "...", "icon": "..."},
+              ...
+            ],
+            ...
+          },
+          "templates": {
+            "finance": {"label": "Finance Moderator", "codes": [...], ...},
+            ...
+          }
+        }
+
+    Access: admin only (ADMIN role required).
+    """
+    permission_classes = [IsAdmin]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Permission codes and sub-role templates')},
+        tags=['Admin Permissions'],
+    )
+    def get(self, request):
+        from apps.users.permission_codes import PERMISSION_CODES, SUB_ROLE_TEMPLATES
+        from apps.users.models import ModeratorPermission
+        from django.db.models import Count
+        from apps.users.models import ModeratorPermission
+
+        # Group codes by category
+        grouped: dict[str, list] = {}
+        for code, meta in PERMISSION_CODES.items():
+            cat = meta['category']
+            grouped.setdefault(cat, []).append({
+                'code': code,
+                'label': meta['label'],
+                'description': meta['description'],
+                'icon': meta['icon'],
+            })
+
+        # Count how many moderators are assigned each template (matched by sub_role_label)
+        label_counts: dict[str, int] = {
+            row['sub_role_label']: row['cnt']
+            for row in ModeratorPermission.objects
+                .exclude(sub_role_label='')
+                .values('sub_role_label')
+                .annotate(cnt=Count('id'))
+        }
+
+        templates_with_counts = {
+            key: {
+                **tmpl,
+                'user_count': label_counts.get(tmpl['label'], 0),
+            }
+            for key, tmpl in SUB_ROLE_TEMPLATES.items()
+        }
+
+        return Response({
+            'codes': grouped,
+            'templates': templates_with_counts,
+        })
+
+
+class ModeratorPermissionView(APIView):
+    """
+    GET / PATCH the module permissions for a specific moderator user.
+
+    ``GET  /api/v1/admin/users/{user_id}/permissions/``
+    ``PATCH /api/v1/admin/users/{user_id}/permissions/``
+
+    PATCH body::
+
+        {
+          "permissions": ["fin.hub", "content.posts"],
+          "sub_role_label": "Finance Moderator"   // optional
+        }
+
+    Side-effects on PATCH:
+    - Creates or updates the ``ModeratorPermission`` row
+    - Invalidates the Redis permissions cache for the user
+    - Returns the updated permissions
+
+    Access: admin only (ADMIN role required).
+    """
+    permission_classes = [IsAdmin]
+
+    def _get_user_or_404(self, user_id):
+        try:
+            return User.objects.get(id=user_id)
+        except (User.DoesNotExist, ValueError):
+            return None
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Current permissions for moderator')},
+        tags=['Admin Permissions'],
+    )
+    def get(self, request, user_id):
+        user = self._get_user_or_404(user_id)
+        if user is None:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.users.models import ModeratorPermission
+        mp = ModeratorPermission.objects.filter(user=user).first()
+
+        return Response({
+            'user_id': str(user.id),
+            'email': user.email,
+            'role': user.role,
+            'permissions': mp.permissions if mp else [],
+            'sub_role_label': mp.sub_role_label if mp else '',
+            'updated_at': mp.updated_at.isoformat() if mp else None,
+        })
+
+    @extend_schema(
+        request={'application/json': {'type': 'object'}},
+        responses={200: OpenApiResponse(description='Updated permissions')},
+        tags=['Admin Permissions'],
+    )
+    def patch(self, request, user_id):
+        user = self._get_user_or_404(user_id)
+        if user is None:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.role != 'MODERATOR':
+            return Response(
+                {'error': 'Module permissions can only be set for MODERATOR users'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .serializers import ModeratorPermissionSerializer
+        serializer = ModeratorPermissionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        from apps.users.models import ModeratorPermission
+        from apps.users.utils.permissions_cache import invalidate_permissions_cache, set_cached_permissions
+
+        mp, _ = ModeratorPermission.objects.get_or_create(user=user)
+        old_permissions = list(mp.permissions)
+        old_sub_role_label = mp.sub_role_label or ''
+
+        new_permissions = serializer.validated_data['permissions']
+
+        # DB write in atomic block — cache update and alert happen after commit
+        with transaction.atomic():
+            if 'sub_role_label' in serializer.validated_data:
+                mp.sub_role_label = serializer.validated_data['sub_role_label']
+            mp.permissions = new_permissions
+            mp.updated_by = request.user
+            mp.save()  # post_save signal also calls invalidate_permissions_cache
+
+        # Cache update outside atomic — non-critical, best-effort
+        set_cached_permissions(str(user.id), mp.permissions)
+
+        perms_added = sorted(set(new_permissions) - set(old_permissions))
+        perms_removed = sorted(set(old_permissions) - set(new_permissions))
+        label_changed = (old_sub_role_label or '') != (mp.sub_role_label or '')
+
+        if perms_added or perms_removed or label_changed:
+            from apps.users.permission_codes import PERMISSION_CODES as _PC
+
+            def _perm_info(code):
+                info = _PC.get(code, {})
+                return {
+                    'label': info.get('label', code),
+                    'description': info.get('description', ''),
+                    'category': info.get('category', ''),
+                }
+
+            perms_added_labels = [_perm_info(c) for c in perms_added]
+            perms_removed_labels = [_perm_info(c) for c in perms_removed]
+
+            # Build a clean in-app notification message using friendly names
+            added_names = ', '.join(p['label'] for p in perms_added_labels)
+            removed_names = ', '.join(p['label'] for p in perms_removed_labels)
+            msg_parts = ['Your moderator access was updated by the Administrator.']
+            if added_names:
+                msg_parts.append(f'Added: {added_names}.')
+            if removed_names:
+                msg_parts.append(f'Removed: {removed_names}.')
+            if label_changed:
+                old_lbl = old_sub_role_label or 'None'
+                new_lbl = mp.sub_role_label or 'None'
+                msg_parts.append(f'Role title changed: {old_lbl} → {new_lbl}.')
+            message = ' '.join(msg_parts)
+
+            _site_name = getattr(settings, 'SITE_NAME', 'Church Platform')
+            _enqueue_member_update_alert(
+                target_user=user,
+                actor=request.user,
+                notification_type=NotificationType.PERMISSIONS_UPDATED,
+                title='Your moderator access was updated',
+                message=message,
+                metadata={
+                    'old_permissions': old_permissions,
+                    'new_permissions': mp.permissions,
+                    'permissions_added': perms_added,
+                    'permissions_removed': perms_removed,
+                    'old_sub_role_label': old_sub_role_label,
+                    'new_sub_role_label': mp.sub_role_label,
+                },
+                template_slug='permissions_updated',
+                email_subject=f'Your moderator access was updated — {_site_name}',
+                email_context={
+                    'permissions_added': perms_added_labels,
+                    'permissions_removed': perms_removed_labels,
+                    'sub_role_changed': label_changed,
+                    'new_sub_role': mp.sub_role_label or '',
+                    'old_sub_role': old_sub_role_label or '',
+                },
+            )
+
+        return Response({
+            'message': 'Permissions updated successfully',
+            'user_id': str(user.id),
+            'permissions': mp.permissions,
+            'sub_role_label': mp.sub_role_label,
+        })

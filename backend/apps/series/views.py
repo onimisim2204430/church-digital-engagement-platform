@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
-from apps.users.permissions import IsModerator, IsAdmin
+from apps.users.permissions import IsModerator, IsAdmin, HasModulePermission
 from apps.users.models import UserRole
 from apps.moderation.models import AuditLog, ActionType
 from apps.content.models import Post
@@ -44,13 +44,16 @@ def create_audit_log(user, action_type, description, content_object=None, reques
 class AdminSeriesViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for managing series (CRUD operations)
-    Accessible by ADMIN and MODERATOR
-    
+    Accessible by ADMIN and MODERATORs with content.series permission
+
     Permissions:
     - ADMIN: Full access to all series
-    - MODERATOR: Can create series, manage only their own
+    - MODERATOR: Can create series, manage only their own (requires content.series)
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('content.series')]
     queryset = Series.objects.filter(is_deleted=False)
     
     def get_serializer_class(self):

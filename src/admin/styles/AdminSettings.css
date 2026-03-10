@@ -19,6 +19,40 @@
   font-family: 'Times New Roman', Times, serif !important;
 }
 
+/* Settings Sidebar Navigation - Theme Aware */
+.settings-sidebar-nav {
+  font-family: 'Times New Roman', Times, serif !important;
+  min-height: 100%;
+}
+
+.settings-sidebar-nav .nav-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  border-radius: var(--admin-radius-lg);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.15s ease;
+  margin-bottom: 4px;
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+.settings-sidebar-nav .nav-button:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+.settings-sidebar-nav .nav-button.active {
+  background: var(--admin-sidebar-active);
+  color: var(--admin-sidebar-text-active);
+  border-left: 3px solid var(--admin-primary);
+}
+
 /* ============================================================================
    Sidebar
    ============================================================================ */

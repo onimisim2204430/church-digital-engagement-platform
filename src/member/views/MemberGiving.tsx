@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card } from '../../shared/components/Card';
 import Icon from '../../components/common/Icon';
 import paymentService, { MemberPaymentTransaction } from '../../services/payment.service';
@@ -34,9 +35,15 @@ const statusColor = (status: string) => {
 };
 
 const MemberGiving: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<MemberPaymentTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [highlightedPayment, setHighlightedPayment] = useState<string | null>(null);
+  const highlightedRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Get payment ID from URL parameter
+  const paymentParam = searchParams.get('payment');
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +55,11 @@ const MemberGiving: React.FC = () => {
         const response = await paymentService.getMyTransactions();
         if (!cancelled) {
           setTransactions(response.results || []);
+          
+          // If payment parameter exists, highlight it
+          if (paymentParam) {
+            setHighlightedPayment(paymentParam);
+          }
         }
       } catch (error: any) {
         if (!cancelled) {
@@ -65,7 +77,24 @@ const MemberGiving: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [paymentParam]);
+
+  // Scroll to highlighted row
+  useEffect(() => {
+    if (highlightedPayment && highlightedRowRef.current && !isLoading) {
+      setTimeout(() => {
+        highlightedRowRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Clear highlight after 3 seconds
+        setTimeout(() => {
+          setHighlightedPayment(null);
+        }, 3000);
+      }, 300);
+    }
+  }, [highlightedPayment, isLoading]);
 
   const summary = useMemo(() => {
     const successCount = transactions.filter((tx) => tx.status === 'SUCCESS').length;
@@ -125,8 +154,19 @@ const MemberGiving: React.FC = () => {
               <tbody>
                 {transactions.map((tx) => {
                   const badge = statusColor(tx.status);
+                  const isHighlighted = highlightedPayment && 
+                    (tx.id === highlightedPayment || tx.reference === highlightedPayment);
+                  
                   return (
-                    <tr key={tx.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <tr 
+                      key={tx.id} 
+                      ref={isHighlighted ? highlightedRowRef : null}
+                      style={{ 
+                        borderTop: '1px solid var(--border-color)',
+                        background: isHighlighted ? 'var(--success-50)' : 'transparent',
+                        transition: 'background-color 0.3s ease'
+                      }}
+                    >
                       <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{tx.reference}</td>
                       <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-primary)' }}>{formatMoney(tx.amount, tx.currency)}</td>
                       <td style={{ padding: '12px 16px' }}>

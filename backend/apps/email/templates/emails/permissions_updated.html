@@ -1,0 +1,113 @@
+{% extends "emails/base.html" %}
+
+{% block preheader_text %}Your moderator access on {{ site_name }} has been updated.{% endblock %}
+
+{% block content %}
+  <h2>Your moderator access was updated</h2>
+
+  <p>Hi {% if user_name %}{{ user_name }}{% else %}there{% endif %},</p>
+
+  <p>
+    Your moderator access on <strong>{{ site_name }}</strong> has been reviewed and updated
+    by the <strong>Administrator</strong>. The changes are effective immediately and apply
+    to your admin dashboard.
+  </p>
+
+  {% if permissions_added %}
+  <!-- ── Permissions Added ── -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 28px 0 0;">
+    <tr>
+      <td style="padding-bottom: 10px;">
+        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px;
+                  font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+                  color: #5D7A68;">&#10003;&nbsp; Access granted</p>
+      </td>
+    </tr>
+  </table>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="border: 1px solid #D5E8D9; border-radius: 3px; overflow: hidden; margin-bottom: 24px;">
+    {% for perm in permissions_added %}
+    <tr>
+      <td style="padding: 13px 18px; border-bottom: 1px solid #E6F0E8;
+                 background-color: {% if forloop.first %}#F2FAF3{% else %}#ffffff{% endif %};">
+        <p style="margin: 0 0 2px; font-family: Arial, Helvetica, sans-serif;
+                  font-size: 14px; font-weight: 700; color: #2C3E2D;">{{ perm.label }}</p>
+        {% if perm.description %}
+        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif;
+                  font-size: 13px; color: #5D7A68; line-height: 1.5;">{{ perm.description }}</p>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if permissions_removed %}
+  <!-- ── Permissions Removed ── -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 4px 0 0;">
+    <tr>
+      <td style="padding-bottom: 10px;">
+        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px;
+                  font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+                  color: #8A5A5A;">&#8722;&nbsp; Access removed</p>
+      </td>
+    </tr>
+  </table>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="border: 1px solid #E8D5D5; border-radius: 3px; overflow: hidden; margin-bottom: 24px;">
+    {% for perm in permissions_removed %}
+    <tr>
+      <td style="padding: 13px 18px; border-bottom: 1px solid #F0E6E6;
+                 background-color: {% if forloop.first %}#FAF2F2{% else %}#ffffff{% endif %};">
+        <p style="margin: 0 0 2px; font-family: Arial, Helvetica, sans-serif;
+                  font-size: 14px; font-weight: 700; color: #3E2C2C;">{{ perm.label }}</p>
+        {% if perm.description %}
+        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif;
+                  font-size: 13px; color: #8A5A5A; line-height: 1.5;">{{ perm.description }}</p>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if sub_role_changed and new_sub_role %}
+  <!-- ── Role Title Changed ── -->
+  <div class="alert-box" style="margin-bottom: 24px;">
+    <strong>Role title updated:</strong>
+    {% if old_sub_role %}<span style="text-decoration: line-through; color: #8A8A85;">{{ old_sub_role }}</span> &rarr; {% endif %}
+    <strong>{{ new_sub_role }}</strong>
+  </div>
+  {% endif %}
+
+  {% if not permissions_added and not permissions_removed and not sub_role_changed %}
+  <div class="alert-box">
+    Your access profile has been reviewed by the Administrator. No specific module changes were recorded at this time.
+  </div>
+  {% endif %}
+
+  <hr class="divider">
+
+  <p>
+    Your current permissions are active and ready to use. If you have questions about your
+    access or believe a change was made in error, please get in touch with your church
+    administrator directly.
+  </p>
+
+  {% if action_url %}
+  <div style="text-align: center; margin: 32px 0 8px;">
+    <a href="{{ action_url }}" class="btn-primary">Go to Dashboard</a>
+  </div>
+  {% endif %}
+
+  <hr class="divider">
+
+  <p style="font-size: 13px; color: #8A8A85; font-family: Arial, Helvetica, sans-serif;
+             line-height: 1.65; margin: 0;">
+    This is an automated security notice. You are receiving it because your account
+    holds a moderator role on <strong style="color: #2C2C2A;">{{ site_name }}</strong>.
+    If you did not expect this change, please contact your administrator immediately.
+  </p>
+{% endblock %}
+
+{% block unsubscribe_link %}{% endblock %}

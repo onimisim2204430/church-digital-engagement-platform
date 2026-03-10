@@ -8,8 +8,8 @@ import postService, { Post } from '../services/post.service';
 import draftService, { Draft } from '../services/draft.service';
 import Icon from '../components/common/Icon';
 // Lazy-loaded — the heavy editor bundle is only fetched/parsed when first opened.
-const PostCreate = lazy(() => import('./PostManagement/PostCreate'));
-const PostEdit   = lazy(() => import('./PostManagement/PostEdit'));
+
+const PostForm = lazy(() => import('./PostManagement/PostForm'));
 
 // Icons - Using Icon component
 const PlusIcon = ({ size = 20 }: { size?: number }) => <Icon name="add" size={size} />;
@@ -54,13 +54,13 @@ const StatusBadge: React.FC<{ status: string; scheduled?: boolean }> = ({ status
   const getStatusStyles = () => {
     switch (status) {
       case 'PUBLISHED':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/50';
       case 'SCHEDULED':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50';
       case 'DRAFT':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
+        return 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-600';
       default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
+        return 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-600';
     }
   };
 
@@ -480,23 +480,24 @@ const ContentManager: React.FC = () => {
   const counts = getStatusCounts();
 
   const editorFallback = (
-    <div className="h-full flex items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center gap-3 text-slate-400">
-        <div className="w-8 h-8 border-2 border-slate-300 border-t-primary rounded-full animate-spin" />
+    <div className="h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="flex flex-col items-center gap-3 text-slate-400 dark:text-slate-500">
+        <div className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 border-t-primary rounded-full animate-spin" />
         <span className="text-sm font-medium">Loading editor…</span>
       </div>
     </div>
   );
 
+
   if (viewMode === 'create') {
     return (
-      <div className="h-full overflow-hidden bg-slate-50">
+      <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-900">
         <Suspense fallback={editorFallback}>
-          <PostCreate 
+          <PostForm
             key={selectedDraft?.id || 'new'}
-            onSuccess={handleSuccess} 
-            onCancel={handleCancel} 
-            initialData={selectedDraft} 
+            onSuccess={handleSuccess}
+            onCancel={handleCancel}
+            initialData={selectedDraft}
           />
         </Suspense>
       </div>
@@ -505,9 +506,10 @@ const ContentManager: React.FC = () => {
 
   if (viewMode === 'edit' && selectedPost) {
     return (
-      <div className="h-full overflow-hidden bg-slate-50">
+      <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-900">
         <Suspense fallback={editorFallback}>
-          <PostEdit
+          <PostForm
+            mode="edit"
             postId={selectedPost.id}
             onSuccess={handleSuccess}
             onCancel={handleCancel}
@@ -520,13 +522,13 @@ const ContentManager: React.FC = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-transparent">
       {/* Page Header */}
-      <div className="bg-white/40 backdrop-blur-md border-b border-white/20 px-8 py-5 flex-shrink-0">
+      <div className="bg-white/40 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/20 dark:border-slate-700/50 px-8 py-5 flex-shrink-0">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tight">
+            <h1 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Content Management
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {user?.role === UserRole.ADMIN 
                 ? 'Manage all sermons, articles, and announcements' 
                 : 'Manage your sermons, articles, and announcements'}
@@ -544,53 +546,53 @@ const ContentManager: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="bg-white/40 backdrop-blur-md border-b border-white/20 px-8 py-4 flex-shrink-0">
+      <div className="bg-white/40 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/20 dark:border-slate-700/50 px-8 py-4 flex-shrink-0">
         <div className="max-w-6xl mx-auto grid grid-cols-5 gap-4">
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</p>
-            <p className="text-lg font-bold text-slate-900 mt-1">{counts.total}</p>
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-1">{counts.total}</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <PublishedIcon size={14} /> Published
             </p>
-            <p className="text-lg font-bold text-green-600 mt-1">{counts.published}</p>
+            <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">{counts.published}</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <DraftIcon size={14} /> Drafts
             </p>
-            <p className="text-lg font-bold text-amber-600 mt-1">{counts.drafts}</p>
+            <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">{counts.drafts}</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <ScheduleIcon size={14} /> Scheduled
             </p>
-            <p className="text-lg font-bold text-purple-600 mt-1">{counts.scheduled}</p>
+            <p className="text-lg font-bold text-purple-600 dark:text-purple-400 mt-1">{counts.scheduled}</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <TrashIcon size={14} /> Trash
             </p>
-            <p className="text-lg font-bold text-slate-600 mt-1">{counts.trash}</p>
+            <p className="text-lg font-bold text-slate-600 dark:text-slate-400 mt-1">{counts.trash}</p>
           </div>
         </div>
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="bg-white/40 backdrop-blur-md border-b border-white/20 px-8 py-3 flex-shrink-0">
+      <div className="bg-white/40 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/20 dark:border-slate-700/50 px-8 py-3 flex-shrink-0">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-1">
             {/* Tabs */}
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
               {(['ALL', 'PUBLISHED', 'DRAFTS', 'TRASH'] as ContentTab[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
                     activeTab === tab
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   {tab}
@@ -607,7 +609,7 @@ const ContentManager: React.FC = () => {
                 placeholder="Search by title, author..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-white"
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -619,7 +621,7 @@ const ContentManager: React.FC = () => {
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
                 filterType === ''
                   ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               All Types
@@ -629,7 +631,7 @@ const ContentManager: React.FC = () => {
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
                 filterType === 'SERMON'
                   ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               Sermons
@@ -639,7 +641,7 @@ const ContentManager: React.FC = () => {
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
                 filterType === 'ARTICLE'
                   ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               Articles
@@ -649,7 +651,7 @@ const ContentManager: React.FC = () => {
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
                 filterType === 'ANNOUNCEMENT'
                   ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               Announcements
@@ -667,7 +669,7 @@ const ContentManager: React.FC = () => {
               {[...Array(5)].map((_, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-xl border border-slate-200 h-24 animate-pulse"
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 h-24 animate-pulse"
                 />
               ))}
             </div>
@@ -676,10 +678,10 @@ const ContentManager: React.FC = () => {
           {/* Empty State */}
           {!loading && !loadingDrafts && !loadingDeleted && filteredItems.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
-                <Icon name="description" size={32} className="text-slate-400" />
+              <div className="h-16 w-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <Icon name="description" size={32} className="text-slate-400 dark:text-slate-500" />
               </div>
-              <p className="text-slate-600 font-semibold text-base">
+              <p className="text-slate-600 dark:text-slate-400 font-semibold text-base">
                 {searchTerm || filterType ? 'No content matches your filters' : 'No content yet'}
               </p>
               {!searchTerm && !filterType && activeTab === 'ALL' && (
@@ -707,17 +709,17 @@ const ContentManager: React.FC = () => {
                       if (draft) handleEditDraft(draft);
                     }
                   }}
-                  className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all cursor-pointer"
+                  className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex items-center gap-4 hover:border-primary/40 dark:hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
                 >
                   {/* Cover/Type Icon */}
-                  <div className="h-14 w-14 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden border border-slate-200">
+                  <div className="h-14 w-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden border border-slate-200 dark:border-slate-600">
                     {item.coverImage ? (
                       <img src={item.coverImage} alt={item.title} className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
                         <Icon name={item.type === 'SERMON' ? 'mic' : 
                                     item.type === 'ARTICLE' ? 'article' : 
-                                    item.type === 'ANNOUNCEMENT' ? 'campaign' : 'description'} size={22} className="text-slate-300" />
+                                    item.type === 'ANNOUNCEMENT' ? 'campaign' : 'description'} size={22} className="text-slate-300 dark:text-slate-500" />
                       </div>
                     )}
                   </div>
@@ -725,36 +727,36 @@ const ContentManager: React.FC = () => {
                   {/* Content Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-slate-900 truncate">{item.title}</h3>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{item.title}</h3>
                       <StatusBadge status={item.status} />
                       {item.source === 'draft' && (
-                        <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-200">
+                        <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 text-xs font-medium border border-purple-200 dark:border-purple-800/50">
                           Draft
                         </span>
                       )}
                       {item.postId && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 text-xs font-medium border border-blue-200 dark:border-blue-800/50">
                           Linked to Post
                         </span>
                       )}
                     </div>
 
                     {item.excerpt && (
-                      <p className="text-sm text-slate-500 mt-1 line-clamp-1">{item.excerpt}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">{item.excerpt}</p>
                     )}
 
-                    <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 flex-wrap">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
                       <span className="flex items-center gap-1">
                         <Icon name="person" size={12} />
                         {item.author.name}
                       </span>
-                      <span className="w-1 h-1 rounded-full bg-slate-300" />
-                      <span className="px-2 py-0.5 bg-slate-100 rounded-full text-slate-600">
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
                         {item.typeLabel}
                       </span>
                       {item.source === 'post' && (
                         <>
-                          <span className="w-1 h-1 rounded-full bg-slate-300" />
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                           <span className="flex items-center gap-1">
                             <Icon name="visibility" size={12} />
                             {item.views.toLocaleString()} views
@@ -763,8 +765,8 @@ const ContentManager: React.FC = () => {
                       )}
                       {item.source === 'draft' && item.timeSinceSave && (
                         <>
-                          <span className="w-1 h-1 rounded-full bg-slate-300" />
-                          <span className="flex items-center gap-1 text-amber-600" title={item.lastAutosaveAt}>
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title={item.lastAutosaveAt}>
                             <Icon name="schedule" size={12} />
                             Saved {item.timeSinceSave}
                           </span>
@@ -772,7 +774,7 @@ const ContentManager: React.FC = () => {
                       )}
                       {item.publishedAt && (
                         <>
-                          <span className="w-1 h-1 rounded-full bg-slate-300" />
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                           <span>
                             {new Date(item.publishedAt).toLocaleDateString('en-US', {
                               month: 'short', day: 'numeric', year: 'numeric',
@@ -792,7 +794,7 @@ const ContentManager: React.FC = () => {
                             const draft = drafts.find(d => d.id === item.id);
                             if (draft) handleEditDraft(draft);
                           }}
-                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100"
+                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           title="Edit draft"
                         >
                           <EditIcon size={18} />
@@ -802,7 +804,7 @@ const ContentManager: React.FC = () => {
                             const draft = drafts.find(d => d.id === item.id);
                             if (draft) handlePublishDraft(draft);
                           }}
-                          className="p-2 text-slate-400 hover:text-green-600 transition-colors rounded-lg hover:bg-slate-100"
+                          className="p-2 text-slate-400 hover:text-green-600 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           title="Publish draft"
                         >
                           <PublishedIcon size={18} />
@@ -812,7 +814,7 @@ const ContentManager: React.FC = () => {
                             const draft = drafts.find(d => d.id === item.id);
                             if (draft) handleDeleteDraft(draft);
                           }}
-                          className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                          className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
                           title="Delete draft"
                         >
                           <DeleteIcon size={18} />
@@ -823,7 +825,7 @@ const ContentManager: React.FC = () => {
                         {item.status === 'PUBLISHED' && (
                           <button
                             onClick={() => window.open(`/post/${item.id}`, '_blank')}
-                            className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100"
+                            className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                             title="View post"
                           >
                             <EyeIcon size={18} />
@@ -834,7 +836,7 @@ const ContentManager: React.FC = () => {
                             const post = posts.find(p => p.id === item.id);
                             if (post) handleEditPost(post);
                           }}
-                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100"
+                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           title="Edit post"
                         >
                           <EditIcon size={18} />
@@ -844,7 +846,7 @@ const ContentManager: React.FC = () => {
                             const post = posts.find(p => p.id === item.id);
                             if (post) handleTogglePublish(post);
                           }}
-                          className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-slate-100"
+                          className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                           title={item.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
                         >
                           <PublishedIcon size={18} />
@@ -854,14 +856,14 @@ const ContentManager: React.FC = () => {
                             const post = posts.find(p => p.id === item.id);
                             if (post) handleDeletePost(post);
                           }}
-                          className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                          className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
                           title="Delete post"
                         >
                           <DeleteIcon size={18} />
                         </button>
                       </>
                     )}
-                    <Icon name="chevron_right" size={20} className="text-slate-300" />
+                    <Icon name="chevron_right" size={20} className="text-slate-300 dark:text-slate-600" />
                   </div>
                 </div>
               ))}

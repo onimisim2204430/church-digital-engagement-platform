@@ -129,25 +129,33 @@
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* === Dark Mode === */
+/* === Dark Mode - FinancialHub Bloomberg Terminal === */
 [data-theme="dark"] {
-  /* Backgrounds */
-  --bg-primary: #0f172a;
+  /* Backgrounds - Deep Navy Bloomberg Terminal aesthetic */
+  --bg-primary: #0a0f1e;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
   --bg-elevated: #1e293b;
-  --bg-overlay: rgba(0, 0, 0, 0.7);
+  --bg-overlay: rgba(0, 0, 0, 0.8);
   --card-bg: #1e293b;
   
-  /* Primary scale overrides for dark mode */
-  --primary-50: rgba(34, 104, 245, 0.1);
-  --primary-100: rgba(34, 104, 245, 0.15);
+  /* Primary scale - Emerald accent for precision fintech look */
+  --primary-50: rgba(16, 185, 129, 0.1);
+  --primary-100: rgba(16, 185, 129, 0.15);
+  --primary-200: rgba(16, 185, 129, 0.25);
+  --primary-300: rgba(16, 185, 129, 0.35);
+  --primary-400: #10b981;
+  --primary-500: #10b981;
+  --primary-600: #059669;
+  --primary-700: #047857;
+  --primary-800: #065f46;
+  --primary-900: #064e3b;
   
   /* Text */
   --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-tertiary: #94a3b8;
-  --text-inverse: #0f172a;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-inverse: #0a0f1e;
   --text-disabled: #475569;
   
   /* Borders */
@@ -155,18 +163,19 @@
   --border-secondary: #475569;
   --border-color: #334155;
   
-  /* Sidebar in Dark Mode */
-  --sidebar-bg: #020617;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #ffffff;
-  --sidebar-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-active: rgba(34, 104, 245, 0.2);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  /* Sidebar - matches topnav slate-900 */
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #64748b;
+  --sidebar-text-active: #f1f5f9;
+  --sidebar-hover: rgba(16, 185, 129, 0.08);
+  --sidebar-active: rgba(16, 185, 129, 0.15);
+  --sidebar-border: #334155;
   
   /* Additional Helper Variables */
-  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-hover: rgba(16, 185, 129, 0.08);
   
-  /* Semantic Colors - Adjusted for dark mode */
+  /* Semantic Colors - Bloomberg Terminal palette */
+  --success: #10b981;
   --success-50: rgba(16, 185, 129, 0.1);
   --success-100: rgba(16, 185, 129, 0.15);
   --success-500: #10b981;

@@ -58,7 +58,10 @@ class DraftViewSet(viewsets.ModelViewSet):
                 # Update existing draft instead of creating new
                 update_serializer = DraftUpdateSerializer(
                     existing, 
-                    data=serializer.validated_data, 
+                    # Use the raw payload (pk strings) instead of validated_data
+                    # because validated_data already contains model instances
+                    # which DraftUpdateSerializer expects as primary-key values.
+                    data=serializer.initial_data, 
                     partial=True
                 )
                 update_serializer.is_valid(raise_exception=True)

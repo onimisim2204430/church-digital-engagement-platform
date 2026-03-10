@@ -50,13 +50,13 @@ const SuggestedAmountsEditor = memo<SuggestedAmountsEditorProps>(({ amounts, onC
               onChange={e => setInputVal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())}
               placeholder="Add amount"
-              className="w-32 pl-7 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-white"
+              className="w-32 pl-7 pr-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-slate-900 dark:text-slate-200"
             />
           </div>
           <button
             type="button"
             onClick={add}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
           >
             Add
           </button>

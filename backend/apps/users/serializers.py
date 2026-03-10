@@ -6,11 +6,13 @@ These serializers handle:
 - User login
 - User profile retrieval and updates
 - JWT token responses
+- Custom JWT token pair with role + permissions baked in
 """
 
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, UserRole
 
 
@@ -162,6 +164,54 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+class ChangeEmailSerializer(serializers.Serializer):
+    """Serializer for changing the authenticated user's email address."""
+
+    new_email = serializers.EmailField(required=True)
+    password = serializers.CharField(
+        required=True,
+        write_only=True,
+        style={'input_type': 'password'},
+    )
+
+    def validate_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Incorrect password.')
+        return value
+
+    def validate_new_email(self, value):
+        value = value.lower().strip()
+        user = self.context['request'].user
+        if User.objects.filter(email__iexact=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError(
+                'This email address is already in use by another account.'
+            )
+        return value
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if attrs['new_email'] == user.email.lower():
+            raise serializers.ValidationError(
+                {'new_email': 'New email must be different from your current email.'}
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.email = self.validated_data['new_email']
+        # Reset verification so the user must verify the new address
+        user.email_verified = False
+        user.email_verified_at = None
+        user.email_verification_token = None
+        user.email_verification_token_expires_at = None
+        user.save(update_fields=[
+            'email', 'email_verified', 'email_verified_at',
+            'email_verification_token', 'email_verification_token_expires_at',
+        ])
+        return user
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     """Serializer for changing user password."""
     
@@ -210,13 +260,16 @@ class AdminUserListSerializer(serializers.ModelSerializer):
     
     full_name = serializers.SerializerMethodField()
     account_status = serializers.SerializerMethodField()
+    sub_role_label = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'full_name',
             'role', 'is_active', 'email_verified', 'email_subscribed',
-            'is_suspended', 'date_joined', 'last_login', 'account_status'
+            'is_suspended', 'date_joined', 'last_login', 'account_status',
+            'sub_role_label', 'profile_picture',
         ]
         read_only_fields = fields
     
@@ -235,6 +288,21 @@ class AdminUserListSerializer(serializers.ModelSerializer):
         """Get current account status."""
         return obj.account_status
 
+    def get_sub_role_label(self, obj):
+        """Get sub-role label from ModeratorPermission if present."""
+        mp = getattr(obj, 'mod_permissions', None)
+        return mp.sub_role_label if mp else ''
+
+    def get_profile_picture(self, obj):
+        """Return absolute URL for profile picture, or None."""
+        if not obj.profile_picture:
+            return None
+        url = obj.profile_picture.url
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
 
 class AdminUserDetailSerializer(serializers.ModelSerializer):
     """Serializer for admin user detail view."""
@@ -242,6 +310,8 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     account_status = serializers.SerializerMethodField()
     suspended_by_email = serializers.SerializerMethodField()
+    sub_role_label = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -251,7 +321,7 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
             'is_suspended', 'suspended_at', 'suspended_by', 'suspended_by_email',
             'suspension_reason', 'suspension_expires_at',
             'date_joined', 'last_login', 'phone_number',
-            'profile_picture', 'bio', 'account_status'
+            'profile_picture', 'bio', 'account_status', 'sub_role_label',
         ]
         read_only_fields = fields
     
@@ -274,6 +344,21 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
         """Get email of admin who suspended this user."""
         return obj.suspended_by.email if obj.suspended_by else None
 
+    def get_sub_role_label(self, obj):
+        """Get sub-role label from ModeratorPermission if present."""
+        mp = getattr(obj, 'mod_permissions', None)
+        return mp.sub_role_label if mp else ''
+
+    def get_profile_picture(self, obj):
+        """Return absolute URL for profile picture, or None."""
+        if not obj.profile_picture:
+            return None
+        url = obj.profile_picture.url
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
 
 class ChangeRoleSerializer(serializers.Serializer):
     """Serializer for changing user role."""
@@ -293,3 +378,67 @@ class UpdateEmailSubscriptionSerializer(serializers.Serializer):
     """Serializer for updating email subscription."""
     
     email_subscribed = serializers.BooleanField(required=True)
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Extends the default JWT pair serializer to embed ``role`` and
+    ``permissions`` claims directly into the access token payload.
+
+    Access token payload additions:
+    - ``role``        — the user's role string (e.g. ``'ADMIN'``/``'MODERATOR'``)
+    - ``permissions`` — list of module permission codes (empty list for non-moderators)
+
+    Side-effect: warms the Redis permissions cache for the user so the first
+    ``HasModulePermission`` check after login is also a cache hit.
+    """
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Bake role into the JWT so the frontend can read it without a DB call
+        token['role'] = user.role
+
+        # Resolve and embed permissions
+        from apps.users.utils.permissions_cache import (
+            get_cached_permissions,
+            set_cached_permissions,
+        )
+        perms = get_cached_permissions(str(user.id))
+        token['permissions'] = perms
+
+        # Eagerly warm the cache (get_cached_permissions already does this on
+        # a miss, but calling set here ensures it's refreshed even on a hit)
+        set_cached_permissions(str(user.id), perms)
+
+        return token
+
+
+class ModeratorPermissionSerializer(serializers.Serializer):
+    """
+    Serializer for reading / writing a moderator's module permissions.
+
+    Used by the ``ModeratorPermissionView`` (GET + PATCH).
+    """
+
+    permissions = serializers.ListField(
+        child=serializers.CharField(),
+        help_text='List of permission code strings to grant',
+    )
+    sub_role_label = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        help_text='Human-readable label for the sub-role (e.g. "Finance Moderator")',
+    )
+
+    def validate_permissions(self, value):
+        from apps.users.permission_codes import ALL_CODES
+
+        unknown = [c for c in value if c not in ALL_CODES]
+        if unknown:
+            raise serializers.ValidationError(
+                f"Unknown permission code(s): {', '.join(unknown)}"
+            )
+        return list(set(value))  # deduplicate

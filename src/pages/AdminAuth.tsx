@@ -22,7 +22,7 @@ const AdminAuth: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login: contextLogin } = useAuth();
+  const { login: contextLogin, loginWithTokens } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,24 +45,25 @@ const AdminAuth: React.FC = () => {
         });
       }
 
-      // Store tokens in both places for compatibility
+      console.log('%c[AdminAuth] LOGIN SUCCESS', 'color:green;font-weight:bold', {
+        email: response.user.email,
+        role: response.user.role,
+        tokens_present: !!(response.tokens.access && response.tokens.refresh),
+      });
+
+      // Store tokens
       localStorage.setItem('access_token', response.tokens.access);
       localStorage.setItem('refresh_token', response.tokens.refresh);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
-      // Also store in auth_tokens format for AuthContext
       localStorage.setItem('auth_tokens', JSON.stringify(response.tokens));
+      localStorage.setItem('user', JSON.stringify(response.user));
 
-      // Update AuthContext by calling login with stored credentials
-      // This ensures ProtectedRoute recognizes the authentication
-      try {
-        await contextLogin(formData.email, formData.password);
-      } catch {
-        // If context login fails, still proceed since we have tokens
-      }
+      console.log('%c[AdminAuth] Calling loginWithTokens (ASYNC — awaiting permissions)...', 'color:orange');
+      await loginWithTokens(response.user, response.tokens);
+      console.log('%c[AdminAuth] loginWithTokens DONE — doing hard redirect', 'color:green;font-weight:bold');
 
-      // Redirect to admin dashboard
-      navigate('/admin');
+      // Hard redirect — forces React to fully remount so AdminAccessGate
+      // always reads the completed auth state, never a mid-flight empty state.
+      window.location.href = '/admin';
     } catch (err: any) {
       console.error('Admin auth error:', err);
       setError(err.message || (isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.'));

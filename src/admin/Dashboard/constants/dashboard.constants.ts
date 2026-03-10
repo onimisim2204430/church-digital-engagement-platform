@@ -38,9 +38,9 @@ export const STATUS_LABELS: Record<ContentItem['status'], string> = {
 };
 
 export const STATUS_LABEL_COLORS: Record<ContentItem['status'], string> = {
-  draft:     'text-slate-soft',
-  review:    'text-amber-600',
-  scheduled: 'text-emerald-600',
+  draft:     'text-slate-soft dark:text-slate-400',
+  review:    'text-amber-600 dark:text-amber-400',
+  scheduled: 'text-emerald-600 dark:text-emerald-400',
 };
 
 export const STATUS_ICONS: Record<ContentItem['status'], string | null> = {
@@ -56,9 +56,9 @@ export const STATUS_ICON_COLORS: Record<ContentItem['status'], string> = {
 };
 
 export const STATUS_STYLES: Record<ContentItem['status'], { border: string; bg: string; badge: string }> = {
-  draft:     { border: 'border-border-light hover:border-primary/40', bg: 'bg-white',        badge: 'bg-slate-100 text-slate-soft' },
-  review:    { border: 'border-amber-100 hover:border-amber-300',      bg: 'bg-amber-50/30',  badge: 'bg-amber-100 text-amber-700 border border-amber-200' },
-  scheduled: { border: 'border-border-light',                           bg: 'bg-white',        badge: 'bg-emerald-100 text-emerald-700 border border-emerald-200' },
+  draft:     { border: 'border-border-light dark:border-slate-700 hover:border-primary/40',       bg: 'bg-white dark:bg-slate-800/60',       badge: 'bg-slate-100 dark:bg-slate-700 text-slate-soft dark:text-slate-400' },
+  review:    { border: 'border-amber-100 dark:border-amber-900/50 hover:border-amber-300',         bg: 'bg-amber-50/30 dark:bg-amber-950/20', badge: 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50' },
+  scheduled: { border: 'border-border-light dark:border-slate-700',                                bg: 'bg-white dark:bg-slate-800/60',       badge: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' },
 };
 
 export const HIDE_SCROLLBAR: React.CSSProperties = { scrollbarWidth: 'none' };

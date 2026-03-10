@@ -1,5 +1,5 @@
 /**
- * SettingsTab - Series metadata and danger zone
+ * SettingsTab.tsx — restyled to admin design system. All logic preserved.
  */
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -23,19 +23,12 @@ interface SettingsTabProps {
   onSetDeleteInput?: (value: string) => void;
 }
 
+const mono = "'JetBrains Mono', monospace";
+const syne = "'Syne', sans-serif";
+
 const SettingsTab: React.FC<SettingsTabProps> = React.memo(({
-  series,
-  totalViews,
-  seriesId,
-  onDeleteSuccess,
-  onSetHidden,
-  removeConfirmId,
-  onSetRemoveConfirm,
-  removingId,
-  showDeleteSeriesModal,
-  onSetShowDeleteModal,
-  deleteSeriesInput = '',
-  onSetDeleteInput,
+  series, totalViews, seriesId, onDeleteSuccess, onSetHidden,
+  showDeleteSeriesModal, onSetShowDeleteModal, deleteSeriesInput = '', onSetDeleteInput,
 }) => {
   const navigate = useNavigate();
 
@@ -53,104 +46,107 @@ const SettingsTab: React.FC<SettingsTabProps> = React.memo(({
     }
   }, [seriesId, navigate, onDeleteSuccess, onSetShowDeleteModal, onSetDeleteInput]);
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', padding: '10px 14px',
+    background: 'var(--bg3)', border: '1px solid var(--border-color)', borderRadius: 8,
+    color: 'var(--text-primary)', fontFamily: mono, fontSize: 12, outline: 'none',
+  };
+
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
-        {/* Left column: Info cards */}
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          {/* Card: Series Information */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5">
-              <Icon name="info" size={18} className="text-primary/70" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }} className="settings-layout">
+
+        {/* Left: Info cards */}
+        <div style={{ flex: 1, minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Series Information */}
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border-color)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg1)' }}>
+              <Icon name="info" size={16} style={{ color: 'var(--em)' } as any} />
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Series Information</h3>
-                <p className="text-xs text-slate-400">Read-only metadata about this series</p>
+                <p style={{ fontFamily: syne, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Series Information</p>
+                <p style={{ fontFamily: mono, fontSize: 10, color: 'var(--text-tertiary)', margin: 0 }}>Read-only metadata about this series</p>
               </div>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div>
               {[
-                { icon: 'tag', label: 'Series ID', value: series?.id || '' },
-                { icon: 'link', label: 'Public URL Slug', value: series?.slug || '' },
-                { icon: 'calendar_today', label: 'Created', value: series ? fmtDate(series.created_at) : '' },
-                { icon: 'article', label: 'Total Posts', value: series ? `${series.post_count} posts (${series.published_post_count} published)` : '' },
-                { icon: 'visibility', label: 'Total Views', value: totalViews.toLocaleString() },
-              ].map((row: any) => (
-                <div key={row.label} className="flex items-center gap-4 px-6 py-3.5">
-                  <Icon name={row.icon} size={16} className="text-slate-300 flex-shrink-0" />
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider w-32 flex-shrink-0">{row.label}</span>
-                  <span className="text-sm text-slate-800 font-medium truncate">{row.value}</span>
+                { icon: 'tag',          label: 'Series ID',     value: series?.id || '' },
+                { icon: 'link',         label: 'URL Slug',      value: series?.slug || '' },
+                { icon: 'calendar_today', label: 'Created',     value: series ? fmtDate(series.created_at) : '' },
+                { icon: 'article',      label: 'Total Posts',   value: series ? `${series.post_count} posts (${series.published_post_count} published)` : '' },
+                { icon: 'visibility',   label: 'Total Views',   value: totalViews.toLocaleString() },
+              ].map((row, i) => (
+                <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px', borderBottom: i < 4 ? '1px solid var(--border-light, var(--border-color))' : 'none' }}>
+                  <Icon name={row.icon} size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 } as any} />
+                  <span style={{ fontFamily: mono, fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text-tertiary)', width: 110, flexShrink: 0 }}>{row.label}</span>
+                  <span style={{ fontFamily: mono, fontSize: 12, color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.value}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Card: Public URL */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5">
-              <Icon name="open_in_new" size={18} className="text-primary/70" />
+          {/* Public URL */}
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border-color)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg1)' }}>
+              <Icon name="open_in_new" size={16} style={{ color: 'var(--em)' } as any} />
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Public Page</h3>
-                <p className="text-xs text-slate-400">The live URL for this series</p>
+                <p style={{ fontFamily: syne, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Public Page</p>
+                <p style={{ fontFamily: mono, fontSize: 10, color: 'var(--text-tertiary)', margin: 0 }}>The live URL for this series</p>
               </div>
             </div>
-            <div className="px-6 py-5">
-              <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                <Icon name="link" size={14} className="text-slate-400 flex-shrink-0" />
-                <span className="text-xs text-slate-500 truncate flex-1">/library/series/{series?.slug}</span>
-                <a
-                  href={`/library/series/${series?.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-shrink-0 text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-                >
-                  Open
-                  <Icon name="open_in_new" className="text-xs" />
+            <div style={{ padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg3)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '10px 14px' }}>
+                <Icon name="link" size={13} style={{ color: 'var(--text-tertiary)', flexShrink: 0 } as any} />
+                <span style={{ fontFamily: mono, fontSize: 11.5, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  /library/series/{series?.slug}
+                </span>
+                <a href={`/library/series/${series?.slug}`} target="_blank" rel="noreferrer"
+                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontFamily: mono, fontSize: 11, fontWeight: 700, color: 'var(--em)', textDecoration: 'none' }}>
+                  Open <Icon name="open_in_new" size={12} />
                 </a>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right column: Danger zone */}
-        <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-5">
-          <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-red-100 flex items-center gap-2.5 bg-red-50/60">
-              <Icon name="warning" size={18} className="text-red-500" />
+        {/* Right: Danger zone */}
+        <div style={{ width: '100%', maxWidth: 300, flexShrink: 0 }} className="settings-danger">
+          <div style={{ background: 'var(--bg2)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid rgba(239,68,68,.2)', background: 'rgba(239,68,68,.05)' }}>
+              <Icon name="warning" size={16} style={{ color: '#ef4444' } as any} />
               <div>
-                <h3 className="text-sm font-bold text-red-700">Danger Zone</h3>
-                <p className="text-xs text-red-400">Irreversible actions</p>
+                <p style={{ fontFamily: syne, fontSize: 13, fontWeight: 700, color: '#ef4444', margin: 0 }}>Danger Zone</p>
+                <p style={{ fontFamily: mono, fontSize: 10, color: '#f87171', margin: 0 }}>Irreversible actions</p>
               </div>
             </div>
-            <div className="px-5 py-5 flex flex-col gap-4">
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Archive */}
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold text-slate-800">Archive Series</p>
-                <p className="text-xs text-slate-500 leading-relaxed">
+              <div>
+                <p style={{ fontFamily: syne, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 5px' }}>Archive Series</p>
+                <p style={{ fontFamily: mono, fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 10px' }}>
                   Hides the series from public view without deleting any content. You can restore it later from Visibility settings.
                 </p>
-                <button
-                  type="button"
-                  onClick={onSetHidden}
-                  className="mt-1 w-full px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                <button type="button" onClick={onSetHidden}
+                  style={{ width: '100%', padding: '8px 0', borderRadius: 8, border: '1px solid var(--border-color)', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: mono, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg3)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
                 >
                   <Icon name="archive" size={14} />
                   Archive (Set Hidden)
                 </button>
               </div>
-              <div className="border-t border-red-100" />
+              <div style={{ height: 1, background: 'rgba(239,68,68,.15)' }} />
               {/* Delete */}
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold text-red-700">Delete Series</p>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Permanently removes this series. Posts assigned to it will not be deleted but will no longer be grouped.
+              <div>
+                <p style={{ fontFamily: syne, fontSize: 13, fontWeight: 700, color: '#ef4444', margin: '0 0 5px' }}>Delete Series</p>
+                <p style={{ fontFamily: mono, fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 10px' }}>
+                  Permanently removes this series. Posts will not be deleted but will no longer be grouped.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSetDeleteInput?.('');
-                    onSetShowDeleteModal?.(true);
-                  }}
-                  className="mt-1 w-full px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                <button type="button"
+                  onClick={() => { onSetDeleteInput?.(''); onSetShowDeleteModal?.(true); }}
+                  style={{ width: '100%', padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#ef4444', color: '#fff', fontFamily: mono, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#dc2626')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = '#ef4444')}
                 >
                   <Icon name="delete_forever" size={14} />
                   Delete Series
@@ -161,59 +157,55 @@ const SettingsTab: React.FC<SettingsTabProps> = React.memo(({
         </div>
       </div>
 
-      {/* Delete Series Confirmation Modal */}
+      {/* Delete Modal */}
       {showDeleteSeriesModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={e => {
-            if (e.target === e.currentTarget) {
-              onSetShowDeleteModal?.(false);
-              onSetDeleteInput?.('');
-            }
-          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.65)' }}
+          onClick={e => { if (e.target === e.currentTarget) { onSetShowDeleteModal?.(false); onSetDeleteInput?.(''); } }}
         >
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <Icon name="delete_forever" size={24} className="text-red-400" />
-              <h2 className="text-lg font-bold text-slate-900">Delete Series</h2>
+          <div style={{ background: 'var(--bg2)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 14, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 380, padding: 24, margin: '0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <Icon name="delete_forever" size={22} style={{ color: '#ef4444' } as any} />
+              <span style={{ fontFamily: syne, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Delete Series</span>
             </div>
-            <p className="text-slate-700 mb-4">
-              Are you sure you want to delete <span className="font-semibold">"{series?.title}"</span>? This cannot be undone. Posts assigned to it will not be deleted but will
-              no longer be grouped.
+            <p style={{ fontFamily: mono, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>
+              Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>"{series?.title}"</strong>? This cannot be undone. Posts will not be deleted but will no longer be grouped.
             </p>
-            <p className="text-xs text-slate-500 mb-2">
-              To confirm, type <span className="font-semibold text-slate-700">{series?.title}</span> below:
+            <p style={{ fontFamily: mono, fontSize: 10.5, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+              To confirm, type <strong style={{ color: 'var(--text-secondary)' }}>{series?.title}</strong> below:
             </p>
             <input
-              type="text"
-              value={deleteSeriesInput}
+              type="text" value={deleteSeriesInput}
               onChange={e => onSetDeleteInput?.(e.target.value)}
               onPaste={e => e.preventDefault()}
               placeholder={series?.title || 'Series name'}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-4 focus:outline-none focus:ring-1 focus:ring-primary"
               autoFocus
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', background: 'var(--bg3)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)', fontFamily: mono, fontSize: 12, outline: 'none', marginBottom: 20 }}
+              onFocus={e => (e.target.style.borderColor = '#ef4444')}
+              onBlur={e => (e.target.style.borderColor = 'var(--border-color)')}
             />
-            <div className="flex gap-3 justify-end mt-6">
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
-                className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
-                onClick={() => {
-                  onSetShowDeleteModal?.(false);
-                  onSetDeleteInput?.('');
-                }}
-              >
-                Cancel
-              </button>
+                onClick={() => { onSetShowDeleteModal?.(false); onSetDeleteInput?.(''); }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: mono, fontSize: 12, fontWeight: 600 }}
+              >Cancel</button>
               <button
-                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50"
                 onClick={handleDeleteSeries}
                 disabled={deleteSeriesInput !== (series?.title || '')}
-              >
-                Delete
-              </button>
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#ef4444', color: '#fff', fontFamily: mono, fontSize: 12, fontWeight: 700, opacity: deleteSeriesInput !== (series?.title || '') ? .4 : 1 }}
+              >Delete</button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        .settings-layout { flex-direction: column !important; }
+        @media (min-width: 1024px) {
+          .settings-layout { flex-direction: row !important; }
+          .settings-danger { max-width: 280px !important; }
+        }
+      `}</style>
     </>
   );
 });

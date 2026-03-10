@@ -1638,12 +1638,31 @@ const PostCreate: React.FC<PostCreateProps> = ({
           setLoading(false);
         }
       } else if (initialData) {
-        setTitle(initialData.title || '');
-        setContent(initialData.content || '<p class="mb-6 opacity-40">Start your sermon or article...</p>');
+        // Support draft payloads that wrap the content inside draft_data
+        const draftData = (initialData as any).draft_data || initialData;
+        const initialTitle =
+          draftData.title ||
+          (initialData as any).draft_title ||
+          initialData.title ||
+          '';
+        const initialContent =
+          draftData.content ||
+          initialData.content ||
+          '<p class="mb-6 opacity-40">Start your sermon or article...</p>';
+
+        setTitle(initialTitle);
+        setContent(initialContent);
         setMetadata(prev => ({
           ...prev,
           ...initialData,
-          title: initialData.title || '',
+          ...draftData,
+          title: initialTitle,
+          contentType: draftData.content_type || (initialData as any).content_type || prev.contentType,
+          featuredImage: draftData.featured_image ?? prev.featuredImage ?? null,
+          videoUrl: draftData.video_url ?? prev.videoUrl ?? '',
+          allowComments: draftData.comments_enabled ?? prev.allowComments ?? true,
+          allowReactions: draftData.reactions_enabled ?? prev.allowReactions ?? true,
+          featuredOnHomepage: draftData.is_featured ?? prev.featuredOnHomepage ?? false,
         }));
       }
     };

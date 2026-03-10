@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
-from apps.users.permissions import IsModerator
+from apps.users.permissions import IsModerator, HasModulePermission
 from apps.users.models import User, UserRole
 from apps.content.views import create_audit_log
 from apps.moderation.models import ActionType
@@ -22,9 +22,12 @@ from .serializers import (
 class AdminEmailCampaignViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for managing email campaigns
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with outreach.email permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('outreach.email')]
     queryset = EmailCampaign.objects.all()
     
     def get_serializer_class(self):
@@ -141,9 +144,12 @@ class AdminEmailCampaignViewSet(viewsets.ModelViewSet):
 class AdminEmailSubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Admin viewset for viewing email subscriptions
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with outreach.email permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('outreach.email')]
     serializer_class = EmailSubscriptionSerializer
     queryset = EmailSubscription.objects.all()
     

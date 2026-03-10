@@ -136,6 +136,8 @@ import {
   MdLockReset,
   MdMarkEmailUnread,
   MdVerifiedUser,
+  MdDarkMode,
+  MdLightMode,
 } from 'react-icons/md';
 
 export const iconMapping: Record<string, any> = {
@@ -253,6 +255,8 @@ export const iconMapping: Record<string, any> = {
   workspace_premium: MdWorkspacePremium,
   
   // Additional icons
+  arrow_upward: MdArrowUpward,
+  arrow_downward: MdArrowDownward,
   keyboard_arrow_up: MdArrowUpward,
   keyboard_arrow_down: MdArrowDownward,
   drag_indicator: MdDragIndicator,
@@ -296,6 +300,8 @@ export const iconMapping: Record<string, any> = {
   gavel: MdGavel,
   payments: MdPayments,
   storage: MdStorage,
+  dark_mode: MdDarkMode,
+  light_mode: MdLightMode,
   publish: MdPublish,
   block: MdBlock,
   circle: MdCircle,

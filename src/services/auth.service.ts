@@ -113,6 +113,30 @@ class AuthService {
   }
 
   /**
+   * Request a 6-digit password reset code to be emailed.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    await apiService.post('/auth/password-reset/request/', { email });
+  }
+
+  /**
+   * Verify the reset code and set a new password.
+   */
+  async confirmPasswordReset(
+    email: string,
+    code: string,
+    newPassword: string,
+    confirmPassword: string,
+  ): Promise<void> {
+    await apiService.post('/auth/password-reset/confirm/', {
+      email,
+      code,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    });
+  }
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
@@ -129,7 +153,11 @@ export default authService;
  * Separate endpoints for admin registration and login
  */
 
-const API_URL = 'http://localhost:8000/api/v1';
+// Prefer env vars; fall back to the old default.
+const API_URL =
+  process.env.REACT_APP_API_BASE_URL ||
+  process.env.REACT_APP_API_URL ||
+  'http://localhost:8000/api/v1';
 
 interface AdminRegisterData {
   email: string;

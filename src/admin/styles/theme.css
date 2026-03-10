@@ -1,11 +1,11 @@
 /**
  * Admin Theme System
- * Enterprise-grade admin interface theme
- * Primary Color: #2268f5
+ * FinancialHub Bloomberg Terminal Dark Theme
+ * Primary: Emerald #10b981 (dark mode)
  */
 
 :root {
-  /* Primary Brand Color */
+  /* Primary Brand Color - Light Mode */
   --admin-primary: #2268f5;
   --admin-primary-hover: #1557e4;
   --admin-primary-light: #3d7af6;
@@ -24,13 +24,13 @@
   --admin-text-tertiary: #999999;
   --admin-text-inverse: #ffffff;
   
-  /* Sidebar */
-  --admin-sidebar-bg: #1e293b;
-  --admin-sidebar-text: #cbd5e1;
-  --admin-sidebar-text-active: #ffffff;
-  --admin-sidebar-hover: rgba(255, 255, 255, 0.08);
-  --admin-sidebar-active: rgba(34, 104, 245, 0.15);
-  --admin-sidebar-border: rgba(255, 255, 255, 0.1);
+  /* Sidebar - Light Mode */
+  --admin-sidebar-bg: #ffffff;
+  --admin-sidebar-text: #475569;
+  --admin-sidebar-text-active: #1e293b;
+  --admin-sidebar-hover: rgba(0, 0, 0, 0.05);
+  --admin-sidebar-active: rgba(34, 104, 245, 0.08);
+  --admin-sidebar-border: #e2e8f0;
   
   /* Status Colors */
   --admin-success: #10b981;
@@ -68,27 +68,34 @@
   --admin-font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
 }
 
-/* Dark Mode Theme */
+/* Dark Mode - FinancialHub Bloomberg Terminal Theme */
 [data-theme="dark"] {
-  /* Background Colors */
-  --admin-bg-primary: #0f172a;
+  /* Primary Brand Color - Emerald for Bloomberg Terminal */
+  --admin-primary: #10b981;
+  --admin-primary-hover: #059669;
+  --admin-primary-light: #34d399;
+  --admin-primary-pale: rgba(16, 185, 129, 0.15);
+  
+  /* Background Colors - Deep Navy Bloomberg Terminal aesthetic */
+  --admin-bg-primary: #0a0f1e;
   --admin-bg-secondary: #1e293b;
   --admin-bg-tertiary: #334155;
-  --admin-border: #475569;
-  --admin-border-light: #334155;
+  --admin-border: #334155;
+  --admin-border-light: #475569;
   
   /* Text Colors */
   --admin-text-primary: #f1f5f9;
-  --admin-text-secondary: #cbd5e1;
-  --admin-text-tertiary: #94a3b8;
-  --admin-text-inverse: #0f172a;
+  --admin-text-secondary: #94a3b8;
+  --admin-text-tertiary: #64748b;
+  --admin-text-inverse: #0a0f1e;
   
-  /* Sidebar (slightly different in dark mode) */
-  --admin-sidebar-bg: #0a0f1a;
-  --admin-sidebar-text: #94a3b8;
-  --admin-sidebar-text-active: #ffffff;
-  --admin-sidebar-hover: rgba(255, 255, 255, 0.05);
-  --admin-sidebar-active: rgba(34, 104, 245, 0.2);
+  /* Sidebar - Bloomberg Terminal with Emerald accents */
+  --admin-sidebar-bg: #020617;
+  --admin-sidebar-text: #64748b;
+  --admin-sidebar-text-active: #f1f5f9;
+  --admin-sidebar-hover: rgba(16, 185, 129, 0.08);
+  --admin-sidebar-active: rgba(16, 185, 129, 0.15);
+  --admin-sidebar-border: #334155;
   
   /* Status Backgrounds (darker) */
   --admin-success-bg: rgba(16, 185, 129, 0.15);

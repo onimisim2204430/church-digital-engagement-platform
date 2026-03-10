@@ -10,13 +10,14 @@ import { PublicLayout } from './layouts';
 import Icon from '../components/common/Icon';
 import { useAuth } from '../auth/AuthContext';
 import paymentService from '../services/payment.service';
+import givingService from '../services/giving.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type GivingCategory = 'All' | 'Tithes' | 'Offerings' | 'Projects' | 'Fundraising';
 
 interface GivingOption {
-  id: number;
+  id: string | number; // Support both UUID strings from backend and legacy number IDs
   category: string;
   title: string;
   description: string;
@@ -26,10 +27,13 @@ interface GivingOption {
   suggestedAmounts?: number[];
   goal?: number;
   raised?: number;
+  progressPercentage?: number | null;
   deadline?: string;
   isRecurring?: boolean;
   isFeatured?: boolean;
   verse?: string;
+  totalDonations?: number;
+  donorCount?: number;
 }
 
 // ─── Module-level constants ────────────────────────────────────────────────────
@@ -145,10 +149,22 @@ const isValidEmail = (value: string): boolean => /\S+@\S+\.\S+/.test(value.trim(
 const getProgressPercent = (raised: number, goal: number): number =>
   Math.min(Math.round((raised / goal) * 100), 100);
 
+const toCategoryLabel = (category: string): string => {
+  const mapping: Record<string, string> = {
+    tithe: 'Tithes',
+    offering: 'Offerings',
+    project: 'Projects',
+    mission: 'Fundraising',
+    seed: 'Fundraising',
+    other: 'Offerings',
+  };
+  return mapping[category] || category;
+};
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 /** Featured hero-style tithe/offering card — spans 2 columns */
-const FeaturedGivingCard = memo<{ option: GivingOption; onGive: (id: number) => void }>(({ option, onGive }) => {
+const FeaturedGivingCard = memo<{ option: GivingOption; onGive: (id: string | number) => void }>(({ option, onGive }) => {
   const [customAmount, setCustomAmount] = useState('');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(option.suggestedAmounts?.[1] ?? null);
 
@@ -268,8 +284,14 @@ const FeaturedGivingCard = memo<{ option: GivingOption; onGive: (id: number) => 
 FeaturedGivingCard.displayName = 'FeaturedGivingCard';
 
 /** Progress-bar fundraising / project card */
-const ProjectFundraisingCard = memo<{ option: GivingOption; onGive: (id: number) => void; featured?: boolean }>(({ option, onGive, featured }) => {
-  const percent = option.goal && option.raised ? getProgressPercent(option.raised, option.goal) : 0;
+const ProjectFundraisingCard = memo<{ option: GivingOption; onGive: (id: string | number) => void; featured?: boolean }>(({ option, onGive, featured }) => {
+  const hasGoal = typeof option.goal === 'number' && option.goal > 0;
+  const hasRaised = typeof option.raised === 'number';
+  const percent = typeof option.progressPercentage === 'number' && option.progressPercentage >= 0
+    ? Math.min(option.progressPercentage, 100)
+    : hasGoal && hasRaised
+      ? getProgressPercent(option.raised as number, option.goal as number)
+      : 0;
 
   return (
     <div className={`${featured ? 'md:col-span-2' : ''} group flex flex-col bg-surface rounded-xl overflow-hidden shadow-[0_2px_20px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.15)] hover:-translate-y-1 transition-all duration-300 border border-accent-sand/20`}>
@@ -310,11 +332,11 @@ const ProjectFundraisingCard = memo<{ option: GivingOption; onGive: (id: number)
         </div>
 
         {/* Progress stats */}
-        {option.goal && option.raised !== undefined && (
+        {hasGoal && hasRaised && (
           <div className="flex flex-col gap-2 mt-auto pt-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-lg font-bold text-text-main font-serif">{formatCurrency(option.raised)}</span>
-              <span className="text-xs text-text-muted">of {formatCurrency(option.goal)}</span>
+              <span className="text-lg font-bold text-text-main font-serif">{formatCurrency(option.raised as number)}</span>
+              <span className="text-xs text-text-muted">of {formatCurrency(option.goal as number)}</span>
             </div>
             <div className="h-2 w-full bg-accent-sand/20 rounded-full overflow-hidden">
               <div
@@ -342,7 +364,7 @@ const ProjectFundraisingCard = memo<{ option: GivingOption; onGive: (id: number)
 ProjectFundraisingCard.displayName = 'ProjectFundraisingCard';
 
 /** Simple offering card — icon-forward, sand/white background */
-const OfferingCard = memo<{ option: GivingOption; onGive: (id: number) => void }>(({ option, onGive }) => (
+const OfferingCard = memo<{ option: GivingOption; onGive: (id: string | number) => void }>(({ option, onGive }) => (
   <div className={`group relative flex flex-col justify-between ${option.bgColor} rounded-xl p-8 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden border border-accent-sand/20`}>
     <div className="absolute -bottom-6 -right-6 opacity-10 rotate-12">
       <Icon name={option.icon} size={120} ariaHidden />
@@ -381,7 +403,7 @@ const OfferingCard = memo<{ option: GivingOption; onGive: (id: number) => void }
 OfferingCard.displayName = 'OfferingCard';
 
 /** Card renderer — maps option type to the correct card component */
-const GivingCardRenderer = memo<{ option: GivingOption; onGive: (id: number) => void }>(({ option, onGive }) => {
+const GivingCardRenderer = memo<{ option: GivingOption; onGive: (id: string | number) => void }>(({ option, onGive }) => {
   // Featured tithe/offering with amount selector
   if (option.isFeatured && !option.goal) {
     return <FeaturedGivingCard option={option} onGive={onGive} />;
@@ -410,15 +432,16 @@ interface GiveInitPayload {
 }
 
 const GivingModal = memo<{
-  optionId: number | null;
+  optionId: string | number | null;
+  givingOptions: GivingOption[];
   onClose: () => void;
   onInitializePayment: (payload: GiveInitPayload) => Promise<void>;
   defaultEmail: string;
   lockEmail: boolean;
   defaultFirstName: string;
   defaultLastName: string;
-}>(({ optionId, onClose, onInitializePayment, defaultEmail, lockEmail, defaultFirstName, defaultLastName }) => {
-  const option = GIVING_OPTIONS.find((o) => o.id === optionId);
+}>(({ optionId, givingOptions, onClose, onInitializePayment, defaultEmail, lockEmail, defaultFirstName, defaultLastName }) => {
+  const option = givingOptions.find((o) => o.id === optionId);
   const [step, setStep] = useState<'amount' | 'details'>('amount');
   const [amount, setAmount] = useState('');
   const [recurring, setRecurring] = useState(false);
@@ -620,20 +643,62 @@ const GivingPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const [activeFilter, setActiveFilter] = useState<GivingCategory>('All');
-  const [activeGivingId, setActiveGivingId] = useState<number | null>(null);
+  const [activeGivingId, setActiveGivingId] = useState<string | number | null>(null);
+  const [givingItems, setGivingItems] = useState<GivingOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [verificationState, setVerificationState] = useState<{
     type: 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
 
+  const fetchGivingItems = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError('');
+      const items = await givingService.list();
+      // Transform backend data to frontend format
+      const transformed: GivingOption[] = items.map(item => ({
+        id: item.id,
+        category: toCategoryLabel(item.category),
+        title: item.title,
+        description: item.description,
+        icon: item.icon || 'volunteer_activism',
+        accentColor: 'primary',
+        bgColor: 'bg-surface',
+        suggestedAmounts: item.suggested_amounts || [],
+        goal: item.goal_amount ?? undefined,
+        raised: item.raised_amount ?? undefined,
+        progressPercentage: item.progress_percentage ?? null,
+        deadline: item.deadline || undefined,
+        isRecurring: item.is_recurring_enabled,
+        isFeatured: item.is_featured,
+        verse: item.verse || undefined,
+        totalDonations: item.total_donations ?? undefined,
+        donorCount: item.donor_count ?? undefined,
+      }));
+      setGivingItems(transformed);
+    } catch (error: any) {
+      console.error('Failed to fetch giving items:', error);
+      setLoadError(error.message || 'Failed to load giving options');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch giving items from API on mount
+  useEffect(() => {
+    fetchGivingItems();
+  }, [fetchGivingItems]);
+
   const handleFilterChange = useCallback((filter: GivingCategory) => setActiveFilter(filter), []);
-  const handleGive = useCallback((id: number) => setActiveGivingId(id), []);
+  const handleGive = useCallback((id: string | number) => setActiveGivingId(id), []);
   const handleCloseModal = useCallback(() => setActiveGivingId(null), []);
 
   const handleInitializePayment = useCallback(async ({ email, amount, recurring, firstName, lastName }: GiveInitPayload) => {
     const amountInKobo = Math.round(amount * 100);
     const callbackUrl = `${window.location.origin}/giving`;
-    const selectedOption = GIVING_OPTIONS.find((option) => option.id === activeGivingId);
+    const selectedOption = givingItems.find((option) => option.id === activeGivingId);
 
     const response = await paymentService.initializePayment({
       email,
@@ -656,7 +721,7 @@ const GivingPage: React.FC = () => {
     }
 
     window.location.href = response.authorization_url;
-  }, [activeGivingId]);
+  }, [activeGivingId, givingItems]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -679,6 +744,8 @@ const GivingPage: React.FC = () => {
             type: 'success',
             message: `Payment confirmed for reference ${reference}. Thank you for your generosity.`,
           });
+          // Refresh giving items so progress bars reflect the new gift
+          fetchGivingItems();
         } else if (status === 'PROCESSING' || status === 'PENDING') {
           setVerificationState({
             type: 'warning',
@@ -707,9 +774,9 @@ const GivingPage: React.FC = () => {
   }, [location.search]);
 
   const visibleOptions = useMemo(() => {
-    if (activeFilter === 'All') return GIVING_OPTIONS;
-    return GIVING_OPTIONS.filter((o) => o.category === activeFilter || (activeFilter === 'Offerings' && o.category === 'Offerings'));
-  }, [activeFilter]);
+    if (activeFilter === 'All') return givingItems;
+    return givingItems.filter((o) => o.category === activeFilter || (activeFilter === 'Offerings' && o.category === 'Offerings'));
+  }, [activeFilter, givingItems]);
 
   return (
     <PublicLayout currentPage="connect">
@@ -765,11 +832,36 @@ const GivingPage: React.FC = () => {
           </div>
 
           {/* ── Giving Grid ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
-            {visibleOptions.map((option) => (
-              <GivingCardRenderer key={option.id} option={option} onGive={handleGive} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Icon name="hourglass_empty" size={48} className="text-slate-300 animate-pulse" />
+              <p className="mt-4 text-text-muted font-semibold">Loading giving options...</p>
+            </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Icon name="error" size={48} className="text-red-300" />
+              <p className="mt-4 text-text-main font-semibold">Unable to load giving options</p>
+              <p className="text-sm text-text-muted mt-2">{loadError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 bg-primary text-white px-6 py-3 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity"
+              >
+                Reload Page
+              </button>
+            </div>
+          ) : visibleOptions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Icon name="volunteer_activism" size={48} className="text-slate-200" />
+              <p className="mt-4 text-text-muted font-semibold">No giving options available</p>
+              <p className="text-sm text-text-muted/70 mt-2">Please check back later.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
+              {visibleOptions.map((option) => (
+                <GivingCardRenderer key={option.id} option={option} onGive={handleGive} />
+              ))}
+            </div>
+          )}
 
           {/* ── Ways to Give strip ── */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -811,6 +903,7 @@ const GivingPage: React.FC = () => {
       {activeGivingId !== null && (
         <GivingModal
           optionId={activeGivingId}
+          givingOptions={givingItems}
           onClose={handleCloseModal}
           onInitializePayment={handleInitializePayment}
           defaultEmail={isAuthenticated ? (user?.email || '') : ''}

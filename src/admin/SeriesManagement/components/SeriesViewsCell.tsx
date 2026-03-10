@@ -1,3 +1,6 @@
+/**
+ * SeriesViewsCell.tsx — restyled to admin design system. Logic preserved.
+ */
 import React, { useState, useEffect } from 'react';
 import seriesService from '../../../services/series.service';
 import Icon from '../../../components/common/Icon';
@@ -7,33 +10,26 @@ interface SeriesViewsCellProps {
 }
 
 const SeriesViewsCell: React.FC<SeriesViewsCellProps> = ({ seriesId }) => {
-  const [views, setViews] = useState<number | null>(null);
+  const [views,   setViews]   = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    seriesService
-      .getSeriesPosts(seriesId)
+    seriesService.getSeriesPosts(seriesId)
       .then((posts: any[]) => {
         if (mounted) setViews(posts.reduce((sum: number, p: any) => sum + (p.views_count || 0), 0));
       })
-      .catch(() => {
-        if (mounted) setViews(null);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
+      .catch(() => { if (mounted) setViews(null); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [seriesId]);
 
   if (loading)
     return (
-      <span className="inline-flex items-center gap-1 text-slate-300">
-        <Icon name="progress_activity" className="text-xs animate-spin" />
-        ...
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-tertiary)' }}>
+        <Icon name="progress_activity" size={12} className="animate-spin" />
+        …
       </span>
     );
 

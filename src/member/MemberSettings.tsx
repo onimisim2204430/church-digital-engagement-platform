@@ -67,13 +67,27 @@ const MemberSettings: React.FC = () => {
   const [profileDirty,  setProfileDirty]  = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
 
-  /* ── password ── */
-  const [showPwForm,  setShowPwForm]  = useState(false);
-  const [pwForm,      setPwForm]      = useState({ current: '', next: '', confirm: '' });
-  const [showCurrent, setShowCurrent] = useState(false);
+  /* ── password change — email token only ── */
   const [showNext,    setShowNext]    = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [pwSaving,    setPwSaving]    = useState(false);
+
+  /* ── reset via email code ── */
+  type ResetStep = 'idle' | 'requesting' | 'confirming';
+  const [resetStep,        setResetStep]        = useState<ResetStep>('idle');
+  const [resetCodeSending, setResetCodeSending] = useState(false);
+  const [resetCode,        setResetCode]        = useState('');
+  const [resetNewPw,       setResetNewPw]       = useState('');
+  const [resetConfirmPw,   setResetConfirmPw]   = useState('');
+  const [resetSaving,      setResetSaving]      = useState(false);
+  const [resetCooldown,    setResetCooldown]    = useState(0);
+  const resetCooldownRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /* ── email change ── */
+  type EmailChangeStep = 'idle' | 'form';
+  const [emailChangeStep,   setEmailChangeStep]   = useState<EmailChangeStep>('idle');
+  const [newEmail,          setNewEmail]          = useState('');
+  const [emailChangePw,     setEmailChangePw]     = useState('');
+  const [emailChangePwShow, setEmailChangePwShow] = useState(false);
+  const [emailChangeSaving, setEmailChangeSaving] = useState(false);
 
   /* ── profile picture ── */
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
@@ -246,18 +260,98 @@ const MemberSettings: React.FC = () => {
     setProfileDirty(true);
   };
 
-  const handlePasswordSave = async () => {
-    if (!pwForm.current)               { showError('Enter your current password'); return; }
-    if (pwForm.next.length < 8)        { showError('New password must be at least 8 characters'); return; }
-    if (pwForm.next !== pwForm.confirm) { showError('Passwords do not match'); return; }
-    setPwSaving(true);
+  const startResetCooldown = (secs = 60) => {
+    setResetCooldown(secs);
+    if (resetCooldownRef.current) clearInterval(resetCooldownRef.current);
+    resetCooldownRef.current = setInterval(() => {
+      setResetCooldown((p) => {
+        if (p <= 1) { clearInterval(resetCooldownRef.current!); return 0; }
+        return p - 1;
+      });
+    }, 1000);
+  };
+
+  const handleSendResetCode = async () => {
+    if (!user?.email) return;
+    setResetCodeSending(true);
     try {
-      await new Promise((r) => setTimeout(r, 700)); // replace with real API call
-      showSuccess('Password changed successfully');
-      setPwForm({ current: '', next: '', confirm: '' });
-      setShowPwForm(false);
-    } catch { showError('Incorrect current password'); }
-    finally  { setPwSaving(false); }
+      await apiService.post('/auth/password-reset/request/', { email: user.email });
+      setResetStep('confirming');
+      startResetCooldown(60);
+      showSuccess('A 6-digit code has been sent to your email.');
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.detail || 'Failed to send code.';
+      showError(msg);
+    } finally { setResetCodeSending(false); }
+  };
+
+  const handleResendResetCode = async () => {
+    if (resetCooldown > 0 || !user?.email) return;
+    setResetCodeSending(true);
+    try {
+      await apiService.post('/auth/password-reset/request/', { email: user.email });
+      startResetCooldown(60);
+      setResetCode('');
+      showSuccess('New code sent — check your inbox.');
+    } catch (err: any) {
+      showError(err.response?.data?.error || 'Could not resend code.');
+    } finally { setResetCodeSending(false); }
+  };
+
+  const handleConfirmResetCode = async () => {
+    if (!user?.email) return;
+    if (resetCode.length !== 6) { showError('Enter the 6-digit code from your email.'); return; }
+    if (resetNewPw.length < 8)  { showError('New password must be at least 8 characters.'); return; }
+    if (resetNewPw !== resetConfirmPw) { showError('Passwords do not match.'); return; }
+    setResetSaving(true);
+    try {
+      await apiService.post('/auth/password-reset/confirm/', {
+        email: user.email,
+        code: resetCode,
+        new_password: resetNewPw,
+        confirm_password: resetConfirmPw,
+      });
+      showSuccess('Password reset successfully! Please log in again.');
+      setResetStep('idle');
+      setResetCode(''); setResetNewPw(''); setResetConfirmPw('');
+    } catch (err: any) {
+      showError(err.response?.data?.error || 'Invalid or expired code.');
+    } finally { setResetSaving(false); }
+  };
+
+  const cancelReset = () => {
+    setResetStep('idle');
+    setResetCode(''); setResetNewPw(''); setResetConfirmPw('');
+    if (resetCooldownRef.current) clearInterval(resetCooldownRef.current);
+    setResetCooldown(0);
+  };
+
+  const handleChangeEmail = async () => {
+    if (!newEmail.trim()) { showError('Enter a new email address'); return; }
+    if (!emailChangePw)   { showError('Enter your current password to confirm'); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) { showError('Enter a valid email address'); return; }
+    setEmailChangeSaving(true);
+    try {
+      const res: any = await apiService.post('/auth/change-email/', {
+        new_email: newEmail.trim().toLowerCase(),
+        password:  emailChangePw,
+      });
+      showSuccess(res.message ?? 'Email updated — please verify your new address');
+      setEmailChangeStep('idle');
+      setNewEmail('');
+      setEmailChangePw('');
+      await refreshUser();
+    } catch (err: any) {
+      const data = err.response?.data;
+      const msg =
+        data?.new_email?.[0] ||
+        data?.password?.[0]  ||
+        data?.non_field_errors?.[0] ||
+        data?.detail ||
+        'Failed to update email';
+      showError(msg);
+    } finally { setEmailChangeSaving(false); }
   };
 
   const handleDeleteAccount = async () => {
@@ -270,16 +364,6 @@ const MemberSettings: React.FC = () => {
     } catch { showError('Failed to delete account'); }
     finally  { setDangerLoading(false); }
   };
-
-  const pwStrength = () => {
-    const l = pwForm.next.length;
-    if (l === 0) return null;
-    if (l < 6)  return { label: 'Weak',   cls: 'weak',   bars: 1 };
-    if (l < 10) return { label: 'Fair',   cls: 'fair',   bars: 2 };
-    if (l < 14) return { label: 'Good',   cls: 'good',   bars: 3 };
-    return           { label: 'Strong', cls: 'strong', bars: 4 };
-  };
-  const strength = pwStrength();
 
   /* ═══════════════════════════════════════════════════════════ */
   return (
@@ -529,83 +613,194 @@ const MemberSettings: React.FC = () => {
                 )}
               </div>
 
+              {/* ── Email Address ── */}
+              <div className="security-section">
+                <div className="section-header">
+                  <h4 className="section-title">Email Address</h4>
+                </div>
+                <p className="section-description">
+                  Your current login email is <strong>{user?.email}</strong>.
+                </p>
+
+                {emailChangeStep === 'idle' && (
+                  <button className="btn-secondary" onClick={() => setEmailChangeStep('form')}>
+                    Change Email
+                  </button>
+                )}
+
+                {emailChangeStep === 'form' && (
+                  <div className="ms-pw-form ms-reset-form">
+                    <div className="ms-field">
+                      <label className="ms-label">New Email Address</label>
+                      <input
+                        className="ms-input"
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="new@example.com"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="ms-field">
+                      <label className="ms-label">Current Password</label>
+                      <div className="ms-input-wrap">
+                        <input
+                          className="ms-input"
+                          type={emailChangePwShow ? 'text' : 'password'}
+                          value={emailChangePw}
+                          onChange={(e) => setEmailChangePw(e.target.value)}
+                          placeholder="Confirm with your password"
+                        />
+                        <button
+                          className="ms-eye"
+                          type="button"
+                          onClick={() => setEmailChangePwShow((v) => !v)}
+                        >
+                          <Icon name={emailChangePwShow ? 'visibility_off' : 'visibility'} size={17} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="ms-reset-info" style={{ marginTop: '0.25rem' }}>
+                      <Icon name="info" size={15} />
+                      <span>Your email verification status will be reset. You'll receive a prompt to verify the new address.</span>
+                    </div>
+                    <div className="ms-pw-actions">
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        onClick={() => { setEmailChangeStep('idle'); setNewEmail(''); setEmailChangePw(''); }}
+                        disabled={emailChangeSaving}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="btn-primary"
+                        type="button"
+                        onClick={handleChangeEmail}
+                        disabled={emailChangeSaving}
+                      >
+                        {emailChangeSaving ? <><span className="spinner-mini" />Saving…</> : 'Update Email'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Password */}
               <div className="security-section">
                 <div className="section-header">
                   <h4 className="section-title">Password</h4>
                 </div>
                 <p className="section-description">
-                  Keep your account secure by using a strong, unique password.
+                  For your security, password changes require email verification —
+                  a 6-digit code will be sent to your address.
                 </p>
-                <button className="btn-secondary" onClick={() => setShowPwForm((v) => !v)}>
-                  {showPwForm ? 'Cancel' : 'Change Password'}
-                </button>
 
-                {showPwForm && (
-                  <div className="ms-pw-form">
-                    <div className="ms-field">
-                      <label className="ms-label">Current Password</label>
-                      <div className="ms-input-wrap">
-                        <input
-                          className="ms-input"
-                          type={showCurrent ? 'text' : 'password'}
-                          value={pwForm.current}
-                          onChange={(e) => setPwForm((p) => ({ ...p, current: e.target.value }))}
-                          placeholder="Enter current password"
-                        />
-                        <button className="ms-eye" type="button" onClick={() => setShowCurrent((v) => !v)}>
-                          <Icon name={showCurrent ? 'visibility_off' : 'visibility'} size={17} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="ms-field">
-                      <label className="ms-label">New Password</label>
-                      <div className="ms-input-wrap">
-                        <input
-                          className="ms-input"
-                          type={showNext ? 'text' : 'password'}
-                          value={pwForm.next}
-                          onChange={(e) => setPwForm((p) => ({ ...p, next: e.target.value }))}
-                          placeholder="At least 8 characters"
-                        />
-                        <button className="ms-eye" type="button" onClick={() => setShowNext((v) => !v)}>
-                          <Icon name={showNext ? 'visibility_off' : 'visibility'} size={17} />
-                        </button>
-                      </div>
-                      {strength && (
-                        <div className="ms-strength-row">
-                          {[1,2,3,4].map((n) => (
-                            <div key={n} className={`ms-strength-bar ${n <= strength.bars ? strength.cls : ''}`} />
-                          ))}
-                          <span className={`ms-strength-label ${strength.cls}`}>{strength.label}</span>
+                {/* ── idle: single entry point ── */}
+                {resetStep === 'idle' && (
+                  <button className="btn-secondary" onClick={() => setResetStep('requesting')}>
+                    Change Password
+                  </button>
+                )}
+
+                {/* ── Reset via email code ── */}
+                {resetStep !== 'idle' && (
+                  <div className="ms-pw-form ms-reset-form">
+
+                    {/* Step 1: confirm sending the code */}
+                    {resetStep === 'requesting' && (
+                      <>
+                        <div className="ms-reset-info">
+                          <Icon name="mail" size={16} />
+                          <span>We will send a 6-digit code to <strong>{user?.email}</strong></span>
                         </div>
-                      )}
-                    </div>
-                    <div className="ms-field">
-                      <label className="ms-label">Confirm New Password</label>
-                      <div className="ms-input-wrap">
-                        <input
-                          className={`ms-input ${pwForm.confirm && pwForm.next !== pwForm.confirm ? 'ms-input-err' : ''}`}
-                          type={showConfirm ? 'text' : 'password'}
-                          value={pwForm.confirm}
-                          onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))}
-                          placeholder="Repeat new password"
-                        />
-                        <button className="ms-eye" type="button" onClick={() => setShowConfirm((v) => !v)}>
-                          <Icon name={showConfirm ? 'visibility_off' : 'visibility'} size={17} />
-                        </button>
-                      </div>
-                      {pwForm.confirm && pwForm.next !== pwForm.confirm && (
-                        <p className="ms-err-text">Passwords do not match</p>
-                      )}
-                    </div>
-                    <div className="ms-pw-actions">
-                      <button className="btn-primary" onClick={handlePasswordSave} disabled={pwSaving}>
-                        {pwSaving ? <><span className="spinner-mini" />Updating…</> : 'Update Password'}
-                      </button>
-                    </div>
+                        <div className="ms-pw-actions">
+                          <button className="btn-secondary" type="button" onClick={cancelReset} disabled={resetCodeSending}>
+                            Cancel
+                          </button>
+                          <button className="btn-primary" type="button" onClick={handleSendResetCode} disabled={resetCodeSending}>
+                            {resetCodeSending ? <><span className="spinner-mini" />Sending…</> : 'Send Code'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Step 2: enter code + new password */}
+                    {resetStep === 'confirming' && (
+                      <>
+                        <div className="ms-reset-info">
+                          <Icon name="mail" size={16} />
+                          <span>Code sent to <strong>{user?.email}</strong>. Enter it below.</span>
+                        </div>
+
+                        <div className="ms-field">
+                          <label className="ms-label">6-Digit Code</label>
+                          <input
+                            className="ms-input ms-code-input"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="\d{6}"
+                            maxLength={6}
+                            value={resetCode}
+                            onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="000000"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="ms-field">
+                          <label className="ms-label">New Password</label>
+                          <div className="ms-input-wrap">
+                            <input
+                              className="ms-input"
+                              type={showNext ? 'text' : 'password'}
+                              value={resetNewPw}
+                              onChange={(e) => setResetNewPw(e.target.value)}
+                              placeholder="At least 8 characters"
+                            />
+                            <button className="ms-eye" type="button" onClick={() => setShowNext((v) => !v)}>
+                              <Icon name={showNext ? 'visibility_off' : 'visibility'} size={17} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="ms-field">
+                          <label className="ms-label">Confirm New Password</label>
+                          <div className="ms-input-wrap">
+                            <input
+                              className={`ms-input ${resetConfirmPw && resetNewPw !== resetConfirmPw ? 'ms-input-err' : ''}`}
+                              type={showNext ? 'text' : 'password'}
+                              value={resetConfirmPw}
+                              onChange={(e) => setResetConfirmPw(e.target.value)}
+                              placeholder="Repeat new password"
+                            />
+                          </div>
+                          {resetConfirmPw && resetNewPw !== resetConfirmPw && (
+                            <p className="ms-err-text">Passwords do not match</p>
+                          )}
+                        </div>
+
+                        <div className="ms-reset-resend">
+                          {resetCooldown > 0
+                            ? <span className="ms-resend-wait">Resend in {resetCooldown}s</span>
+                            : <button type="button" className="ms-link-btn" onClick={handleResendResetCode} disabled={resetCodeSending}>
+                                Resend code
+                              </button>
+                          }
+                        </div>
+
+                        <div className="ms-pw-actions">
+                          <button className="btn-secondary" type="button" onClick={cancelReset} disabled={resetSaving}>
+                            Cancel
+                          </button>
+                          <button className="btn-primary" type="button" onClick={handleConfirmResetCode} disabled={resetSaving}>
+                            {resetSaving ? <><span className="spinner-mini" />Resetting…</> : 'Reset Password'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+
                   </div>
                 )}
+
               </div>
 
             </div>

@@ -1,5 +1,4 @@
 import React, { memo, useMemo } from 'react';
-import Icon from '../../components/common/Icon';
 
 /**
  * VoicesSection Component - Lazy loaded below-fold content

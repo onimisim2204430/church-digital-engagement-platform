@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
-from apps.users.permissions import IsModerator
+from apps.users.permissions import IsModerator, HasModulePermission
 from .models import AuditLog, Report
 from .serializers import AuditLogSerializer, ReportSerializer, ReportResolveSerializer
 
@@ -16,9 +16,12 @@ from .serializers import AuditLogSerializer, ReportSerializer, ReportResolveSeri
 class AdminAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Admin viewset for viewing audit logs (read-only)
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with community.moderation permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('community.moderation')]
     serializer_class = AuditLogSerializer
     queryset = AuditLog.objects.all()
     
@@ -49,9 +52,12 @@ class AdminAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 class AdminReportViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for managing user reports
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with community.moderation permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('community.moderation')]
     serializer_class = ReportSerializer
     queryset = Report.objects.all()
     

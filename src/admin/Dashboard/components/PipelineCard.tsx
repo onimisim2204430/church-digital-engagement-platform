@@ -13,7 +13,7 @@ const PipelineCard = memo(({ item }: { item: ContentItem }) => {
   return (
     <div className={`rounded-lg border ${s.border} ${s.bg} p-3 space-y-2 shadow-sm cursor-pointer group transition-colors`}>
       {item.thumbnail && (
-        <div className="h-20 rounded bg-slate-100 overflow-hidden">
+        <div className="h-20 rounded bg-slate-100 dark:bg-slate-700 overflow-hidden">
           <img
             alt="Thumbnail"
             className="w-full h-full object-cover"
@@ -23,7 +23,7 @@ const PipelineCard = memo(({ item }: { item: ContentItem }) => {
           />
         </div>
       )}
-      <h3 className="text-sm font-semibold text-slate-deep leading-tight group-hover:text-primary">{item.title}</h3>
+      <h3 className="text-sm font-semibold text-slate-deep dark:text-slate-100 leading-tight group-hover:text-primary dark:group-hover:text-primary">{item.title}</h3>
       <div className="flex items-center justify-between">
         {item.authors ? (
           <div className="flex -space-x-2">
@@ -32,7 +32,7 @@ const PipelineCard = memo(({ item }: { item: ContentItem }) => {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-slate-soft">{item.scheduledDate}, {item.scheduledTime}</p>
+          <p className="text-xs text-slate-soft dark:text-slate-400">{item.scheduledDate}, {item.scheduledTime}</p>
         )}
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${s.badge}`}>{item.type}</span>
       </div>

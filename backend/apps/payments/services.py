@@ -229,3 +229,46 @@ def fetch_transaction(reference: str) -> Dict[str, Any]:
         raise PaymentVerificationError(message)
 
     return data
+
+
+def fetch_paystack_balance() -> int:
+    """Fetch available Paystack balance in kobo for NGN."""
+    try:
+        data = _request_paystack('GET', '/balance')
+    except (PaymentGatewayError, PaymentConfigurationError) as exc:
+        logger.exception('Failed to fetch Paystack balance')
+        raise PaymentVerificationError(str(exc)) from exc
+
+    if not data.get('status'):
+        message = data.get('message', 'Unable to fetch balance')
+        logger.error('Paystack balance fetch returned failure', extra={'message': message})
+        raise PaymentVerificationError(message)
+
+    balances = data.get('data')
+    if not isinstance(balances, list):
+        raise PaymentVerificationError('Invalid balance payload received')
+
+    ngn_wallet = next((entry for entry in balances if str(entry.get('currency', '')).upper() == 'NGN'), None)
+    if ngn_wallet is None:
+        raise PaymentVerificationError('NGN wallet not found on Paystack account')
+
+    return int(ngn_wallet.get('balance', 0) or 0)
+
+
+def initiate_refund(transaction_reference: str) -> Dict[str, Any]:
+    """Initiate refund against a Paystack transaction reference."""
+    payload = {
+        'transaction': transaction_reference,
+    }
+    try:
+        data = _request_paystack('POST', '/refund', payload)
+    except (PaymentGatewayError, PaymentConfigurationError) as exc:
+        logger.exception('Refund initiation failed', extra={'reference': transaction_reference})
+        raise PaymentVerificationError(str(exc)) from exc
+
+    if not data.get('status'):
+        message = data.get('message', 'Unable to initiate refund')
+        logger.error('Paystack refund returned failure', extra={'reference': transaction_reference, 'message': message})
+        raise PaymentVerificationError(message)
+
+    return data

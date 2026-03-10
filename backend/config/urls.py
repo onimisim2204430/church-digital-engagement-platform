@@ -30,6 +30,9 @@ urlpatterns = [
     # DEBUG: Minimal test endpoint to isolate 403 issue
     path('api/test-verify/', TestVerificationView.as_view(), name='test-verify'),
 
+    # Payouts endpoints
+    path('api/', include('apps.payouts.urls')),
+
     # API v1 endpoints
     path('api/v1/', include([
         # Authentication and user management
@@ -51,6 +54,15 @@ urlpatterns = [
 
         # Payments endpoints
         path('payments/', include('apps.payments.urls')),
+
+        # Payouts endpoints (mirrored under /api/v1 for frontend baseURL compatibility)
+        path('', include('apps.payouts.urls')),
+        
+        # Giving/Seed catalog endpoints
+        path('giving-items/', include('apps.giving.urls')),
+
+        # Notifications endpoints
+        path('notifications/', include('apps.notifications.urls')),
     ])),
 
      # Bible Module (offline-first, cached)

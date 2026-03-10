@@ -180,4 +180,6 @@ class EmailVerificationService {
   }
 }
 
-export default new EmailVerificationService();
+const emailVerificationService = new EmailVerificationService();
+
+export default emailVerificationService;

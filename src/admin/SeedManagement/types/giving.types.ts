@@ -2,32 +2,11 @@
  * Type definitions for Giving/Seed Manager
  */
 
-export type GivingCategory = 'Tithes' | 'Offerings' | 'Projects' | 'Fundraising';
-export type GivingVisibility = 'PUBLIC' | 'MEMBERS_ONLY' | 'HIDDEN';
-export type GivingStatus = 'active' | 'paused' | 'completed' | 'draft';
+export type { GivingItem, CreateGivingItemRequest } from '../../../services/giving.service';
 
-export interface GivingItem {
-  id: string;
-  category: GivingCategory;
-  title: string;
-  description: string;
-  icon: string;
-  visibility: GivingVisibility;
-  status: GivingStatus;
-  is_featured: boolean;
-  is_recurring_enabled: boolean;
-  suggested_amounts: number[];
-  goal_amount: number | null;
-  raised_amount: number;
-  deadline: string;
-  verse: string;
-  cover_image: string;
-  display_order: number;
-  created_at: string;
-  updated_at: string;
-  total_donations: number;
-  donor_count: number;
-}
+export type GivingCategory = 'tithe' | 'offering' | 'seed' | 'project' | 'mission' | 'other';
+export type GivingVisibility = 'public' | 'members_only' | 'hidden';
+export type GivingStatus = 'active' | 'draft' | 'archived';
 
 export interface CategoryOption {
   value: GivingCategory;

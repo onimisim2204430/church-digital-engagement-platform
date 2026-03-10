@@ -1,3 +1,3 @@
-// Barrel export for PostEdit module - exports both PostCreate (for creating) and PostEdit (for editing)
-export { default as PostCreate } from './PostCreate';
-export { default as PostEdit } from './PostEdit';
+// Barrel export for PostManagement module
+export { default as PostForm } from './PostForm';   // unified create + edit (replaces PostCreate + PostEdit)
+export { default as PostList } from './PostList';

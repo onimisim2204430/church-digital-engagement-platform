@@ -22,7 +22,7 @@ const AnalyticsTab = memo<AnalyticsTabProps>(({ currentItem }) => (
         { icon: 'analytics', label: 'Avg. Gift', value: currentItem.donor_count > 0 ? formatCurrency(Math.round(currentItem.total_donations / currentItem.donor_count)) : '—', color: 'text-green-600', bg: 'bg-green-100' },
         { icon: 'trending_up', label: 'Goal Progress', value: currentItem.goal_amount ? `${getProgressPct(currentItem.raised_amount, currentItem.goal_amount)}%` : 'N/A', color: 'text-amber-600', bg: 'bg-amber-100' },
       ].map(m => (
-        <div key={m.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-3">
+        <div key={m.label} className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex items-center gap-3">
           <div className={`p-2.5 rounded-xl ${m.bg}`}>
             <Icon name={m.icon} size={22} className={m.color} />
           </div>
@@ -36,28 +36,28 @@ const AnalyticsTab = memo<AnalyticsTabProps>(({ currentItem }) => (
 
     {/* Goal progress bar — if applicable */}
     {currentItem.goal_amount && (
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
+      <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-800">Fundraising Progress</h3>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Fundraising Progress</h3>
           <span className="text-sm font-bold text-primary">{getProgressPct(currentItem.raised_amount, currentItem.goal_amount)}% of goal</span>
         </div>
-        <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-4 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all duration-1000"
             style={{ width: `${getProgressPct(currentItem.raised_amount, currentItem.goal_amount)}%` }}
           />
         </div>
         <div className="flex justify-between mt-2">
-          <span className="text-xs font-semibold text-slate-600">{formatCurrency(currentItem.raised_amount)} raised</span>
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{formatCurrency(currentItem.raised_amount)} raised</span>
           <span className="text-xs text-slate-400">Goal: {formatCurrency(currentItem.goal_amount)}</span>
         </div>
       </div>
     )}
 
     {/* Placeholder chart */}
-    <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
+    <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
       <Icon name="bar_chart" size={48} className="text-slate-200 mx-auto" />
-      <p className="text-slate-700 font-semibold mt-4">Donation Timeline Coming Soon</p>
+      <p className="text-slate-700 dark:text-slate-200 font-semibold mt-4">Donation Timeline Coming Soon</p>
       <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto">Month-by-month donation volume, donor retention, and conversion analytics will appear here in a future update.</p>
     </div>
   </div>

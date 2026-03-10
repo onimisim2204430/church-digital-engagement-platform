@@ -511,9 +511,95 @@
 .ms-pw-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.625rem;
   padding-top: 0.625rem;
   border-top: 1px solid var(--settings-border-solid);
 }
+
+/* ─── MODE SELECTOR BUTTONS ────────────────────────────────── */
+.ms-pw-mode-btns {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Ghost button - subtle text-only style */
+.btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--settings-accent, #6366f1);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.08);
+}
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── INLINE RESET FORM ─────────────────────────────────────── */
+.ms-reset-form {
+  display: grid;
+  grid-template-columns: 1fr;          /* override the 2-col pw-form layout */
+}
+.ms-reset-form .ms-field,
+.ms-reset-form .ms-pw-actions,
+.ms-reset-form .ms-reset-resend,
+.ms-reset-form .ms-reset-info {
+  grid-column: 1 / -1;
+}
+
+.ms-reset-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+  padding: 0.75rem 1rem;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--settings-text-secondary);
+  margin-bottom: 0.25rem;
+}
+.ms-reset-info strong { color: var(--settings-text-primary); }
+
+/* 6-digit code input */
+.ms-code-input {
+  font-size: 1.5rem !important;
+  letter-spacing: 0.35em;
+  text-align: center;
+  font-weight: 600 !important;
+  max-width: 200px;
+}
+
+/* resend row */
+.ms-reset-resend {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+.ms-resend-wait {
+  font-size: 0.8rem;
+  color: var(--settings-text-muted);
+}
+.ms-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--settings-accent, #6366f1);
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ms-link-btn:hover:not(:disabled) { opacity: 0.75; }
+.ms-link-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ─── PASSWORD STRENGTH ────────────────────────────────────── */
 .ms-strength-row {
@@ -687,6 +773,13 @@
 [data-theme="dark"] .ms-pw-form {
   background: rgba(31, 41, 55, 0.72);
   border-color: rgba(255, 255, 255, 0.09);
+}
+[data-theme="dark"] .ms-reset-info {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+[data-theme="dark"] .btn-ghost:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
 }
 [data-theme="dark"] .ms-card:hover {
   border-color: rgba(34, 104, 245, 0.3);

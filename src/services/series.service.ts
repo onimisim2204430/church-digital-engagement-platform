@@ -315,4 +315,6 @@ class SeriesService {
   }
 }
 
-export default new SeriesService();
+const seriesService = new SeriesService();
+
+export default seriesService;

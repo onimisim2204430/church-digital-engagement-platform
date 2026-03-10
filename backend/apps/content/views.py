@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from apps.users.permissions import IsModerator, IsAdmin
+from apps.users.permissions import IsModerator, IsAdmin, HasModulePermission
 from apps.moderation.models import AuditLog, ActionType
 from .models import Post, PostContentType
 from .serializers import (
@@ -42,9 +42,12 @@ def create_audit_log(user, action_type, description, content_object=None, reques
 class AdminPostViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for managing posts (CRUD operations)
-    Accessible by ADMIN and MODERATOR
+    Accessible by ADMIN and MODERATORs with content.posts permission
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('content.posts')]
     queryset = Post.objects.filter(is_deleted=False)
     
     def get_serializer_class(self):
@@ -355,7 +358,7 @@ class AdminDailyWordViewSet(viewsets.ModelViewSet):
     - Conflict detection with resolution dialog
     - Full CRUD for devotional content
     """
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsModerator]
     
     def get_queryset(self):
         """Filter to only devotional posts"""
@@ -540,7 +543,7 @@ class AdminWeeklyEventViewSet(viewsets.ModelViewSet):
     """
     Admin viewset for managing weekly flow events
     """
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsModerator]
     
     def get_queryset(self):
         from .models import WeeklyEvent

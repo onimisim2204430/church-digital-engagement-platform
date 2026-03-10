@@ -20,6 +20,7 @@ from .exceptions import (
 )
 from .models import PaymentStatus, PaymentTransaction, PaymentAuditLog
 from .services import initialize_transaction, verify_transaction
+from .services import fetch_paystack_balance, initiate_refund
 from .utils import (
     generate_payment_reference,
     safe_int,
@@ -399,3 +400,121 @@ class PaystackWebhookView(APIView):
 
         return Response({'status': 'ok', 'result': result}, status=status.HTTP_200_OK)
 
+
+class AdminPaymentTransactionsView(APIView):
+    """Return all payment transactions. Requires fin.payments module permission."""
+
+    def get_permissions(self):
+        from apps.users.permissions import HasModulePermission
+        return [HasModulePermission('fin.payments')]
+
+    def get(self, request, *args, **kwargs) -> Response:
+
+        status_filter = str(request.query_params.get('status', '')).upper().strip()
+        allowed_statuses = {choice for choice, _ in PaymentStatus.choices}
+
+        queryset = PaymentTransaction.objects.select_related('user').order_by('-created_at')
+        
+        if status_filter:
+            if status_filter not in allowed_statuses:
+                return Response(
+                    {'status': 'error', 'message': 'Invalid status filter'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            queryset = queryset.filter(status=status_filter)
+
+        results = [
+            {
+                'id': str(transaction.id),
+                'reference': transaction.reference,
+                'amount': transaction.amount,
+                'currency': transaction.currency,
+                'status_label': transaction.get_status_display(),
+                'status': transaction.status,
+                'payment_method': transaction.payment_method,
+                'amount_verified': transaction.amount_verified,
+                'paid_at': transaction.paid_at.isoformat() if transaction.paid_at else None,
+                'created_at': transaction.created_at.isoformat() if transaction.created_at else None,
+                'updated_at': transaction.updated_at.isoformat() if transaction.updated_at else None,
+                'metadata': transaction.metadata or {},
+                # Prefer authenticated user record; fall back to metadata provided at checkout
+                'user_email': (
+                    transaction.user.email if transaction.user
+                    else (transaction.metadata or {}).get('email') or transaction.email or 'N/A'
+                ),
+                'user_name': (
+                    f"{transaction.user.first_name} {transaction.user.last_name}".strip()
+                    if transaction.user and (transaction.user.first_name or transaction.user.last_name)
+                    else " ".join([
+                        str((transaction.metadata or {}).get('first_name', '')).strip(),
+                        str((transaction.metadata or {}).get('last_name', '')).strip(),
+                    ]).strip() or 'N/A'
+                ),
+            }
+            for transaction in queryset[:500]
+        ]
+
+        return Response(
+            {'status': 'success', 'count': len(results), 'results': results},
+            status=status.HTTP_200_OK,
+        )
+
+
+class AdminPaystackBalanceView(APIView):
+    """Return current Paystack NGN wallet balance (kobo)."""
+
+    def get_permissions(self):
+        from apps.users.permissions import HasModulePermission
+        return [HasModulePermission('fin.payments')]
+
+    def get(self, request, *args, **kwargs) -> Response:
+        try:
+            balance = fetch_paystack_balance()
+        except PaymentVerificationError as exc:
+            return Response(
+                {'status': 'error', 'message': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({'balance': balance}, status=status.HTTP_200_OK)
+
+
+class AdminTransactionRefundView(APIView):
+    """Initiate Paystack refund for a successful transaction."""
+
+    def get_permissions(self):
+        from apps.users.permissions import HasModulePermission
+        return [HasModulePermission('fin.payments')]
+
+    def post(self, request, transaction_id: str, *args, **kwargs) -> Response:
+        payment = PaymentTransaction.objects.filter(id=transaction_id).first()
+        if payment is None:
+            return Response(
+                {'status': 'error', 'message': 'Transaction not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if payment.status != PaymentStatus.SUCCESS:
+            return Response(
+                {'status': 'error', 'message': 'Only successful transactions can be refunded'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if bool((payment.metadata or {}).get('refund_initiated')):
+            return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+
+        try:
+            gateway_result = initiate_refund(payment.reference)
+        except PaymentVerificationError as exc:
+            return Response(
+                {'status': 'error', 'message': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        metadata = dict(payment.metadata or {})
+        metadata['refund_initiated'] = True
+        metadata['refund_data'] = gateway_result.get('data', {})
+        payment.metadata = metadata
+        payment.save(update_fields=['metadata', 'updated_at'])
+
+        return Response({'status': 'ok'}, status=status.HTTP_200_OK)
