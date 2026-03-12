@@ -1,3 +1,0 @@
-"""
-Series app migrations
-"""

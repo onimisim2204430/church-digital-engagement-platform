@@ -60,10 +60,7 @@ import DraftsManager from '../admin/DraftsManager';
 // import DailyWordsPage from '../admin/DailyWordsPage'; // TODO: Restore if bulk daily word management needed
 import WeeklyFlowPage from '../admin/WeeklyFlowManagement';
 import SeedManager from '../admin/SeedManagement';
-import PaymentRecords from '../admin/PaymentRecords';
-import FinancialHub from '../admin/FinancialHub';
-import FinancialReports from '../admin/FinancialReports';
-import FinancialDashboard from '../admin/FinancialDashboard';
+// ...existing code...
 import ContentPipelineDashboard from '../admin/ContentPipelineDashboard';
 import CommunityDashboard from '../admin/CommunityDashboard';
 import MinistryDashboard from '../admin/MinistryDashboard';
@@ -73,6 +70,22 @@ import AdminLayout from '../admin/layouts/AdminLayout';
 import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
 import PermissionGatedRoute from '../admin/components/PermissionGatedRoute';
 
+// AppRouter.tsx — import change (Phase 12)
+// Replace the 4 individual financial component imports with the barrel:
+
+// BEFORE (remove these lines):
+// import FinancialHub        from '../admin/FinancialHub';
+// import FinancialSanctum    from '../admin/FinancialReports';
+// import PaymentRecords      from '../admin/PaymentRecords';
+// import FinancialDashboard  from '../admin/FinancialDashboard';
+
+// AFTER (add this single line):
+import {
+  FinancialHub,
+  PaymentRecords,
+  FinancialReports,
+  FinancialDashboard,
+} from '../admin/FinancialManagement';
 // Placed after all imports — must not be inside any function
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
