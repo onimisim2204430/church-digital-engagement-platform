@@ -1,6 +1,0 @@
-Design System Analysis — Save This
-Palette (exact values from the code):
-TokenHexRole--ink#1a1614Deep warm black — headers, selected cells--ink2#3d3530Dark brown — nav strip--ink3#6b5f58Mid warm brown — body text--ink4#a8998fMuted taupe — labels, secondary text--ink5#d4c9c0Light warm gray — borders, faint elements--cream#f7f2ecPage background--cr2#ede6dbCard borders, dividers--paper#faf7f2Card/cell background (slightly lighter than cream)--gold#d4a853Primary accent — active states, today dot, published--gld2#b8883aGold hover/dark variant
-Typography: Playfair Display (serif, 700–900) for all headings and day numbers — gives the editorial/printed-diary feel. Crimson Pro (serif, 300–600) for body, labels, buttons — refined and readable. Both imported from Google Fonts.
-Status colors: Published = gold #c9922a, Scheduled = steel blue #3f88aa, Draft = warm gray #8c7c72.
-Design character: Warm ink-on-paper editorial. Think printed devotional journal meets digital admin tool. Every element uses warm browns/creams instead of cool grays — this is the key differentiation from generic dashboards.
