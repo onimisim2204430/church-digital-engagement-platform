@@ -1,0 +1,106 @@
+/**
+ * AutoSaveIndicator Styles
+ * Subtle, non-intrusive save status indicator
+ */
+
+.autosave-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  opacity: 0.9;
+}
+
+.autosave-indicator:hover {
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.autosave-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.autosave-text {
+  white-space: nowrap;
+}
+
+/* Status-specific styles */
+.autosave-status-saving {
+  color: #6b7280;
+  border-left: 3px solid #9ca3af;
+}
+
+.autosave-status-saved {
+  color: #059669;
+  border-left: 3px solid #10b981;
+}
+
+.autosave-status-error {
+  color: #dc2626;
+  border-left: 3px solid #ef4444;
+}
+
+.autosave-status-offline {
+  color: #f59e0b;
+  border-left: 3px solid #fbbf24;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.autosave-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .autosave-indicator {
+    bottom: 10px;
+    right: 10px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .autosave-indicator {
+    background: #1f2937;
+    color: #e5e7eb;
+  }
+  
+  .autosave-status-saving {
+    color: #9ca3af;
+  }
+  
+  .autosave-status-saved {
+    color: #34d399;
+  }
+  
+  .autosave-status-error {
+    color: #f87171;
+  }
+  
+  .autosave-status-offline {
+    color: #fbbf24;
+  }
+}

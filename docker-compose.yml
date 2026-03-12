@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: church-platform-db
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: church_platform
+      POSTGRES_USER: church_user
+      POSTGRES_PASSWORD: ChurchPass2024Strong!
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups  # For database backups
+    ports:
+      - "5432:5432"  # Expose for local development/migration
+    networks:
+      - church-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-church_user} -d ${POSTGRES_DB:-church_platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: church-platform-redis
+    networks:
+      - church-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django + React Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: church-platform-web
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-church_user}:${POSTGRES_PASSWORD:-change_this_password}@db:5432/${POSTGRES_DB:-church_platform}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - media_files:/app/backend/media
+      - static_files:/app/backend/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - church-network
+    restart: unless-stopped
+    command: >
+      sh -c "python backend/manage.py migrate &&
+             gunicorn --chdir backend --bind 0.0.0.0:8000 --workers 4 --threads 2 
+             --worker-tmp-dir /dev/shm --log-level info --access-logfile - 
+             --error-logfile - config.wsgi:application"
+
+  # Celery Worker (for background tasks)
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: church-platform-celery
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-church_user}:${POSTGRES_PASSWORD:-change_this_password}@db:5432/${POSTGRES_DB:-church_platform}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - church-network
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=info
+
+  # Nginx (Optional - for serving static files and reverse proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: church-platform-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_files:/usr/share/nginx/html/static:ro
+      - media_files:/usr/share/nginx/html/media:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    networks:
+      - church-network
+    restart: unless-stopped
+
+networks:
+  church-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  media_files:
+  static_files:

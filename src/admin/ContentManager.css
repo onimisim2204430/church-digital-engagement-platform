@@ -1,0 +1,166 @@
+/* ContentManager Styles - Sky Blue Theme */
+
+.content-manager {
+  padding: 20px;
+  min-height: 100vh;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.content-manager-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.btn-create-new {
+  background: #87CEEB;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-create-new:hover {
+  background: #6AB5D8;
+}
+
+/* Post View Styles */
+.post-view-container {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.post-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #87CEEB;
+}
+
+.post-view-header h2 {
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.post-view-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.post-view-actions .btn-edit,
+.post-view-actions .btn-back {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.post-view-actions .btn-edit {
+  background: #87CEEB;
+  color: white;
+}
+
+.post-view-actions .btn-edit:hover {
+  background: #6AB5D8;
+}
+
+.post-view-actions .btn-back {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.post-view-actions .btn-back:hover {
+  background: #e0e0e0;
+}
+
+.post-view-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.post-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.post-view-content h1 {
+  color: #333;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.post-info {
+  color: #666;
+  font-size: 14px;
+}
+
+.post-info p {
+  margin: 4px 0;
+}
+
+.post-featured-image {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.post-body {
+  color: #333;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.post-media {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.post-media h3 {
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.post-media a {
+  color: #87CEEB;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.post-media a:hover {
+  text-decoration: underline;
+}
+
+.post-settings {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.post-settings p {
+  margin: 8px 0;
+  color: #555;
+  font-size: 14px;
+}

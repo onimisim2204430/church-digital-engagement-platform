@@ -1,0 +1,270 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <style>
+    /* === RESET === */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+    div[style*="margin: 16px 0;"] { margin: 0 !important; }
+
+    /* === BODY & WRAPPER === */
+    body {
+      background-color: #F9F8F6;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #2C2C2A;
+    }
+    .email-wrapper {
+      width: 100%;
+      background-color: #F9F8F6;
+      padding: 40px 16px;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #E5E4DF;
+    }
+
+    /* === HEADER === */
+    .email-header {
+      background-color: #3B6E96;
+      padding: 40px 48px 36px;
+      text-align: center;
+    }
+    .header-brand {
+      margin: 14px 0 0;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 20px;
+      font-weight: normal;
+      letter-spacing: 0.08em;
+      color: #ffffff;
+    }
+    .header-rule {
+      display: block;
+      width: 36px;
+      height: 1px;
+      background-color: rgba(255, 255, 255, 0.3);
+      margin: 18px auto 0;
+    }
+
+    /* === PREHEADER (hidden) === */
+    .preheader {
+      display: none;
+      font-size: 1px;
+      color: #F9F8F6;
+      line-height: 1px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+    }
+
+    /* === BODY === */
+    .email-body {
+      padding: 40px 48px 44px;
+    }
+    .email-body h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 22px;
+      font-weight: normal;
+      color: #2C2C2A;
+      margin: 0 0 22px;
+      line-height: 1.35;
+    }
+    .email-body h3 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 17px;
+      font-weight: normal;
+      color: #2C2C2A;
+      margin: 0 0 12px;
+    }
+    .email-body p {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #4A4A47;
+      margin: 0 0 18px;
+    }
+    .email-body a {
+      color: #3B6E96;
+      text-decoration: underline;
+    }
+    .email-body strong {
+      font-weight: 700;
+      color: #2C2C2A;
+    }
+    .email-body code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      background: #F5F3EF;
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+
+    /* === CTA BUTTON === */
+    .btn-primary {
+      display: inline-block;
+      background-color: #3B6E96;
+      color: #ffffff !important;
+      text-decoration: none !important;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 15px 38px;
+      border-radius: 2px;
+    }
+    .btn-secondary {
+      display: inline-block;
+      background-color: transparent;
+      color: #3B6E96 !important;
+      text-decoration: none !important;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 13px 34px;
+      border: 1.5px solid #3B6E96;
+      border-radius: 2px;
+    }
+
+    /* === DIVIDER === */
+    .divider {
+      border: none;
+      border-top: 1px solid #EBE9E4;
+      margin: 32px 0;
+    }
+
+    /* === ALERT / INFO BOX === */
+    .alert-box {
+      background-color: #F5F3EF;
+      border-left: 3px solid #3B6E96;
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 2px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+      color: #4A4A47;
+    }
+    .alert-box strong { color: #2C2C2A; }
+    .alert-box.warning {
+      background-color: #FBF7EF;
+      border-left-color: #966B3B;
+    }
+    .alert-box.danger {
+      background-color: #FBF0EF;
+      border-left-color: #963B3B;
+    }
+    .alert-box.success {
+      background-color: #EFF5F0;
+      border-left-color: #5D7A68;
+    }
+
+    /* === FOOTER === */
+    .email-footer {
+      background-color: #F5F3EF;
+      border-top: 1px solid #EBE9E4;
+      padding: 28px 48px;
+      text-align: center;
+    }
+    .footer-links {
+      margin-bottom: 14px;
+    }
+    .footer-links a {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #8A8A85;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    .footer-links a:hover { text-decoration: underline; }
+    .email-footer p {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      color: #AEADA8;
+      margin: 0 0 4px;
+      line-height: 1.6;
+    }
+    .email-footer a {
+      color: #8A8A85;
+      text-decoration: underline;
+    }
+
+    /* === MOBILE === */
+    @media only screen and (max-width: 600px) {
+      .email-container { border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+      .email-header { padding: 32px 24px 28px !important; }
+      .email-body { padding: 28px 24px 32px !important; }
+      .email-footer { padding: 24px !important; }
+      .btn-primary, .btn-secondary { display: block !important; text-align: center !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Preheader text (hidden, shows in inbox preview) -->
+  <span class="preheader">{% block preheader %}{{ site_name }} &mdash; {% block preheader_text %}{% endblock %}{% endblock %}&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;</span>
+
+  <div class="email-wrapper">
+    <div class="email-container" role="main">
+
+      <!-- Header -->
+      <div class="email-header">
+        {% if logo_url %}
+          <img src="{{ logo_url }}" alt="{{ site_name }}" height="40" style="display:block;margin:0 auto;" />
+        {% else %}
+          <!--[if !mso]><!-->
+          <svg xmlns="http://www.w3.org/2000/svg" height="36" width="36" viewBox="0 0 24 24" style="display:block;margin:0 auto;" aria-hidden="true">
+            <path fill="none" d="M0 0h24v24H0z"/>
+            <path fill="rgba(255,255,255,0.88)" d="M15.49 9.63c-.18-2.79-1.31-5.51-3.43-7.63a12.188 12.188 0 0 0-3.55 7.63c1.28.68 2.46 1.56 3.49 2.63 1.03-1.06 2.21-1.94 3.49-2.63zM12 15.45C9.85 12.17 6.18 10 2 10c0 5.32 3.36 9.82 8.03 11.49.63.23 1.29.4 1.97.51.68-.12 1.33-.29 1.97-.51C18.64 19.82 22 15.32 22 10c-4.18 0-7.85 2.17-10 5.45z"/>
+          </svg>
+          <!--<![endif]-->
+        {% endif %}
+        <p class="header-brand">{{ site_name }}</p>
+        <span class="header-rule"></span>
+      </div>
+
+      <!-- Body -->
+      <div class="email-body">
+        {% block content %}{% endblock %}
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <div class="footer-links">
+          <a href="{{ site_url|default:'#' }}">Visit Website</a>
+          {% block unsubscribe_link %}
+          {% if unsubscribe_url %}
+            &nbsp;&middot;&nbsp;<a href="{{ unsubscribe_url }}">Unsubscribe</a>
+          {% endif %}
+          {% endblock %}
+          {% if support_email %}
+            &nbsp;&middot;&nbsp;<a href="mailto:{{ support_email }}">Contact Support</a>
+          {% endif %}
+        </div>
+        <p>&copy; {{ current_year }} {{ site_name }}. All rights reserved.</p>
+        <p style="margin-top:6px;color:#C9C8C3;font-size:10px;letter-spacing:0.05em;">A digital porch for spiritual formation.</p>
+        {% block footer_extra %}{% endblock %}
+        {% if tracking_enabled %}
+          {% block tracking_pixel %}{% endblock %}
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+.save-status-indicator {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+  transition: all 0.2s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.save-status-indicator:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.save-status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.save-status-text {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Status-specific styles */
+.save-status-saving {
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.save-status-saving .save-status-icon {
+  color: #6b7280;
+}
+
+.save-status-saved {
+  color: #059669;
+  border-color: #d1fae5;
+  background: #f0fdf4;
+}
+
+.save-status-saved .save-status-icon {
+  color: #059669;
+}
+
+.save-status-error {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.save-status-error .save-status-icon {
+  color: #dc2626;
+}
+
+/* Spinner animation */
+.save-status-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .save-status-indicator {
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .save-status-indicator {
+    bottom: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .save-status-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+}

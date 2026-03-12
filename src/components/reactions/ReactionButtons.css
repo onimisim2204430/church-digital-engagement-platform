@@ -1,0 +1,130 @@
+/**
+ * Reaction Buttons Styles
+ * WhatsApp-style emoji reactions for church content
+ */
+
+.reactions-container {
+  margin: 32px 0;
+  padding: 24px 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reactions-loading {
+  text-align: center;
+  padding: 16px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.reactions-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-reaction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.btn-reaction:hover:not(.disabled):not(:disabled) {
+  border-color: #87CEEB;
+  background-color: #f0f9ff;
+  transform: scale(1.05);
+}
+
+.btn-reaction.selected {
+  background-color: #87CEEB;
+  border-color: #87CEEB;
+}
+
+.btn-reaction.selected:hover:not(:disabled) {
+  background-color: #6BB6D9;
+  border-color: #6BB6D9;
+}
+
+.btn-reaction.disabled,
+.btn-reaction:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-reaction:disabled {
+  background-color: #f9fafb;
+}
+
+.btn-reaction:focus {
+  outline: 2px solid #87CEEB;
+  outline-offset: 2px;
+}
+
+.reaction-emoji {
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reaction-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.btn-reaction.selected .reaction-count {
+  color: white;
+}
+
+.reactions-prompt {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.reactions-disabled {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background-color: #fff8e1;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #f59e0b;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .reactions-container {
+    margin: 24px 0;
+    padding: 16px 0;
+  }
+
+  .btn-reaction {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+
+  .reaction-emoji {
+    font-size: 18px;
+  }
+
+  .reaction-count {
+    font-size: 13px;
+  }
+}

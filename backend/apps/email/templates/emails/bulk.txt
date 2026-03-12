@@ -1,0 +1,19 @@
+{% extends "emails/base.txt" %}
+{% block preheader_text %}{{ preview_text|default:"Latest news" }}{% endblock %}
+{% block content %}
+{% if headline %}{{ headline }}
+{% for i in headline %}={% endfor %}{% endif %}
+
+Hi {% if user_name %}{{ user_name }}{% else %}there{% endif %},
+
+{% if intro_text %}{{ intro_text }}{% endif %}
+
+{% if articles %}{% for article in articles %}
+{{ article.title }}
+------------------
+{{ article.excerpt }}
+{% if article.url %}Read more: {{ article.url }}{% endif %}
+
+{% endfor %}{% endif %}
+{% if cta_url %}{{ cta_label|default:"Learn More" }}: {{ cta_url }}{% endif %}
+{% endblock %}

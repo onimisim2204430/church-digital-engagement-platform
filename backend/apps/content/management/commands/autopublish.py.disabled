@@ -1,0 +1,141 @@
+"""
+Auto-Publish Scheduled Posts Command
+
+PURPOSE:
+    Automatically publish posts that have been scheduled by admins once their
+    scheduled time has been reached. This ensures content goes live exactly
+    when the admin intended without manual intervention.
+
+TABLES AFFECTED:
+    - apps_content.post (status, is_published fields)
+    - apps_moderation.auditlog (audit trail of publications)
+
+FIELDS UPDATED:
+    - Post.status: SCHEDULED → PUBLISHED
+    - Post.is_published: False → True
+    - Post.published_at: (already set, used for timestamp reference)
+
+SIDE EFFECTS:
+    - Creates audit log entry for each published post
+    - TODO: Trigger email notifications to subscribers (not yet implemented)
+    - TODO: Invalidate cache for public content feed (if caching implemented)
+
+DEPLOYMENT:
+    Run via cron every 1 minute:
+    * * * * * cd /path/to/project && python manage.py autopublish >> /var/log/autopublish.log 2>&1
+
+IDEMPOTENCY:
+    Safe to run multiple times. Only processes posts where:
+    - status = SCHEDULED (not already PUBLISHED)
+    - published_at <= current UTC time
+    - is_deleted = False
+
+TIMEZONE:
+    All times stored in UTC. Comparison done in UTC.
+    Display layer (frontend) converts to WAT for Nigeria timezone.
+"""
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from django.db import transaction
+from django.contrib.contenttypes.models import ContentType
+from apps.content.models import Post, PostStatus
+from apps.moderation.models import AuditLog, ActionType
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Command(BaseCommand):
+    help = 'Automatically publish scheduled posts whose publish time has passed'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            help='Show what would be published without making changes',
+        )
+
+    def handle(self, *args, **options):
+        dry_run = options.get('dry_run', False)
+        now = timezone.now()
+        
+        self.stdout.write(f'[{now.strftime("%Y-%m-%d %H:%M:%S UTC")}] Starting autopublish check...')
+        
+        # QUERY: Find all scheduled posts whose publish time has passed
+        # SAFETY: Only selects SCHEDULED posts, preventing accidental republishing
+        scheduled_posts = Post.objects.filter(
+            status=PostStatus.SCHEDULED,
+            published_at__lte=now,
+            is_deleted=False
+        ).select_for_update(skip_locked=True)  # Prevent race conditions
+        
+        published_count = 0
+        failed_count = 0
+        
+        for post in scheduled_posts:
+            try:
+                if dry_run:
+                    self.stdout.write(
+                        self.style.WARNING(f'[DRY RUN] Would publish: "{post.title}" (ID: {post.id})')
+                    )
+                    published_count += 1
+                    continue
+                
+                # TRANSACTIONAL UPDATE: Ensure atomicity
+                with transaction.atomic():
+                    # Double-check status hasn't changed (defensive programming)
+                    post.refresh_from_db()
+                    
+                    if post.status != PostStatus.SCHEDULED:
+                        self.stdout.write(
+                            self.style.WARNING(f'⊘ Skipped "{post.title}": Status changed to {post.status}')
+                        )
+                        continue
+                    
+                    # CRITICAL STATE TRANSITION
+                    # Published_at is already set (from schedule time)
+                    # We just need to flip status and is_published flag
+                    post.status = PostStatus.PUBLISHED
+                    post.is_published = True
+                    post.save(update_fields=['status', 'is_published', 'updated_at'])
+                    
+                    # AUDIT LOG: Track all state changes
+                    AuditLog.objects.create(
+                        user=post.author,  # Attribute to original author
+                        action_type=ActionType.PUBLISH,
+                        description=f"Auto-published scheduled post: {post.title} (scheduled for {post.published_at.strftime('%Y-%m-%d %H:%M UTC')})",
+                        content_type=ContentType.objects.get_for_model(Post),
+                        object_id=str(post.id),
+                        ip_address='127.0.0.1',  # System action
+                        user_agent='AutoPublish Background Job'
+                    )
+                    
+                    published_count += 1
+                    
+                    # SUCCESS LOG
+                    log_msg = f'✓ Published: "{post.title}" (ID: {post.id}) | Scheduled: {post.published_at.strftime("%Y-%m-%d %H:%M UTC")}'
+                    self.stdout.write(self.style.SUCCESS(log_msg))
+                    logger.info(f'AutoPublish: Published post {post.id} ({post.title})')
+                    
+                    # TODO: SIDE EFFECTS (implement as needed)
+                    # - Send email notifications: self._notify_subscribers(post)
+                    # - Invalidate cache: cache.delete(f'post_feed_{post.post_type}')
+                    # - WebSocket notification: channel_layer.group_send('posts', {...})
+                    
+            except Exception as e:
+                failed_count += 1
+                error_msg = f'✗ Failed to publish "{post.title}" (ID: {post.id}): {str(e)}'
+                self.stdout.write(self.style.ERROR(error_msg))
+                logger.error(f'AutoPublish Error: {error_msg}', exc_info=True)
+        
+        # SUMMARY OUTPUT
+        if published_count == 0 and failed_count == 0:
+            self.stdout.write(self.style.WARNING('No posts to publish at this time.'))
+        else:
+            summary = f'\n{"[DRY RUN] " if dry_run else ""}Published: {published_count} | Failed: {failed_count}'
+            if failed_count > 0:
+                self.stdout.write(self.style.ERROR(summary))
+            else:
+                self.stdout.write(self.style.SUCCESS(summary))
+        
+        self.stdout.write(f'[{timezone.now().strftime("%Y-%m-%d %H:%M:%S UTC")}] Autopublish check completed.\n')

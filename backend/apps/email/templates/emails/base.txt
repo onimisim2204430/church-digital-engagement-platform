@@ -1,0 +1,15 @@
+{{ site_name }}
+================================================================================
+{% block preheader_text %}{% endblock %}
+
+--------------------------------------------------------------------------------
+{% block content %}{% endblock %}
+--------------------------------------------------------------------------------
+
+{% if unsubscribe_url %}
+To unsubscribe, visit: {{ unsubscribe_url }}
+{% endif %}
+
+© {{ current_year }} {{ site_name }}. All rights reserved.
+{% if support_email %}Need help? Email us at {{ support_email }}{% endif %}
+{{ site_url }}
