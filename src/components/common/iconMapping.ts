@@ -52,6 +52,7 @@ import {
   MdViewWeek,
   MdGridView,
   MdTrendingUp,
+  MdTrendingDown,
   MdPublic,
   MdRssFeed,
   MdMenuBook,
@@ -138,6 +139,16 @@ import {
   MdVerifiedUser,
   MdDarkMode,
   MdLightMode,
+  MdPrint,
+  MdLocalFireDepartment,
+  MdScience,
+  MdEco,
+  MdLightbulb,
+  MdFlightTakeoff,
+  MdMusicNote,
+  MdSchool,
+  MdSend,
+  MdShowChart,
 } from 'react-icons/md';
 
 export const iconMapping: Record<string, any> = {
@@ -309,6 +320,18 @@ export const iconMapping: Record<string, any> = {
   mail: MdMail,
   cloud: MdCloud,
   security: MdSecurity,
+  print: MdPrint,
+  flame: MdLocalFireDepartment,
+  science: MdScience,
+  eco: MdEco,
+  lightbulb: MdLightbulb,
+  flight: MdFlightTakeoff,
+  music_note: MdMusicNote,
+  school: MdSchool,
+  send: MdSend,
+  target: MdShowChart,
+  trending_down: MdTrendingDown,
+  calendar: MdCalendarToday,
 };
 
 /**

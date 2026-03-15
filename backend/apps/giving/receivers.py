@@ -32,3 +32,14 @@ def update_giving_progress(sender, payment_transaction=None, **kwargs):
         total_donations=F('total_donations') + 1,
         updated_at=now,
     )
+    
+    # Check if project is now 100% funded and auto-complete it
+    try:
+        giving_item = GivingItem.objects.get(id=giving_id)
+        if (giving_item.goal_amount and 
+            giving_item.raised_amount >= giving_item.goal_amount and
+            giving_item.status != 'completed'):
+            giving_item.status = 'completed'
+            giving_item.save(update_fields=['status', 'updated_at'])
+    except GivingItem.DoesNotExist:
+        pass

@@ -11,7 +11,7 @@ import apiService from './api.service';
 
 export type GivingCategory = 'tithe' | 'offering' | 'project' | 'mission' | 'seed' | 'other';
 export type GivingVisibility = 'public' | 'members_only' | 'hidden';
-export type GivingStatus = 'draft' | 'active' | 'archived';
+export type GivingStatus = 'draft' | 'active' | 'completed' | 'archived';
 
 export interface GivingItem {
   id: string;
@@ -33,6 +33,7 @@ export interface GivingItem {
   total_donations: number;
   donor_count: number;
   progress_percentage: number;
+  is_completed?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -90,6 +91,7 @@ interface ApiGivingItem {
   total_donations: number;
   donor_count: number;
   progress_percentage: number;
+  is_completed?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -128,7 +130,7 @@ const STATUS_TO_UI: Record<string, GivingStatus> = {
   draft: 'draft',
   archived: 'archived',
   paused: 'archived',
-  completed: 'archived',
+  completed: 'completed',
 };
 
 const isPaginatedGivingResponse = (value: unknown): value is PaginatedGivingResponse => {
@@ -163,6 +165,7 @@ const mapApiToUi = (item: ApiGivingItem): GivingItem => ({
   raised_amount: Math.round((item.raised_amount || 0) / 100),
   total_donations: Math.round((item.total_donations || 0) / 100),
   deadline: item.deadline || null,
+  is_completed: item.is_completed ?? false,
 });
 
 const mapUiToApi = (data: CreateGivingItemRequest | UpdateGivingItemRequest) => {

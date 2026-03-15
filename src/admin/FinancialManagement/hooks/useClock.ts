@@ -1,2 +1,2 @@
-// Empty placeholder - add exports as needed
-export {}5
+// Hook placeholder - can be used for time-related functionality
+export {};

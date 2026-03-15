@@ -47,6 +47,7 @@ export const VISIBILITY_OPTIONS: VisibilityOption[] = [
 export const STATUS_OPTIONS: StatusOption[] = [
   { value: 'active', label: 'Active', color: 'green' },
   { value: 'draft', label: 'Draft', color: 'slate' },
+  { value: 'completed', label: 'Completed', color: 'emerald' },
   { value: 'archived', label: 'Archived', color: 'blue' },
 ];
 

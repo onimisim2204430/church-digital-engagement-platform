@@ -191,6 +191,7 @@ const FinancialHub: React.FC = () => {
           </div>
         )}
 
+        {/* HIDDEN FOR PRODUCTION | Will be restored in v2.0
         {tab === 'giving' && (
           <div className="flex-1 overflow-y-auto" style={THIN}>
             <Suspense fallback={<GivingSkeleton />}>
@@ -206,6 +207,7 @@ const FinancialHub: React.FC = () => {
             </Suspense>
           </div>
         )}
+        */}
 
         {tab === 'members' && (
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">

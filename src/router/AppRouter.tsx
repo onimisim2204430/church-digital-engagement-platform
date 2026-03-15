@@ -48,6 +48,7 @@ import MemberLayout from '../member/layouts/MemberLayout';
 
 // Admin pages
 import AdminDashboard from '../admin/AdminDashboard';
+import AdminLanding from '../admin/AdminLanding';
 import ContentManager from '../admin/ContentManager';
 import SeriesManager, { SeriesCreate, SeriesEdit } from '../admin/SeriesManagement';
 import UserManager from '../admin/UserManagement';
@@ -60,32 +61,21 @@ import DraftsManager from '../admin/DraftsManager';
 // import DailyWordsPage from '../admin/DailyWordsPage'; // TODO: Restore if bulk daily word management needed
 import WeeklyFlowPage from '../admin/WeeklyFlowManagement';
 import SeedManager from '../admin/SeedManagement';
-// ...existing code...
-import ContentPipelineDashboard from '../admin/ContentPipelineDashboard';
-import CommunityDashboard from '../admin/CommunityDashboard';
-import MinistryDashboard from '../admin/MinistryDashboard';
-import GrowthDashboard from '../admin/GrowthDashboard';
-import AdminPlaceholder from '../admin/AdminPlaceholder';
-import AdminLayout from '../admin/layouts/AdminLayout';
-import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
-import PermissionGatedRoute from '../admin/components/PermissionGatedRoute';
-
-// AppRouter.tsx — import change (Phase 12)
-// Replace the 4 individual financial component imports with the barrel:
-
-// BEFORE (remove these lines):
-// import FinancialHub        from '../admin/FinancialHub';
-// import FinancialSanctum    from '../admin/FinancialReports';
-// import PaymentRecords      from '../admin/PaymentRecords';
-// import FinancialDashboard  from '../admin/FinancialDashboard';
-
-// AFTER (add this single line):
 import {
   FinancialHub,
   PaymentRecords,
   FinancialReports,
   FinancialDashboard,
 } from '../admin/FinancialManagement';
+import ContentDashboard from '../admin/ContentManagement/dashboard/ContentDashboard';
+import CommunityDashboard from '../admin/CommunityDashboard';
+import { MinistryHub } from '../admin/MinistryManagement';
+import GrowthDashboard from '../admin/GrowthDashboard';
+import AdminPlaceholder from '../admin/AdminPlaceholder';
+import AdminLayout from '../admin/layouts/AdminLayout';
+import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
+import PermissionGatedRoute from '../admin/components/PermissionGatedRoute';
+
 // Placed after all imports — must not be inside any function
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
@@ -166,7 +156,14 @@ const AdminAccessGate: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
+// Admin index route - moved outside component to prevent recreating on every render
+const AdminIndexRoute: React.FC = () => {
+  const { user } = useAuth();
+  return user?.role === UserRole.ADMIN ? <AdminDashboard /> : <AdminLanding />;
+};
+
 const AppRouter: React.FC = () => {
+
   return (
     <BrowserRouter>
       <ToastContainer />
@@ -234,19 +231,19 @@ const AppRouter: React.FC = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<AdminIndexRoute />} />
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="content-dashboard"   element={<PermissionGatedRoute code="content.posts"><ContentPipelineDashboard /></PermissionGatedRoute>} />
-          <Route path="community-dashboard" element={<PermissionGatedRoute code="community.moderation"><CommunityDashboard /></PermissionGatedRoute>} />
-          <Route path="ministry-dashboard"  element={<PermissionGatedRoute code="schedule.events"><MinistryDashboard /></PermissionGatedRoute>} />
-          <Route path="financial-dashboard" element={<PermissionGatedRoute code="fin.hub"><FinancialDashboard /></PermissionGatedRoute>} />
-          <Route path="growth-dashboard"    element={<PermissionGatedRoute code="analytics.reports"><GrowthDashboard /></PermissionGatedRoute>} />
+          <Route path="content-dashboard"   element={<PermissionGatedRoute code="content.*"><ContentDashboard /></PermissionGatedRoute>} />
+          <Route path="community-dashboard" element={<PermissionGatedRoute code="community.*"><CommunityDashboard /></PermissionGatedRoute>} />
+          <Route path="ministry-dashboard"  element={<PermissionGatedRoute code="schedule.*"><MinistryHub /></PermissionGatedRoute>} />
+          {/* <Route path="financial-dashboard" element={<PermissionGatedRoute code="fin.*"><FinancialDashboard /></PermissionGatedRoute>} /> */}
+          <Route path="growth-dashboard"    element={<PermissionGatedRoute code="outreach.*"><GrowthDashboard /></PermissionGatedRoute>} />
           <Route path="content" element={<PermissionGatedRoute code="content.posts"><ContentManager /></PermissionGatedRoute>} />
           <Route path="series" element={<PermissionGatedRoute code="content.series"><SeriesManager /></PermissionGatedRoute>} />
           <Route path="series/new" element={<PermissionGatedRoute code="content.series"><SeriesCreate /></PermissionGatedRoute>} />
           <Route path="series/:id" element={<PermissionGatedRoute code="content.series"><SeriesEdit /></PermissionGatedRoute>} />
           {/* <Route path="daily-words" element={<DailyWordsPage />} /> TODO: Restore if bulk ops needed */}
-          <Route path="drafts" element={<PermissionGatedRoute code="content.drafts"><DraftsManager /></PermissionGatedRoute>} />
+          {/* <Route path="drafts" element={<PermissionGatedRoute code="content.drafts"><DraftsManager /></PermissionGatedRoute>} /> */}
           <Route path="weekly-flow" element={<PermissionGatedRoute code="schedule.weekly_flow"><WeeklyFlowPage /></PermissionGatedRoute>} />
           <Route path="seed" element={<PermissionGatedRoute code="fin.seed"><SeedManager /></PermissionGatedRoute>} />
           <Route path="seed/:id" element={<PermissionGatedRoute code="fin.seed"><SeedManager /></PermissionGatedRoute>} />
@@ -259,7 +256,7 @@ const AppRouter: React.FC = () => {
           <Route path="volunteers" element={<PermissionGatedRoute code="community.volunteers"><AdminPlaceholder title="Volunteers" icon="manage_accounts" description="Coordinate volunteer roles, schedules and assignments." /></PermissionGatedRoute>} />
           <Route path="financial-hub" element={<PermissionGatedRoute code="fin.hub"><FinancialHub /></PermissionGatedRoute>} />
           <Route path="payments" element={<PermissionGatedRoute code="fin.payments"><PaymentRecords /></PermissionGatedRoute>} />
-          <Route path="financial-reports" element={<PermissionGatedRoute code="fin.reports"><FinancialReports /></PermissionGatedRoute>} />
+          {/* <Route path="financial-reports" element={<PermissionGatedRoute code="fin.reports"><FinancialReports /></PermissionGatedRoute>} /> */}
           <Route path="email" element={<PermissionGatedRoute code="outreach.email"><EmailCampaigns /></PermissionGatedRoute>} />
           <Route path="reports" element={<PermissionGatedRoute code="analytics.reports"><ModerationReports /></PermissionGatedRoute>} />
           <Route path="settings" element={<AdminOnlyRoute><AdminSettings /></AdminOnlyRoute>} />

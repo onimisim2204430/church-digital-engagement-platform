@@ -424,6 +424,7 @@ class ModeratorPermissionSerializer(serializers.Serializer):
 
     permissions = serializers.ListField(
         child=serializers.CharField(),
+        allow_empty=True,  # Allow zero permissions (moderator with no access)
         help_text='List of permission code strings to grant',
     )
     sub_role_label = serializers.CharField(
@@ -436,9 +437,11 @@ class ModeratorPermissionSerializer(serializers.Serializer):
     def validate_permissions(self, value):
         from apps.users.permission_codes import ALL_CODES
 
-        unknown = [c for c in value if c not in ALL_CODES]
-        if unknown:
-            raise serializers.ValidationError(
-                f"Unknown permission code(s): {', '.join(unknown)}"
-            )
-        return list(set(value))  # deduplicate
+        # Allow empty list - moderator with zero permissions is valid
+        if not value:
+            return []
+
+        # Filter out unknown/removed codes (e.g., 'fin.hub' if it was removed)
+        # This allows moderators with old permissions to save successfully
+        valid_codes = [c for c in value if c in ALL_CODES]
+        return list(set(valid_codes))  # deduplicate

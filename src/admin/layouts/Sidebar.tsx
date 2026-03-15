@@ -23,11 +23,11 @@ const navGroups = [
   {
     label: 'Dashboards',
     items: [
-      { id: 'content-dashboard',   label: 'Content Pipeline', icon: 'movie',           path: '/admin/content-dashboard',   roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.posts'        },
-      { id: 'community-dashboard', label: 'Community',        icon: 'groups',          path: '/admin/community-dashboard', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'community.moderation' },
-      { id: 'ministry-dashboard',  label: 'Ministry',         icon: 'church',          path: '/admin/ministry-dashboard',  roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.events'      },
-      { id: 'financial-dashboard', label: 'Financial',        icon: 'account_balance', path: '/admin/financial-dashboard', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'fin.hub'              },
-      { id: 'growth-dashboard',    label: 'Growth & Data',    icon: 'trending_up',     path: '/admin/growth-dashboard',    roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'analytics.reports'    },
+      { id: 'content-dashboard',   label: 'Content Pipeline', icon: 'movie',           path: '/admin/content-dashboard',   roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.*'        },
+      { id: 'community-dashboard', label: 'Community',        icon: 'groups',          path: '/admin/community-dashboard', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'community.*'      },
+      { id: 'ministry-dashboard',  label: 'Ministry',         icon: 'church',          path: '/admin/ministry-dashboard',  roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.*'       },
+      // { id: 'financial-dashboard', label: 'Financial',        icon: 'account_balance', path: '/admin/financial-dashboard', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'fin.*'             },
+      { id: 'growth-dashboard',    label: 'Growth & Data',    icon: 'trending_up',     path: '/admin/growth-dashboard',    roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'outreach.*'       },
     ],
   },
   {
@@ -35,7 +35,7 @@ const navGroups = [
     items: [
       { id: 'content',     label: 'Posts & Sermons', icon: 'movie',         path: '/admin/content',     roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.posts'        },
       { id: 'series',      label: 'Series',          icon: 'library_books', path: '/admin/series',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.series'       },
-      { id: 'drafts',      label: 'Post Drafts',     icon: 'edit_note',     path: '/admin/drafts',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.drafts'       },
+      // { id: 'drafts',      label: 'Post Drafts',     icon: 'edit_note',     path: '/admin/drafts',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.drafts'       },
       { id: 'weekly-flow', label: 'Weekly Flow',     icon: 'schedule',      path: '/admin/weekly-flow', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.weekly_flow' },
       { id: 'podcasting',  label: 'Podcasting',      icon: 'podcasts',      path: '/admin/podcasting',  roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.podcasting'  },
     ],
@@ -62,7 +62,7 @@ const navGroups = [
     items: [
       { id: 'financial-hub',     label: 'Financial Hub',     icon: 'analytics', path: '/admin/financial-hub',     roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'fin.hub'      },
       { id: 'payments',          label: 'Payment Records',   icon: 'payments',   path: '/admin/payments',          roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'fin.payments' },
-      { id: 'financial-reports', label: 'Financial Reports', icon: 'bar_chart',  path: '/admin/financial-reports', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'fin.reports'  },
+      // { id: 'financial-reports', label: 'Financial Reports', icon: 'bar_chart',  path: '/admin/financial-reports', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'fin.reports'  },
     ],
   },
   {
@@ -87,10 +87,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     return (f + l).toUpperCase() || 'U';
   };
 
+  // Helper: Check permission (supports wildcard patterns like 'fin.*')
+  const checkPermission = (permCode: string): boolean => {
+    if (permCode.endsWith('.*')) {
+      // Wildcard pattern - check if user has ANY permission in that category
+      const categoryMap: Record<string, string[]> = {
+        'fin.*': ['fin.payments', 'fin.reports', 'fin.seed'],
+        'content.*': ['content.posts', 'content.series', 'content.drafts', 'content.daily_word'],
+        'schedule.*': ['schedule.weekly_flow', 'schedule.events', 'schedule.podcasting'],
+        'community.*': ['community.moderation', 'community.groups', 'community.prayer', 'community.volunteers'],
+        'outreach.*': ['outreach.email', 'analytics.reports'],
+      };
+      return categoryMap[permCode]?.some(p => hasPermission(p)) ?? false;
+    }
+    // Exact permission match
+    return hasPermission(permCode);
+  };
+
   const isActive = (path: string, id: string) =>
     id === 'overview'
       ? location.pathname === '/admin' || location.pathname === '/admin/'
-      : location.pathname.startsWith(path);
+      : location.pathname === path || location.pathname.startsWith(path + '/');
 
   const go = (path: string) => { navigate(path); onClose(); };
 
@@ -107,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           const visible = group.items.filter(item => {
             if (!item.roles.includes(user?.role as UserRole)) return false;
             if (user?.role === UserRole.ADMIN) return true;
-            if ((item as any).permCode) return hasPermission((item as any).permCode);
+            if ((item as any).permCode) return checkPermission((item as any).permCode);
             return true;
           });
           if (!visible.length) return null;

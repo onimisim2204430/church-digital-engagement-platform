@@ -44,11 +44,14 @@ export interface Tx {
 }
 
 export interface BudgetLine {
-  dept: string;
+  id?: string;
+  department: string;
   icon: string;
   color: string;
-  allocated: number;
+  allocated_amount: number;
   spent: number;
+  display_order?: number;
+  fiscal_year?: number;
 }
 
 export interface BankAcct {

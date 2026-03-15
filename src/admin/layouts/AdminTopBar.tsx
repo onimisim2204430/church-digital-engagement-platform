@@ -402,16 +402,7 @@ const AdminTopBar: React.FC<TopBarProps> = ({
 
         <div className="admin-vdiv" style={{ margin: '0 2px' }} />
 
-        {/* Theme Toggle */}
-        <button
-          className="tb-btn"
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          onClick={toggle}
-          title={isDark ? 'Light mode' : 'Dark mode'}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Icon name={isDark ? 'light_mode' : 'dark_mode'} size={16} />
-        </button>
+
 
         {/* User menu */}
         <div ref={userRef} style={{ position: 'relative' }}>
@@ -490,7 +481,6 @@ const AdminTopBar: React.FC<TopBarProps> = ({
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
-            autoFocus
             type="text"
             placeholder="Search admin…"
             value={searchTerm}

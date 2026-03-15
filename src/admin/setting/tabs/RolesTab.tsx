@@ -155,18 +155,27 @@ const EditorPanel = memo(({ user, codesData, currentPerms, saving, onSave, onClo
   user: User; codesData: PermissionCodesResponse; currentPerms: ModeratorPermissionData | null;
   saving: boolean; onSave: (perms: string[]) => void; onClose: () => void;
 }) => {
-  const [selected, setSelected] = useState<Set<string>>(new Set(currentPerms?.permissions ?? []));
+  // Get all valid permission codes from codesData
+  const allValidCodes = useMemo(() => new Set(Object.values(codesData.codes).flat().map(c => c.code)), [codesData]);
+  
+  // Filter currentPerms to only include valid codes (removes stale codes like removed 'fin.hub')
+  const validCurrentPerms = useMemo(() => 
+    (currentPerms?.permissions ?? []).filter(p => allValidCodes.has(p)),
+    [currentPerms, allValidCodes]
+  );
+
+  const [selected, setSelected] = useState<Set<string>>(new Set(validCurrentPerms));
   const [view,     setView]     = useState<EditorView>('permissions');
   const prevIdRef = useRef(user.id);
-  if (prevIdRef.current !== user.id) { prevIdRef.current = user.id; setSelected(new Set(currentPerms?.permissions ?? [])); setView('permissions'); }
+  if (prevIdRef.current !== user.id) { prevIdRef.current = user.id; setSelected(new Set(validCurrentPerms)); setView('permissions'); }
 
   const totalCodes = useMemo(() => Object.values(codesData.codes).flat().length, [codesData]);
   const coverage   = totalCodes > 0 ? Math.round((selected.size / totalCodes) * 100) : 0;
-  const isDirty    = useMemo(() => { const o = currentPerms?.permissions ?? []; return selected.size !== o.length || [...selected].some(p => !o.includes(p)); }, [selected, currentPerms]);
+  const isDirty    = useMemo(() => { return selected.size !== validCurrentPerms.length || [...selected].some(p => !validCurrentPerms.includes(p)); }, [selected, validCurrentPerms]);
 
-  const savedCount  = currentPerms?.permissions.length ?? 0;
+  const savedCount  = validCurrentPerms.length ?? 0;
   const savedPct    = totalCodes > 0 ? Math.round((savedCount / totalCodes) * 100) : 0;
-  const permsByCat  = useMemo(() => Object.entries(codesData.codes).map(([cat, codes]) => ({ cat, total: codes.length, granted: codes.filter(c => (currentPerms?.permissions ?? []).includes(c.code)).length })), [codesData, currentPerms]);
+  const permsByCat  = useMemo(() => Object.entries(codesData.codes).map(([cat, codes]) => ({ cat, total: codes.length, granted: codes.filter(c => validCurrentPerms.includes(c.code)).length })), [codesData, validCurrentPerms]);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 transition-colors">

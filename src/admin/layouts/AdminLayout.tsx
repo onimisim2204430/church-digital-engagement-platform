@@ -14,9 +14,12 @@ import React, {
   type ReactNode,
 } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
+import { UserRole } from '../../types/auth.types';
 import Sidebar from './Sidebar';
 import AdminTopBar from './AdminTopBar';
 import AdminRightSidebar from './AdminRightSidebar';
+import { startPermissionSync, stopPermissionSync } from '../../services/permissionSyncService';
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
 interface ThemeCtx { isDark: boolean; toggle: () => void; }
@@ -351,11 +354,11 @@ function getRouteLabel(pathname: string): { title: string; sub: string } {
     'content-dashboard':   ['Content Pipeline',   'Posts, series & media'],
     'community-dashboard': ['Community',          'Members, groups & engagement'],
     'ministry-dashboard':  ['Ministry Hub',       'Events, volunteers & outreach'],
-    'financial-dashboard': ['Financial Overview', 'Giving, budget & treasury'],
+    // 'financial-dashboard': ['Financial Overview', 'Giving, budget & treasury'],
     'growth-dashboard':    ['Growth & Data',      'Analytics, KPIs & reports'],
     'content':             ['Posts & Sermons',    'Manage media content'],
     'series':              ['Series',             'Teaching series management'],
-    'drafts':              ['Post Drafts',        'Unpublished content'],
+    // 'drafts':              ['Post Drafts',        'Unpublished content'],
     'weekly-flow':         ['Weekly Flow',        'Service schedule planner'],
     'podcasting':          ['Podcasting',         'Episode & feed management'],
     'users':               ['User Management',    'Accounts & roles'],
@@ -367,7 +370,7 @@ function getRouteLabel(pathname: string): { title: string; sub: string } {
     'volunteers':          ['Volunteers',         'Teams & scheduling'],
     'financial-hub':       ['Financial Hub',      'Transactions, payouts & giving'],
     'payments':            ['Payment Records',    'Transaction history & exports'],
-    'financial-reports':   ['Financial Reports',  'Statements & compliance'],
+    // 'financial-reports':   ['Financial Reports',  'Statements & compliance'],
     'email':               ['Email Campaigns',    'Newsletters & automations'],
     'reports':             ['Reports',            'Analytics & insights'],
     'settings':            ['Settings',           'System configuration'],
@@ -382,6 +385,7 @@ interface AdminLayoutProps { children?: ReactNode; }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isRightOpen,   setRightOpen]   = useState(false);
   const [isDark,        setIsDark]      = useState(false);
@@ -428,6 +432,39 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
+  // ─── Real-time permission sync for MODERATORs ────────────────────────────
+  // Detects when permissions are revoked and auto-reloads page if needed
+  useEffect(() => {
+    if (user?.role === UserRole.MODERATOR) {
+      // Start checking permissions every 5 seconds for faster detection
+      startPermissionSync(5000);
+      
+      return () => {
+        // Stop sync when layout unmounts or user logs out
+        stopPermissionSync();
+      };
+    }
+    // ADMINs don't need permission sync (they have all permissions)
+    return undefined;
+  }, [user?.role]);
+
+  // ─── Check permissions when user switches back to this browser tab ────────
+  // If they switched to another app and admin revoked access, catch it immediately
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && user?.role === UserRole.MODERATOR) {
+        console.log('[AdminLayout] Tab became visible, syncing permissions now...');
+        const { syncPermissionsNow } = await import('../../services/permissionSyncService');
+        syncPermissionsNow().catch(err =>
+          console.error('[AdminLayout] Failed to sync permissions:', err)
+        );
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.role]);
+
   return (
     <AdminThemeContext.Provider value={{ isDark, toggle }}>
       <div
@@ -437,7 +474,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <AdminTopBar
           onMenuClick={() => setSidebarOpen(s => !s)}
           onRightPanelClick={() => setRightOpen(s => !s)}
-          showRightPanelBtn={isDashboard}
+          showRightPanelBtn={isDashboard && user?.role === UserRole.ADMIN}
           routeTitle={routeLabel.title}
           routeSub={routeLabel.sub}
         />
@@ -484,7 +521,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </main>
 
           {/* Right sidebar — desktop permanent, injected CSS hides on <1280px */}
-          {isDashboard && (
+          {isDashboard && user?.role === UserRole.ADMIN && (
             <>
               <div className="admin-right-desktop">
                 <AdminRightSidebar />

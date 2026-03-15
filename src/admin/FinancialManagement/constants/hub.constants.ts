@@ -23,8 +23,8 @@ export const PERIODS: { key: Period; label: string }[] = [
 export const TABS: { key: HubTab; icon: string; label: string }[] = [
   { key: 'overview',     icon: 'dashboard',          label: 'Overview'     },
   { key: 'transactions', icon: 'receipt_long',        label: 'Transactions' },
-  { key: 'giving',       icon: 'volunteer_activism',  label: 'Giving'       },
-  { key: 'budget',       icon: 'account_balance',     label: 'Budget'       },
+  // { key: 'giving',       icon: 'volunteer_activism',  label: 'Giving'       }, // HIDDEN FOR PRODUCTION | Will be restored in v2.0
+  // { key: 'budget',       icon: 'account_balance',     label: 'Budget'       }, // HIDDEN FOR PRODUCTION | Will be restored in v2.0
   { key: 'members',      icon: 'groups',              label: 'Members'      },
   { key: 'reports',      icon: 'summarize',           label: 'Reports'      },
   { key: 'payouts',      icon: 'send',                label: 'Payouts'      },
@@ -33,12 +33,12 @@ export const TABS: { key: HubTab; icon: string; label: string }[] = [
 // ─── Budget lines ─────────────────────────────────────────────────────────────
 
 export const BUDGET_LINES: BudgetLine[] = [
-  { dept: 'Ministry Operations', icon: 'church',               color: '#10b981', allocated: 5000000, spent: 3820000 },
-  { dept: 'Media & Technology',  icon: 'cast',                 color: '#8b5cf6', allocated: 2000000, spent: 2180000 },
-  { dept: 'Youth Programs',      icon: 'groups',               color: '#3b82f6', allocated: 1500000, spent: 920000  },
-  { dept: 'Missions',            icon: 'flight',               color: '#f59e0b', allocated: 4800000, spent: 3150000 },
-  { dept: 'Benevolence Fund',    icon: 'favorite',             color: '#ec4899', allocated: 1200000, spent: 740000  },
-  { dept: 'Administration',      icon: 'admin_panel_settings', color: '#64748b', allocated: 800000,  spent: 610000  },
+  { department: 'Ministry Operations', icon: 'church',               color: '#10b981', allocated_amount: 5000000, spent: 3820000 },
+  { department: 'Media & Technology',  icon: 'cast',                 color: '#8b5cf6', allocated_amount: 2000000, spent: 2180000 },
+  { department: 'Youth Programs',      icon: 'groups',               color: '#3b82f6', allocated_amount: 1500000, spent: 920000  },
+  { department: 'Missions',            icon: 'flight',               color: '#f59e0b', allocated_amount: 4800000, spent: 3150000 },
+  { department: 'Benevolence Fund',    icon: 'favorite',             color: '#ec4899', allocated_amount: 1200000, spent: 740000  },
+  { department: 'Administration',      icon: 'admin_panel_settings', color: '#64748b', allocated_amount: 800000,  spent: 610000  },
 ];
 
 // ─── Category colors ──────────────────────────────────────────────────────────

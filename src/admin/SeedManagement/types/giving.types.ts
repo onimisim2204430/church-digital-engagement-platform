@@ -6,7 +6,7 @@ export type { GivingItem, CreateGivingItemRequest } from '../../../services/givi
 
 export type GivingCategory = 'tithe' | 'offering' | 'seed' | 'project' | 'mission' | 'other';
 export type GivingVisibility = 'public' | 'members_only' | 'hidden';
-export type GivingStatus = 'active' | 'draft' | 'archived';
+export type GivingStatus = 'active' | 'draft' | 'completed' | 'archived';
 
 export interface CategoryOption {
   value: GivingCategory;

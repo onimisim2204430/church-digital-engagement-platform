@@ -125,3 +125,53 @@ class PayoutTransaction(models.Model):
 
     def __str__(self):
         return f"Transaction {self.paystack_reference} - {self.amount}"
+
+
+class BudgetAllocation(models.Model):
+    """
+    Tracks annual budget allocations by organizational department.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    department = models.CharField(max_length=100, db_index=True)
+    allocated_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    fiscal_year = models.IntegerField(default=2025, db_index=True)
+    icon = models.CharField(max_length=50, default='account_balance')
+    color = models.CharField(max_length=7, default='#64748b', help_text="Hex color code")
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'department']
+        indexes = [
+            models.Index(fields=['fiscal_year', 'department']),
+            models.Index(fields=['fiscal_year', 'display_order']),
+        ]
+        unique_together = [['department', 'fiscal_year']]
+
+    def __str__(self):
+        return f"{self.department} (FY{self.fiscal_year}): ₦{self.allocated_amount}"
+
+
+class FundReserve(models.Model):
+    """
+    Tracks designated fund reserves (e.g., Building Fund, Missions Fund).
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    balance = models.DecimalField(max_digits=15, decimal_places=2)
+    icon = models.CharField(max_length=50, default='account_balance_wallet')
+    color = models.CharField(max_length=7, default='#94a3b8', help_text="Hex color code")
+    note = models.CharField(max_length=200, blank=True, help_text="Purpose/description of the fund")
+    fiscal_year = models.IntegerField(default=2025, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['fiscal_year']),
+        ]
+
+    def __str__(self):
+        return f"{self.name}: ₦{self.balance}"

@@ -4,23 +4,16 @@
 // Ticker, topbar, sidebar, right panel are inline JSX — only sections are lazy.
 
 import React, {
-  useState, useEffect, useCallback, createContext, useContext, Suspense, lazy, memo,
+  useState, useEffect, useCallback, Suspense, lazy, memo, useRef,
 } from 'react';
 import Clock from './components/Clock';
 import DashboardSkeleton from './components/DashboardSkeleton';
-import Icon from '../../components/common/Icon';
+import Icon from '../../../components/common/Icon';
+import { useAdminTheme } from '../../layouts/AdminLayout';
 import { injectObservatoryCSS } from '../helpers/dashboard.helpers';
 import {
   TICKER_ITEMS_REAL, ALERTS, WATCHLIST, UPCOMING_EVENTS,
 } from '../constants/dashboard.constants';
-
-// ─── Theme Context ────────────────────────────────────────────────────────────
-type Theme = 'dark' | 'light';
-export const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({
-  theme: 'dark',
-  toggle: () => {},
-});
-export const useTheme = () => useContext(ThemeCtx);
 
 // ─── Nav Type ─────────────────────────────────────────────────────────────────
 type NavSection = 'overview' | 'intelligence' | 'forecast' | 'analytics' | 'pulse' | 'risk';
@@ -35,14 +28,35 @@ const RiskSection        = lazy(() => import('./sections/RiskSection'));
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function FinancialDashboard() {
-  const [theme, setTheme]       = useState<Theme>('dark');
+  const { isDark } = useAdminTheme();
+  const theme = isDark ? 'dark' : 'light';
   const [active, setActive]     = useState<NavSection>('overview');
   const [search, setSearch]     = useState('');
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const rpanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { injectObservatoryCSS(); }, []);
 
-  const toggle = useCallback(() => setTheme(t => t === 'dark' ? 'light' : 'dark'), []);
+  // Prevent scroll propagation from sidebar and right panel
+  useEffect(() => {
+    const handleScrollContainment = (e: WheelEvent | TouchEvent) => {
+      const target = (e.target as HTMLElement).closest('.obs-sidebar, .obs-rpanel .obs-rp-scroll');
+      if (!target) return;
+
+      const elem = target as HTMLElement;
+      const isAtTop = elem.scrollTop === 0;
+      const isAtBottom = elem.scrollTop + elem.clientHeight >= elem.scrollHeight - 2;
+
+      if ((e instanceof WheelEvent && e.deltaY < 0 && isAtTop) ||
+          (e instanceof WheelEvent && e.deltaY > 0 && isAtBottom)) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('wheel', handleScrollContainment, { passive: false });
+    return () => document.removeEventListener('wheel', handleScrollContainment, false as any);
+  }, []);
 
   const navItems: {
     id: NavSection; label: string; icon: string; badge?: string; badgeColor?: string;
@@ -67,9 +81,8 @@ export default function FinancialDashboard() {
   };
 
   return (
-    <ThemeCtx.Provider value={{ theme, toggle }}>
-      <div className={`obs ${theme}`} style={{ height: '100%', minHeight: 0 }}>
-        <div className="obs-root">
+    <div className={`obs ${theme}`} style={{ height: '100%', minHeight: 0 }}>
+      <div className="obs-root">
 
           {/* ── Ticker Bar ── */}
           <div className="obs-ticker-bar">
@@ -103,7 +116,7 @@ export default function FinancialDashboard() {
             </div>
             <div className="obs-divv" />
             <div className="obs-search-wrap">
-              <span className="obs-search-icon">⌕</span>
+              <span className="obs-search-icon"><Icon name="search" size={16} style={{ color: 'var(--t3)' } as any} /></span>
               <input
                 placeholder="Search metrics, members, funds..."
                 value={search}
@@ -115,16 +128,13 @@ export default function FinancialDashboard() {
             <div className="obs-topbar-right">
               <Clock />
               <div className="obs-divv" />
-              <div className="obs-ibtn" title="Download Report">⬇</div>
-              <div className="obs-ibtn" title="Print">🖨</div>
+              <div className="obs-ibtn" title="Download Report"><Icon name="download" size={16} style={{ color: 'var(--t3)' } as any} /></div>
+              <div className="obs-ibtn" title="Print"><Icon name="print" size={16} style={{ color: 'var(--t3)' } as any} /></div>
               <div className="obs-ibtn" title={`${ALERTS.length} alerts`}
                 onClick={() => setAlertsOpen(!alertsOpen)}>
-                <Icon name="notifications" size={18} />
+                <Icon name="notifications" size={18} style={{ color: 'var(--t3)' } as any} />
               </div>
               <div className="obs-divv" />
-              <button className="obs-theme-btn" onClick={toggle}>
-                {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-              </button>
             </div>
           </div>
 
@@ -132,13 +142,13 @@ export default function FinancialDashboard() {
           <div className="obs-body">
 
             {/* Sidebar */}
-            <div className="obs-sidebar">
+            <div className="obs-sidebar" ref={sidebarRef}>
               <div className="obs-nav-sect-label">Navigation</div>
               <div className="obs-nav-group">
                 {navItems.map(n => (
                   <div key={n.id} className={`obs-nav-item${active === n.id ? ' act' : ''}`}
                     onClick={() => setActive(n.id)}>
-                    <span className="obs-nav-icon">{n.icon}</span>
+                    <span className="obs-nav-icon"><Icon name={n.icon} size={20} style={{ color: active === n.id ? 'var(--em)' : 'var(--t3)' } as any} /></span>
                     <span className="obs-nav-label">{n.label}</span>
                     {n.badge && (
                       <span className={`obs-nav-badge${n.badgeColor ? ' ' + n.badgeColor : ''}`}>
@@ -178,9 +188,12 @@ export default function FinancialDashboard() {
             </div>
 
             {/* Right panel */}
-            <div className="obs-rpanel">
+            <div className="obs-rpanel" ref={rpanelRef}>
               <div className="obs-rp-hd">
-                <span>🔔 Alerts & Watchlist</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Icon name="notifications" size={16} style={{ color: 'var(--t3)' } as any} />
+                  Alerts & Watchlist
+                </span>
                 <span className="obs-card-badge red">{ALERTS.length}</span>
               </div>
               <div className="obs-rp-scroll">
@@ -238,8 +251,7 @@ export default function FinancialDashboard() {
             </div>
 
           </div>
-        </div>
       </div>
-    </ThemeCtx.Provider>
+    </div>
   );
 }

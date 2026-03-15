@@ -18,8 +18,8 @@ class BibleErrorBoundary extends React.Component<{ children: React.ReactNode }> 
     if (this.state.hasError) {
       return (
         <>
-          <div style={{ padding: '8px', background: '#fff3cd', fontSize: '13px' }}>
-            ⚠️ Bible module unavailable. Other features unaffected.
+          <div style={{ background: '#fff3cd', fontSize: '13px' }}>
+
           </div>
           {this.props.children}
         </>

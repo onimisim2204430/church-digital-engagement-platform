@@ -14,10 +14,11 @@ type GivingFormData = CreateGivingItemRequest;
 interface AppearanceTabProps {
   form: GivingFormData;
   supportedIcons: string[];
+  readOnly?: boolean;
   onFormUpdate: (updates: Partial<GivingFormData>) => void;
 }
 
-const AppearanceTab = memo<AppearanceTabProps>(({ form, supportedIcons, onFormUpdate }) => (
+const AppearanceTab = memo<AppearanceTabProps>(({ form, supportedIcons, readOnly = false, onFormUpdate }) => (
   <div className="flex flex-col lg:flex-row gap-5 items-start">
     <div className="flex-1 flex flex-col gap-5">
       {/* Icon picker */}
@@ -32,9 +33,10 @@ const AppearanceTab = memo<AppearanceTabProps>(({ form, supportedIcons, onFormUp
             {AVAILABLE_ICONS.map(iconName => (
               <button
                 key={iconName}
-                onClick={() => onFormUpdate({ icon: iconName })}
+                onClick={() => !readOnly && onFormUpdate({ icon: iconName })}
+                disabled={readOnly}
                 title={iconName}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${form.icon === iconName ? 'bg-primary text-white shadow-sm ring-2 ring-primary/30' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary'}`}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all disabled:cursor-not-allowed disabled:opacity-50 ${form.icon === iconName ? 'bg-primary text-white shadow-sm ring-2 ring-primary/30' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary'}`}
               >
                 <Icon name={normalizeIconName(supportedIcons, iconName)} size={20} />
               </button>
@@ -56,8 +58,9 @@ const AppearanceTab = memo<AppearanceTabProps>(({ form, supportedIcons, onFormUp
               <div className="space-y-3">
                 <img src={form.cover_image} alt="Cover" className="w-full max-h-40 object-cover rounded-lg mx-auto" />
                 <button
-                  onClick={() => onFormUpdate({ cover_image: '' })}
-                  className="text-xs text-red-500 font-semibold hover:underline"
+                  onClick={() => !readOnly && onFormUpdate({ cover_image: '' })}
+                  disabled={readOnly}
+                  className="text-xs text-red-500 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Remove image
                 </button>
@@ -70,8 +73,9 @@ const AppearanceTab = memo<AppearanceTabProps>(({ form, supportedIcons, onFormUp
                   type="text"
                   placeholder="https://..."
                   value={form.cover_image}
-                  onChange={e => onFormUpdate({ cover_image: e.target.value })}
-                  className="mt-2 w-full max-w-md px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-xs text-slate-700 dark:text-slate-200 dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-primary bg-white text-center"
+                  onChange={e => !readOnly && onFormUpdate({ cover_image: e.target.value })}
+                  disabled={readOnly}
+                  className="mt-2 w-full max-w-md px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-xs text-slate-700 dark:text-slate-200 dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-primary bg-white text-center disabled:bg-slate-50 dark:disabled:bg-slate-900/50 disabled:cursor-not-allowed"
                 />
               </div>
             )}

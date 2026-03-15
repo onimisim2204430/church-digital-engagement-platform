@@ -34,6 +34,7 @@ interface GivingOption {
   verse?: string;
   totalDonations?: number;
   donorCount?: number;
+  isCompleted?: boolean;
 }
 
 // ─── Module-level constants ────────────────────────────────────────────────────
@@ -292,13 +293,15 @@ const ProjectFundraisingCard = memo<{ option: GivingOption; onGive: (id: string 
     : hasGoal && hasRaised
       ? getProgressPercent(option.raised as number, option.goal as number)
       : 0;
+  
+  const isCompleted = option.isCompleted || percent >= 100;
 
   return (
     <div className={`${featured ? 'md:col-span-2' : ''} group flex flex-col bg-surface rounded-xl overflow-hidden shadow-[0_2px_20px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.15)] hover:-translate-y-1 transition-all duration-300 border border-accent-sand/20`}>
       {/* Top accent bar */}
       <div className="h-1.5 w-full bg-accent-sand/20">
         <div
-          className="h-full bg-primary transition-all duration-700"
+          className={`h-full ${isCompleted ? 'bg-green-500' : 'bg-primary'} transition-all duration-700`}
           style={{ width: `${percent}%` }}
           role="progressbar"
           aria-valuenow={percent}
@@ -340,23 +343,40 @@ const ProjectFundraisingCard = memo<{ option: GivingOption; onGive: (id: string 
             </div>
             <div className="h-2 w-full bg-accent-sand/20 rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all duration-700"
+                className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-green-500' : 'bg-primary'}`}
                 style={{ width: `${percent}%` }}
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-primary">{percent}% funded</span>
+              {isCompleted ? (
+                <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                  <Icon name="check_circle" size={14} ariaHidden />
+                  Completed
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-primary">{percent}% funded</span>
+              )}
             </div>
           </div>
         )}
 
-        <button
-          onClick={() => onGive(option.id)}
-          className="mt-2 flex items-center justify-between w-full h-11 px-5 rounded-btn border border-primary/20 text-primary font-bold text-sm tracking-wide hover:bg-primary hover:text-white transition-all duration-300 group/btn"
-        >
-          <span>Contribute</span>
-          <Icon name="arrow_forward" size={18} className="group-hover/btn:translate-x-1 transition-transform" ariaHidden />
-        </button>
+        {isCompleted ? (
+          <button
+            disabled
+            className="mt-2 flex items-center justify-between w-full h-11 px-5 rounded-btn border border-green-200 bg-green-50 text-green-700 font-bold text-sm cursor-not-allowed"
+          >
+            <span>Goal Reached!</span>
+            <Icon name="celebration" size={18} ariaHidden />
+          </button>
+        ) : (
+          <button
+            onClick={() => onGive(option.id)}
+            className="mt-2 flex items-center justify-between w-full h-11 px-5 rounded-btn border border-primary/20 text-primary font-bold text-sm tracking-wide hover:bg-primary hover:text-white transition-all duration-300 group/btn"
+          >
+            <span>Contribute</span>
+            <Icon name="arrow_forward" size={18} className="group-hover/btn:translate-x-1 transition-transform" ariaHidden />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -443,21 +463,32 @@ const GivingModal = memo<{
 }>(({ optionId, givingOptions, onClose, onInitializePayment, defaultEmail, lockEmail, defaultFirstName, defaultLastName }) => {
   const option = givingOptions.find((o) => o.id === optionId);
   const [step, setStep] = useState<'amount' | 'details'>('amount');
-  const [amount, setAmount] = useState('');
-  const [recurring, setRecurring] = useState(false);
-  const [firstName, setFirstName] = useState(defaultFirstName);
-  const [lastName, setLastName] = useState(defaultLastName);
-  const [email, setEmail] = useState(defaultEmail);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
-  useEffect(() => {
-    setFirstName(defaultFirstName);
-    setLastName(defaultLastName);
-    setEmail(defaultEmail);
-  }, [defaultEmail, defaultFirstName, defaultLastName]);
+  const [formData, setFormData] = useState(() => ({
+    amount: '',
+    recurring: false,
+    firstName: defaultFirstName,
+    lastName: defaultLastName,
+    email: defaultEmail,
+    isSubmitting: false,
+    errorMessage: '',
+  }));
 
   if (!option) return null;
+
+  // Reset form when option changes (derived state computed at render time)
+  const isNewOption = !optionId || optionId !== option.id;
+  const resetForm = () => {
+    setStep('amount');
+    setFormData({
+      amount: '',
+      recurring: false,
+      firstName: defaultFirstName,
+      lastName: defaultLastName,
+      email: defaultEmail,
+      isSubmitting: false,
+      errorMessage: '',
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`Give to ${option.title}`}>
@@ -491,9 +522,9 @@ const GivingModal = memo<{
                     {option.suggestedAmounts.map((a) => (
                       <button
                         key={a}
-                        onClick={() => setAmount(String(a))}
+                        onClick={() => setFormData(prev => ({ ...prev, amount: String(a) }))}
                         className={`h-11 rounded-btn text-sm font-bold transition-all ${
-                          amount === String(a) ? 'bg-primary text-white' : 'bg-accent-sand/10 text-text-main hover:bg-accent-sand/30 border border-accent-sand/30'
+                          formData.amount === String(a) ? 'bg-primary text-white' : 'bg-accent-sand/10 text-text-main hover:bg-accent-sand/30 border border-accent-sand/30'
                         }`}
                       >
                         {formatCurrency(a)}
@@ -511,8 +542,8 @@ const GivingModal = memo<{
                   <input
                     type="number"
                     placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    value={formData.amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                     className="w-full h-12 pl-10 pr-4 rounded-btn border border-accent-sand/50 text-text-main bg-white focus:outline-none focus:border-primary/40 transition-colors text-base"
                   />
                 </div>
@@ -522,10 +553,10 @@ const GivingModal = memo<{
               {option.isRecurring && (
                 <label className="flex items-center gap-3 p-4 rounded-card border border-accent-sand/30 cursor-pointer hover:border-primary/30 transition-colors">
                   <div
-                    onClick={() => setRecurring(!recurring)}
-                    className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${recurring ? 'bg-primary' : 'bg-accent-sand/30'}`}
+                    onClick={() => setFormData(prev => ({ ...prev, recurring: !prev.recurring }))}
+                    className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${formData.recurring ? 'bg-primary' : 'bg-accent-sand/30'}`}
                   >
-                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${recurring ? 'translate-x-4' : ''}`} />
+                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${formData.recurring ? 'translate-x-4' : ''}`} />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-text-main">Make this recurring</p>
@@ -536,12 +567,12 @@ const GivingModal = memo<{
 
               <button
                 onClick={() => {
-                  if (amount && parseFloat(amount) > 0) {
-                    setErrorMessage('');
+                  if (formData.amount && parseFloat(formData.amount) > 0) {
+                    setFormData(prev => ({ ...prev, errorMessage: ''}));
                     setStep('details');
                   }
                 }}
-                disabled={!amount || parseFloat(amount) <= 0}
+                disabled={!formData.amount || parseFloat(formData.amount) <= 0}
                 className="h-12 w-full rounded-btn bg-primary text-white font-bold text-sm tracking-wide hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-soft hover:shadow-hover"
               >
                 Continue →
@@ -549,30 +580,30 @@ const GivingModal = memo<{
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              {errorMessage && (
+              {formData.errorMessage && (
                 <div className="p-3 rounded-card border border-red-300 bg-red-50 text-red-700 text-sm">
-                  {errorMessage}
+                  {formData.errorMessage}
                 </div>
               )}
               <div className="p-4 bg-primary/5 rounded-card border border-primary/10 flex items-center justify-between">
                 <span className="text-sm font-medium text-text-muted">{option.title}</span>
-                <span className="text-xl font-serif font-bold text-primary">{formatCurrency(parseFloat(amount))}</span>
+                <span className="text-xl font-serif font-bold text-primary">{formatCurrency(parseFloat(formData.amount))}</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold uppercase tracking-widest text-text-muted mb-1.5 block">First Name</label>
-                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)} type="text" className="w-full h-11 px-4 rounded-btn border border-accent-sand/50 text-text-main bg-white focus:outline-none focus:border-primary/40 transition-colors text-sm" />
+                  <input value={formData.firstName} onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))} type="text" className="w-full h-11 px-4 rounded-btn border border-accent-sand/50 text-text-main bg-white focus:outline-none focus:border-primary/40 transition-colors text-sm" />
                 </div>
                 <div>
                   <label className="text-xs font-bold uppercase tracking-widest text-text-muted mb-1.5 block">Last Name</label>
-                  <input value={lastName} onChange={(e) => setLastName(e.target.value)} type="text" className="w-full h-11 px-4 rounded-btn border border-accent-sand/50 text-text-main bg-white focus:outline-none focus:border-primary/40 transition-colors text-sm" />
+                  <input value={formData.lastName} onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))} type="text" className="w-full h-11 px-4 rounded-btn border border-accent-sand/50 text-text-main bg-white focus:outline-none focus:border-primary/40 transition-colors text-sm" />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-bold uppercase tracking-widest text-text-muted mb-1.5 block">Email</label>
                 <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   disabled={lockEmail}
                   type="email"
                   className="w-full h-11 px-4 rounded-btn border border-accent-sand/50 text-text-main bg-white focus:outline-none focus:border-primary/40 transition-colors text-sm disabled:opacity-70 disabled:cursor-not-allowed"
@@ -591,40 +622,39 @@ const GivingModal = memo<{
                 </button>
                 <button
                   onClick={async () => {
-                    const parsedAmount = parseFloat(amount);
+                    const parsedAmount = parseFloat(formData.amount);
                     if (!parsedAmount || parsedAmount <= 0) {
-                      setErrorMessage('Please enter a valid amount.');
+                      setFormData(prev => ({ ...prev, errorMessage: 'Please enter a valid amount.' }));
                       return;
                     }
-                    if (!isValidEmail(email)) {
-                      setErrorMessage('Please enter a valid email address.');
+                    if (!isValidEmail(formData.email)) {
+                      setFormData(prev => ({ ...prev, errorMessage: 'Please enter a valid email address.' }));
                       return;
                     }
 
-                    setErrorMessage('');
-                    setIsSubmitting(true);
+                    setFormData(prev => ({ ...prev, errorMessage: '', isSubmitting: true }));
                     try {
                       await onInitializePayment({
-                        email: email.trim(),
+                        email: formData.email.trim(),
                         amount: parsedAmount,
-                        recurring,
-                        firstName: firstName.trim(),
-                        lastName: lastName.trim(),
+                        recurring: formData.recurring,
+                        firstName: formData.firstName.trim(),
+                        lastName: formData.lastName.trim(),
                       });
                     } catch (error: any) {
                       const fallback = 'Unable to initialize payment. Please try again.';
                       const message = error?.response?.data?.message || error?.message || fallback;
-                      setErrorMessage(message);
+                      setFormData(prev => ({ ...prev, errorMessage: message }));
                     } finally {
-                      setIsSubmitting(false);
+                      setFormData(prev => ({ ...prev, isSubmitting: false }));
                     }
                   }}
-                  disabled={isSubmitting}
+                  disabled={formData.isSubmitting}
                   className="h-12 flex-[2] rounded-btn bg-primary text-white font-bold text-sm tracking-wide hover:bg-primary/90 transition-all shadow-soft hover:shadow-hover disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Icon name="lock" size={16} ariaHidden />
-                    {isSubmitting ? 'Redirecting...' : 'Continue to Paystack'}
+                    {formData.isSubmitting ? 'Redirecting...' : 'Continue to Paystack'}
                   </span>
                 </button>
               </div>
@@ -676,6 +706,7 @@ const GivingPage: React.FC = () => {
         verse: item.verse || undefined,
         totalDonations: item.total_donations ?? undefined,
         donorCount: item.donor_count ?? undefined,
+        isCompleted: item.is_completed ?? false,
       }));
       setGivingItems(transformed);
     } catch (error: any) {

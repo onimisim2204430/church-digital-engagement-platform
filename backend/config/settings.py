@@ -572,6 +572,12 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 # them caused EncodeError when a task returned a non-JSON-serialisable ORM object.
 CELERY_TASK_IGNORE_RESULT = True
 
+# For testing: run Celery tasks synchronously (eagerly) so tests complete immediately
+import sys
+if 'test' in sys.argv or os.getenv('CELERY_ALWAYS_EAGER'):
+    CELERY_ALWAYS_EAGER = True
+    CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+
 # Celery Beat Schedule for periodic tasks
 from celery.schedules import crontab
 

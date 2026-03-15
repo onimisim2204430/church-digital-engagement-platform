@@ -5,22 +5,21 @@ from django.db import migrations
 
 def add_discipleship_content_type(apps, schema_editor):
     """
-    Add 'discipleship' as a new system content type.
-    Follows the exact pattern used for announcement, sermon, and article.
+    Add 'discipleship' as a custom content type (editable and deletable).
     """
     PostContentType = apps.get_model('content', 'PostContentType')
     
-    # Define discipleship type (matching existing system type pattern)
+    # Define discipleship type as custom (not system)
     discipleship_type = {
         'slug': 'discipleship',
         'name': 'Discipleship',
         'description': 'Discipleship resources and spiritual growth content',
-        'is_system': True,
+        'is_system': False,  # Custom type
         'is_enabled': True,
-        'sort_order': 4,  # After announcement (1), sermon (2), article (3)
+        'sort_order': 4,
     }
     
-    # Create discipleship type (idempotent - won't duplicate if run multiple times)
+    # Create discipleship type (idempotent)
     PostContentType.objects.get_or_create(
         slug=discipleship_type['slug'],
         defaults=discipleship_type

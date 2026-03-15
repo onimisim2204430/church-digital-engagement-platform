@@ -81,13 +81,13 @@ export function injectObservatoryCSS() {
 
     /* BODY */
     .obs-body{display:flex;flex:1;overflow:hidden;}
-    .obs-sidebar{width:210px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:12px 0 20px;}
+    .obs-sidebar{width:210px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:12px 0 20px;overscroll-behavior:contain;}
     .obs-sidebar::-webkit-scrollbar{width:3px;}
     .obs-sidebar::-webkit-scrollbar-thumb{background:var(--em);border-radius:2px;}
     .obs-main{flex:1;overflow-y:auto;background:var(--bg0);padding:20px 22px;}
     .obs-main::-webkit-scrollbar{width:4px;}
     .obs-main::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-    .obs-rpanel{width:268px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+    .obs-rpanel{width:268px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;}
 
     /* SIDEBAR NAV */
     .obs-nav-group{padding:0 10px 6px;margin-bottom:2px;}
@@ -189,7 +189,7 @@ export function injectObservatoryCSS() {
 
     /* RIGHT PANEL */
     .obs-rp-hd{padding:12px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-    .obs-rp-scroll{overflow-y:auto;flex:1;}
+    .obs-rp-scroll{overflow-y:auto;flex:1;min-height:0;overscroll-behavior:contain;}
     .obs-rp-scroll::-webkit-scrollbar{width:3px;}
     .obs-rp-scroll::-webkit-scrollbar-thumb{background:var(--em);}
     .obs-alert-item{padding:9px 14px;border-bottom:1px solid var(--b2);display:flex;align-items:flex-start;gap:9px;cursor:pointer;transition:background .15s;}

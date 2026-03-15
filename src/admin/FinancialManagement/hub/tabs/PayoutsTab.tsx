@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import type { BankAcct, WithdrawalRecord } from '../../types/financial.types';
-import { naira, compact, fmtD, effectiveStatus } from '../../helpers/hub.helpers';
+import { naira, fmtD, effectiveStatus } from '../../helpers/hub.helpers';
 import { WSTATUS, THIN } from '../../constants/hub.constants';
 import { Card } from '../../components/Card';
 import Icon from '../../../../components/common/Icon';
@@ -61,20 +61,22 @@ export const PayoutsTab = memo(() => {
   const [bankAccounts, setBankAccounts] = useState<BankAcct[]>([]);
   const [withdrawals,  setWithdrawals]  = useState<WithdrawalRecord[]>([]);
   const [histLoading,  setHistLoading]  = useState(true);
+  const [banks,        setBanks]        = useState<Array<{code: string; name: string}>>([]);
 
   // ── Modal ────────────────────────────────────────────────────────────────
   const [showWithdraw, setShowWithdraw] = useState(false);
 
   // ── Withdrawal form ───────────────────────────────────────────────────────
-  const [wAmt,      setWAmt]      = useState('');
-  const [wBankId,   setWBankId]   = useState('');
-  const [wBankMode, setWBankMode] = useState<'saved'|'new'>('saved');
-  const [wAcctName, setWAcctName] = useState('');
-  const [wAcctNum,  setWAcctNum]  = useState('');
-  const [wBankName, setWBankName] = useState('');
-  const [wBankCode, setWBankCode] = useState('');
-  const [wErr,      setWErr]      = useState('');
-  const [wLoading,  setWLoading]  = useState(false);
+  const [wAmt,          setWAmt]          = useState('');
+  const [wBankId,       setWBankId]       = useState('');
+  const [wBankMode,     setWBankMode]     = useState<'saved'|'new'>('saved');
+  const [wNewBankCode,  setWNewBankCode]  = useState('');
+  const [wNewAcctNum,   setWNewAcctNum]   = useState('');
+  const [wNewAcctName,  setWNewAcctName]  = useState('');
+  const [wNewVerified,  setWNewVerified]  = useState(false);
+  const [wErr,          setWErr]          = useState('');
+  const [wLoading,      setWLoading]      = useState(false);
+  const [wVerifying,    setWVerifying]    = useState(false);
 
   // ── Step machine ──────────────────────────────────────────────────────────
   const [wStep,        setWStep]        = useState<WStep>('form');
@@ -93,6 +95,16 @@ export const PayoutsTab = memo(() => {
   useEffect(() => {
     if (wStep === 'otp') setTimeout(() => otpInputRef.current?.focus(), 120);
   }, [wStep]);
+
+  // ── Fetch banks ───────────────────────────────────────────────────────────
+  const fetchBanks = useCallback(async () => {
+    try {
+      const res = await apiService.get<Array<{code: string; name: string}>>('withdrawals/banks/');
+      setBanks(Array.isArray(res) ? res : []);
+    } catch {
+      console.error('Failed to fetch banks');
+    }
+  }, []);
 
   // ── Fetch balance ─────────────────────────────────────────────────────────
   const fetchBalance = useCallback(async () => {
@@ -131,7 +143,7 @@ export const PayoutsTab = memo(() => {
     }
   }, []);
 
-  useEffect(() => { fetchBalance(); fetchHistory(); }, [fetchBalance, fetchHistory]);
+  useEffect(() => { fetchBalance(); fetchHistory(); fetchBanks(); }, [fetchBalance, fetchHistory, fetchBanks]);
 
   // ── Reset modal ───────────────────────────────────────────────────────────
   const resetModal = useCallback(() => {
@@ -140,46 +152,14 @@ export const PayoutsTab = memo(() => {
     setWFinalStatus('unknown');
     setWStepMsg('');
     setWAmt('');
-    setWAcctName(''); setWAcctNum(''); setWBankName(''); setWBankCode('');
+    setWNewBankCode(''); setWNewAcctNum(''); setWNewAcctName(''); setWNewVerified(false);
     setWErr('');
     setWLoading(false);
+    setWVerifying(false);
     setOtpVal(''); setOtpErr('');
     setOtpLoading(false);
     setOtpWdrId(''); setOtpTxCode('');
   }, []);
-
-  // ── Checks ANY field in a response object for a specific status string ────
-  // This is intentionally broad — covers flat, nested, and wrapped shapes.
-  const anyFieldIs = (obj: any, target: string): boolean => {
-    if (!obj || typeof obj !== 'object') return false;
-    const t = target.toLowerCase();
-    // Check direct fields first
-    const candidates = [
-      obj?.status, obj?.withdrawal?.status, obj?.data?.status,
-      obj?.withdrawal?.data?.status, obj?.result?.status,
-    ];
-    if (candidates.some(v => typeof v === 'string' && v.toLowerCase() === t)) return true;
-    // Deep scan one more level for safety
-    for (const key of Object.keys(obj)) {
-      const v = obj[key];
-      if (typeof v === 'string' && v.toLowerCase() === t) return true;
-      if (v && typeof v === 'object' && typeof v.status === 'string' && v.status.toLowerCase() === t) return true;
-    }
-    return false;
-  };
-
-  // ── Extract transfer code from any response/withdrawal shape ─────────────
-  const findTxCode = (obj: any): string => {
-    if (!obj || typeof obj !== 'object') return '';
-    const candidates = [
-      obj?.paystack_transfer_code,
-      obj?.withdrawal?.paystack_transfer_code,
-      obj?.transaction?.paystack_transfer_code,
-      obj?.data?.paystack_transfer_code,
-      obj?.withdrawal?.transaction?.paystack_transfer_code,
-    ];
-    return candidates.find(v => typeof v === 'string' && v) ?? '';
-  };
 
   // ── Apply OTP-required state — opens the OTP input screen ────────────────
   const applyOtpRequired = (wdrId: string, txCode: string) => {
@@ -190,31 +170,44 @@ export const PayoutsTab = memo(() => {
     setWStep('otp');
   };
 
-  // ── Check a single response / withdrawal record and act on its status ─────
-  // Returns true if a terminal action was taken (otp / done), false to keep polling.
-  const handleWdrStatus = (
-    obj: any,
-    wdrId: string,
-  ): boolean => {
-    if (anyFieldIs(obj, 'otp_required')) {
-      applyOtpRequired(wdrId, findTxCode(obj));
-      return true;
+  // ── Verify account (NEW account flow) ──────────────────────────────────────
+  const verifyNewAccount = async () => {
+    setWErr('');
+    if (!wNewBankCode.trim()) { setWErr('Select a bank.'); return; }
+    if (!wNewAcctNum.trim() || wNewAcctNum.trim().length !== 10) { setWErr('Account number must be exactly 10 digits.'); return; }
+    
+    setWVerifying(true);
+    try {
+      console.log('[VERIFY] Calling API:', 'withdrawals/bank-accounts/', {
+        bank_code: wNewBankCode.trim(),
+        account_number: wNewAcctNum.trim(),
+      });
+      
+      const res = await apiService.post<any>('withdrawals/bank-accounts/', {
+        bank_code: wNewBankCode.trim(),
+        account_number: wNewAcctNum.trim(),
+      });
+      
+      console.log('[VERIFY] Success response:', res);
+      
+      // Success: account resolved and verified
+      setWNewAcctName(res.account_name || '');
+      setWNewVerified(true);
+      setWBankId(res.id);
+      setWErr('');
+    } catch (e: any) {
+      console.error('[VERIFY] Error:', e);
+      console.error('[VERIFY] Response data:', e?.response?.data);
+      
+      const detail = e?.response?.data?.detail ?? '';
+      const msg = detail.includes('Cannot resolve account') 
+        ? `✗ Account not found in ${banks.find(b => b.code === wNewBankCode)?.name}. Check account number with your bank.`
+        : detail || 'Failed to verify account. Check account number and bank.';
+      setWErr(msg);
+      setWNewVerified(false);
+    } finally {
+      setWVerifying(false);
     }
-    if (anyFieldIs(obj, 'completed')) {
-      setWFinalStatus('completed'); setWStep('done');
-      fetchHistory(); fetchBalance();
-      return true;
-    }
-    if (anyFieldIs(obj, 'failed')) {
-      setWFinalStatus('failed');
-      setWStepMsg(
-        obj?.failure_reason ?? obj?.withdrawal?.failure_reason
-        ?? 'The withdrawal could not be completed.'
-      );
-      setWStep('done'); fetchHistory();
-      return true;
-    }
-    return false;
   };
 
   // ── Submit withdrawal ─────────────────────────────────────────────────────
@@ -226,25 +219,18 @@ export const PayoutsTab = memo(() => {
       setWErr(`Amount exceeds available balance (${naira(balance)}).`); return;
     }
     let bankAccountId = wBankId;
-    if (wBankMode === 'new') {
-      if (!wAcctName.trim()) { setWErr('Enter account holder name.'); return; }
-      if (!wAcctNum.trim() || wAcctNum.trim().length < 10) { setWErr('Enter a valid 10-digit account number.'); return; }
-      if (!wBankName.trim()) { setWErr('Enter bank name.'); return; }
-      if (!wBankCode.trim()) { setWErr('Enter Paystack bank code.'); return; }
-    } else if (!bankAccountId) {
-      setWErr('Select a bank account.'); return;
+    
+    // Validate bank account selection
+    if (wBankMode === 'saved') {
+      if (!bankAccountId) { setWErr('Select a saved bank account.'); return; }
+    } else {
+      if (!wNewVerified) { setWErr('Verify your account first.'); return; }
+      bankAccountId = wBankId; // Already set by verification
     }
 
     setWLoading(true);
     try {
-      // ① Create bank account if new
-      if (wBankMode === 'new') {
-        const bank = await apiService.post<any>('withdrawals/bank-accounts/', {
-          account_name: wAcctName.trim(), account_number: wAcctNum.trim(),
-          bank_name: wBankName.trim(), bank_code: wBankCode.trim(),
-        });
-        bankAccountId = bank.id;
-      }
+      // Bank account already created/verified, proceed directly to withdrawal
 
       // ② Create withdrawal
       const created = await apiService.post<any>('withdrawals/', {
@@ -687,19 +673,44 @@ export const PayoutsTab = memo(() => {
                           </select>
                         )
                     ) : (
-                      <div className="space-y-2">
-                        <input type="text" value={wAcctName} onChange={e => setWAcctName(e.target.value)} placeholder="Account holder name"
-                          className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-sans focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30" />
-                        <input type="text" inputMode="numeric" maxLength={20} value={wAcctNum}
-                          onChange={e => setWAcctNum(e.target.value.replace(/\D/g,''))} placeholder="Account number"
-                          className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30" />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <input type="text" value={wBankName} onChange={e => setWBankName(e.target.value)} placeholder="Bank name"
-                            className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-sans focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30" />
-                          <input type="text" value={wBankCode} onChange={e => setWBankCode(e.target.value.trim())} placeholder="Bank code (e.g. 058)"
-                            className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30" />
+                      <div className="space-y-3">
+                        {/* Bank Dropdown */}
+                        <div>
+                          <label className="text-[9px] font-sans uppercase tracking-widest block mb-1" style={{color:'var(--fh-text3)'}}>Select Bank *</label>
+                          <select value={wNewBankCode} onChange={e => setWNewBankCode(e.target.value)} disabled={wNewVerified}
+                            className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-sans focus:outline-none focus:border-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed">
+                            <option value="">Choose a bank...</option>
+                            {banks.map(b => (
+                              <option key={b.code} value={b.code}>{b.name}</option>
+                            ))}
+                          </select>
                         </div>
-                        <p className="text-[10px] font-sans" style={{color:'var(--fh-text3)'}}>058 = GTBank · 033 = UBA · 057 = Zenith · 044 = Access</p>
+
+                        {/* Account Number */}
+                        <div>
+                          <label className="text-[9px] font-sans uppercase tracking-widest block mb-1" style={{color:'var(--fh-text3)'}}>Account Number *</label>
+                          <input type="text" inputMode="numeric" maxLength={10} value={wNewAcctNum}
+                            onChange={e => setWNewAcctNum(e.target.value.replace(/\D/g,''))} 
+                            disabled={wNewVerified}
+                            placeholder="0123456789"
+                            className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30 disabled:opacity-60 disabled:cursor-not-allowed" />
+                          <small className="text-[9px] font-sans mt-0.5" style={{color:'var(--fh-text3)'}}>10 digits only</small>
+                        </div>
+
+                        {/* Account Name (Read-only after verification) */}
+                        <div>
+                          <label className="text-[9px] font-sans uppercase tracking-widest block mb-1" style={{color:'var(--fh-text3)'}}>Account Holder Name</label>
+                          <input type="text" value={wNewAcctName} readOnly
+                            placeholder={wNewVerified ? '' : 'Auto-resolved after verification'}
+                            className="fh-input w-full rounded-lg px-3 py-2.5 text-sm font-sans focus:outline-none bg-slate-900/50 text-slate-400" />
+                          {wNewVerified && <small className="text-[9px] font-sans mt-0.5 text-emerald-400">✓ Verified</small>}
+                        </div>
+
+                        {/* Verify Button */}
+                        <button type="button" onClick={verifyNewAccount} disabled={!wNewBankCode || wNewAcctNum.length !== 10 || wVerifying || wNewVerified}
+                          className="w-full py-2 rounded-lg text-sm font-sans font-semibold border border-emerald-600/50 text-emerald-400 hover:bg-emerald-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                          {wVerifying ? 'Verifying...' : wNewVerified ? '✓ Verified' : 'Verify Account'}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -745,7 +756,7 @@ export const PayoutsTab = memo(() => {
                     Cancel
                   </button>
                   <button onClick={submitWithdrawal}
-                    disabled={wLoading || !wAmt || (wBankMode==='saved' && !wBankId) || (balance !== null && Number(wAmt)*100 > balance)}
+                    disabled={wLoading || !wAmt || (wBankMode==='saved' && !wBankId) || (wBankMode==='new' && !wNewVerified) || (balance !== null && Number(wAmt)*100 > balance)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-sans font-semibold text-black flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
                     {wLoading

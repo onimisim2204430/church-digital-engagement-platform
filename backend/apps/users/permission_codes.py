@@ -16,12 +16,7 @@ Usage:
 
 PERMISSION_CODES: dict[str, dict] = {
     # ── Finance ──────────────────────────────────────────────────────────
-    "fin.hub": {
-        "label": "Financial Hub",
-        "description": "Full analytics dashboard — revenue, KPIs, member LTV",
-        "category": "Finance",
-        "icon": "analytics",
-    },
+    # Note: Financial Hub dashboard auto-shows when ANY Finance permission is granted
     "fin.payments": {
         "label": "Payment Records",
         "description": "Transaction history, Paystack webhook data",
@@ -141,7 +136,7 @@ SUB_ROLE_TEMPLATES: dict[str, dict] = {
         "description": "Access to all financial modules only",
         "color": "#10b981",
         "icon": "account_balance",
-        "codes": ["fin.hub", "fin.payments", "fin.reports", "fin.seed"],
+        "codes": ["fin.payments", "fin.reports", "fin.seed"],
     },
     "content": {
         "label": "Content Moderator",
@@ -181,7 +176,7 @@ SUB_ROLE_TEMPLATES: dict[str, dict] = {
     },
     "full": {
         "label": "Full Moderator",
-        "description": "All 17 module permissions — original moderator scope",
+        "description": "All module permissions — original moderator scope",
         "color": "#64748b",
         "icon": "admin_panel_settings",
         "codes": list(ALL_CODES),

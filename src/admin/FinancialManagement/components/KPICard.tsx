@@ -99,7 +99,7 @@ export const DashKPICard = memo(({
   <div className="obs-kpi">
     <div className="obs-kpi-accent"
       style={{ background: `linear-gradient(90deg,${color},${color}88)` }} />
-    <div className="obs-kpi-icon">{icon}</div>
+    <div className="obs-kpi-icon"><Icon name={icon} size={24} style={{ color: color }} /></div>
     <div className="obs-kpi-label">{label}</div>
     <div className="obs-kpi-value">{value}</div>
     <div className="obs-kpi-sub">

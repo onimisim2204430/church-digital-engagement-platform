@@ -21,8 +21,8 @@ STATUS_TO_CANON = {
     'active': 'active',
     'draft': 'draft',
     'archived': 'archived',
-    'paused': 'archived',
-    'completed': 'archived',
+    'paused': 'paused',
+    'completed': 'completed',
 }
 
 
@@ -129,6 +129,17 @@ class PublicGivingItemSerializer(serializers.ModelSerializer):
     """Public-facing serializer - excludes draft/hidden items."""
     
     progress_percentage = serializers.ReadOnlyField()
+    is_completed = serializers.SerializerMethodField()
+
+    def get_is_completed(self, obj):
+        """Determine if the giving item is completed (100% funded or manually set to completed)."""
+        # Check if manually marked as completed
+        if obj.status == 'completed':
+            return True
+        # Check if 100% funded
+        if obj.progress_percentage is not None and obj.progress_percentage >= 100:
+            return True
+        return False
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -153,4 +164,5 @@ class PublicGivingItemSerializer(serializers.ModelSerializer):
             'cover_image',
             'display_order',
             'progress_percentage',
+            'is_completed',
         ]

@@ -6,22 +6,18 @@ import uuid
 
 def seed_system_content_types(apps, schema_editor):
     """
-    Seed the three required system content types:
-    - announcement
-    - sermon  
-    - article
-    
-    These are immutable and cannot be deleted.
+    Seed the required core system content types.
+    Announcement is system (immutable), others are custom (editable).
     """
     PostContentType = apps.get_model('content', 'PostContentType')
     
-    # Define system types (matching the old PostType enum)
-    system_types = [
+    # Define content types
+    types_to_create = [
         {
             'slug': 'announcement',
             'name': 'Announcement',
             'description': 'Church announcements and updates',
-            'is_system': True,
+            'is_system': True,  # Only Announcement is truly system
             'is_enabled': True,
             'sort_order': 1,
         },
@@ -29,7 +25,7 @@ def seed_system_content_types(apps, schema_editor):
             'slug': 'sermon',
             'name': 'Sermon',
             'description': 'Sunday sermons and teachings',
-            'is_system': True,
+            'is_system': False,  # Custom type
             'is_enabled': True,
             'sort_order': 2,
         },
@@ -37,14 +33,14 @@ def seed_system_content_types(apps, schema_editor):
             'slug': 'article',
             'name': 'Article',
             'description': 'General articles and blog posts',
-            'is_system': True,
+            'is_system': False,  # Custom type
             'is_enabled': True,
             'sort_order': 3,
         },
     ]
     
-    # Create system types (idempotent - won't duplicate if run multiple times)
-    for type_data in system_types:
+    # Create types (idempotent)
+    for type_data in types_to_create:
         PostContentType.objects.get_or_create(
             slug=type_data['slug'],
             defaults=type_data

@@ -105,7 +105,6 @@ const AdminGivingManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'appearance' | 'analytics' | 'settings'>('details');
 
   // Sync form when navigating to an existing item
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- id-only is intentional: prevents clobbering mid-edit when items array updates
   useEffect(() => {
     if (isDetailMode && currentItem) {
       setForm({
@@ -134,7 +133,7 @@ const AdminGivingManager: React.FC = () => {
       setSaveError('');
       setSaveSuccess(false);
     }
-  }, [id]); // Intentional: see comment above
+  }, [id, currentItem, isDetailMode, isCreateMode]);
 
   // ── Computed list with fast-path ────────────────────────────────
   const filteredItems = useMemo(() => {
@@ -176,6 +175,19 @@ const AdminGivingManager: React.FC = () => {
     totalDonors: items.reduce((s, i) => s + i.donor_count, 0),
     featuredCount: items.filter(i => i.is_featured).length,
   }), [items]);
+
+  // ── Check if current item is completed ────────────────────────────
+  const isItemCompleted = useMemo(() => {
+    if (!currentItem) return false;
+    // Manually marked as completed
+    if (currentItem.status === 'completed') return true;
+    // Automatically completed: 100% funded
+    if (currentItem.goal_amount && currentItem.goal_amount > 0) {
+      const progressPercentage = Math.round((currentItem.raised_amount / currentItem.goal_amount) * 100);
+      if (progressPercentage >= 100) return true;
+    }
+    return false;
+  }, [currentItem]);
 
   // ── Drag-to-reorder with data-item-id pattern ───────────────────
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -264,6 +276,13 @@ const AdminGivingManager: React.FC = () => {
 
   const handleSave = useCallback(async () => {
     if (!form.title.trim()) { setSaveError('Title is required.'); return; }
+    
+    // Prevent editing completed projects
+    if (isDetailMode && currentItem?.status === 'completed') {
+      setSaveError('This project is completed and cannot be edited. To make changes, you need to change its status first.');
+      return;
+    }
+    
     setSaving(true);
     setSaveError('');
     setSaveSuccess(false);
@@ -313,6 +332,11 @@ const AdminGivingManager: React.FC = () => {
 
   const handleArchive = useCallback(() => {
     setForm(prev => ({ ...prev, status: 'archived', visibility: 'hidden' }));
+    setActiveTab('details');
+  }, []);
+
+  const handleComplete = useCallback(() => {
+    setForm(prev => ({ ...prev, status: 'completed' }));
     setActiveTab('details');
   }, []);
 
@@ -479,14 +503,20 @@ const AdminGivingManager: React.FC = () => {
 
   // ── Render: Detail / Create View ──────────────────────────────────
   const renderDetail = () => {
-    const tabs = isCreateMode
-      ? [{ key: 'details' as const, icon: 'add', label: 'Create Item' }]
-      : [
-          { key: 'details' as const, icon: 'edit', label: 'Details' },
-          { key: 'appearance' as const, icon: 'palette', label: 'Appearance' },
-          { key: 'analytics' as const, icon: 'analytics', label: 'Analytics' },
-          { key: 'settings' as const, icon: 'settings', label: 'Settings' },
-        ];
+    // Determine tabs based on mode and completion status
+    let tabs: { key: 'details' | 'appearance' | 'analytics' | 'settings'; icon: string; label: string }[];
+    
+    if (isCreateMode) {
+      tabs = [{ key: 'details', icon: 'add', label: 'Create Item' }];
+    } else {
+      // Always show all 4 tabs, mark Details/Appearance as read-only when completed
+      tabs = [
+        { key: 'details', icon: 'edit', label: 'Details' },
+        { key: 'appearance', icon: 'palette', label: 'Appearance' },
+        { key: 'analytics', icon: 'analytics', label: 'Analytics' },
+        { key: 'settings', icon: 'settings', label: 'Settings' },
+      ];
+    }
 
     return (
       <div className="flex flex-col h-full overflow-hidden">
@@ -516,7 +546,7 @@ const AdminGivingManager: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-3 flex-wrap mb-1">
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                      {isCreateMode ? 'Create New Giving Item' : (form.title || 'Untitled')}
+                      {isCreateMode ? 'Create New Giving Item' : (loading && !currentItem ? 'Loading...' : (form.title || 'Untitled'))}
                     </h2>
                     {!isCreateMode && currentItem && (
                       <>
@@ -554,7 +584,7 @@ const AdminGivingManager: React.FC = () => {
                   </a>
                   <button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || isItemCompleted}
                     className="bg-primary text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-sm flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all"
                   >
                     <Icon name={saving ? 'hourglass_empty' : 'check'} size={16} />
@@ -628,7 +658,16 @@ const AdminGivingManager: React.FC = () => {
               </div>
             )}
 
-            {/* Tab content with Suspense boundaries */}
+            {/* Loading state for detail view on refresh */}
+            {isDetailMode && loading && !currentItem && (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <Icon name="hourglass_empty" size={48} className="text-slate-300 animate-spin" />
+                <p className="mt-4 text-slate-500 font-semibold">Loading project data...</p>
+              </div>
+            )}
+
+            {/* Show content only when not loading or when data is available */}
+            {(!isDetailMode || !loading || currentItem) && (
             <Suspense fallback={<TabSkeleton />}>
               {activeTab === 'details' && (
                 <DetailsTab
@@ -638,6 +677,7 @@ const AdminGivingManager: React.FC = () => {
                   saving={saving}
                   categoryHasGoal={categoryHasGoal}
                   supportedIcons={supportedIcons}
+                  readOnly={isItemCompleted}
                   onFormChange={handleFormChange}
                   onFormUpdate={handleFormUpdate}
                   onSave={handleSave}
@@ -649,6 +689,7 @@ const AdminGivingManager: React.FC = () => {
                 <AppearanceTab
                   form={form}
                   supportedIcons={supportedIcons}
+                  readOnly={isItemCompleted}
                   onFormUpdate={handleFormUpdate}
                 />
               )}
@@ -659,10 +700,12 @@ const AdminGivingManager: React.FC = () => {
                 <SettingsTab
                   currentItem={currentItem}
                   onArchive={handleArchive}
+                  onComplete={handleComplete}
                   onDelete={handleDelete}
                 />
               )}
             </Suspense>
+            )}
           </div>
         </div>
       </div>
