@@ -30,4 +30,7 @@ export interface MetricShape {
   bars: number[] | null;
   special: string | null;
   loading?: boolean;
+  isHidden?: boolean;
+  onToggleVisibility?: () => void;
+  fullValue?: string;
 }

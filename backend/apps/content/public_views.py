@@ -269,3 +269,27 @@ class PublicWeeklyEventViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return WeeklyEvent.objects.all().order_by('day_of_week', 'sort_order')
 
+
+# ============================================================================
+# PUBLIC HERO SECTIONS (Featured Sermon)
+# ============================================================================
+
+class PublicHeroSectionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public API for hero sections (featured sermon sections)
+    - GET /api/v1/public/hero-sections/ - List all active hero sections
+    - GET /api/v1/public/hero-sections/{id}/ - Get a specific hero section
+    
+    Returns only active hero sections sorted by display order
+    """
+    permission_classes = [AllowAny]  # Public access
+    
+    def get_queryset(self):
+        from .models import HeroSection
+        # Only return active hero sections, sorted by display order
+        return HeroSection.objects.filter(is_active=True).order_by('-display_order')
+    
+    def get_serializer_class(self):
+        from .serializers import HeroSectionSerializer
+        return HeroSectionSerializer
+

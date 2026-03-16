@@ -570,3 +570,47 @@ class PublicWeeklyEventViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         from .serializers import WeeklyEventSerializer
         return WeeklyEventSerializer
+
+
+class AdminHeroSectionViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for managing hero sections (featured sermon sections)
+    Requires moderator+ permissions
+    """
+    
+    permission_classes = [IsAuthenticated, IsModerator]
+    
+    def get_queryset(self):
+        from .models import HeroSection
+        return HeroSection.objects.all().order_by('-display_order', '-updated_at')
+    
+    def get_serializer_class(self):
+        from .serializers import HeroSectionSerializer, HeroSectionCreateUpdateSerializer
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return HeroSectionCreateUpdateSerializer
+        return HeroSectionSerializer
+    
+    def perform_create(self, serializer):
+        """Track which admin created/updated the hero section"""
+        serializer.save(updated_by=self.request.user.email)
+    
+    def perform_update(self, serializer):
+        """Track which admin updated the hero section"""
+        serializer.save(updated_by=self.request.user.email)
+
+
+class PublicHeroSectionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public viewset for viewing active hero sections
+    Unauthenticated access - returns only active hero sections
+    """
+    permission_classes = []  # Public access
+    
+    def get_queryset(self):
+        from .models import HeroSection
+        # Only return active hero sections, sorted by display order
+        return HeroSection.objects.filter(is_active=True).order_by('-display_order')
+    
+    def get_serializer_class(self):
+        from .serializers import HeroSectionSerializer
+        return HeroSectionSerializer

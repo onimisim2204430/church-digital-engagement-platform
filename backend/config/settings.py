@@ -125,6 +125,7 @@ INSTALLED_APPS = _INSTALLED_APPS + [
     'apps.payouts',
     'apps.notifications',
     'apps.email',  # Standalone email service
+    'apps.analytics',  # Analytics and visitor tracking
 ]
 
 MIDDLEWARE = [

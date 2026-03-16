@@ -195,12 +195,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Context switcher */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
           {[
-            { label: 'Public',  icon: 'public', path: '/'       },
-            { label: 'Member',  icon: 'home',   path: '/member' },
+            { label: 'Public',  icon: 'public', path: '/',       newTab: true },
+            { label: 'Member',  icon: 'home',   path: '/member', newTab: false },
           ].map(btn => (
             <button
               key={btn.label}
-              onClick={() => navigate(btn.path)}
+              onClick={() => btn.newTab ? window.open(btn.path, '_blank') : navigate(btn.path)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 padding: '6px 0', borderRadius: 7, cursor: 'pointer',

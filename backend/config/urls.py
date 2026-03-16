@@ -52,6 +52,9 @@ urlpatterns = [
         path('admin/moderation/', include('apps.moderation.urls')),
         path('admin/series/', include('apps.series.urls')),
 
+        # Analytics endpoints (visitor tracking, dashboard metrics)
+        path('analytics/', include('apps.analytics.urls')),
+
         # Payments endpoints
         path('payments/', include('apps.payments.urls')),
 

@@ -4,7 +4,7 @@
  * Remove after fixing the issue.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
@@ -59,7 +59,7 @@ export default function DebugAuth() {
   const accessToken = parsedTokens?.access ?? rawAccess ?? null;
   const decodedJwt = decodeJwt(accessToken);
 
-  const fetchDbPerms = useCallback(async () => {
+  const fetchDbPerms = async () => {
     setDbStatus('loading');
     try {
       const resp = await fetch(`${API_BASE_URL}/auth/my-permissions/`, {
@@ -71,9 +71,9 @@ export default function DebugAuth() {
       setDbResult({ error: e.message });
     }
     setDbStatus('done');
-  }, [accessToken]);
+  };
 
-  const fetchMe = useCallback(async () => {
+  const fetchMe = async () => {
     try {
       const resp = await fetch(`${API_BASE_URL}/auth/me/`, {
         headers: { Authorization: `Bearer ${accessToken}` }
@@ -83,9 +83,9 @@ export default function DebugAuth() {
     } catch (e: any) {
       setMeResult({ error: e.message });
     }
-  }, [accessToken]);
+  };
 
-  const testRefresh = useCallback(async () => {
+  const testRefresh = async () => {
     const refreshToken = parsedTokens?.refresh;
     if (!refreshToken) { setRefreshResult({ error: 'No refresh token in auth_tokens' }); return; }
     try {
@@ -99,9 +99,9 @@ export default function DebugAuth() {
     } catch (e: any) {
       setRefreshResult({ error: e.message });
     }
-  }, [parsedTokens?.refresh]);
+  };
 
-  useEffect(() => { fetchDbPerms(); fetchMe(); }, [fetchDbPerms, fetchMe]);
+  useEffect(() => { fetchDbPerms(); fetchMe(); }, []);
 
   const btnStyle = {
     background: '#1d4ed8', color: 'white', border: 'none', padding: '8px 16px',

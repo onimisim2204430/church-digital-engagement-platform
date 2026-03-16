@@ -18,7 +18,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { UserRole } from '../../types/auth.types';
 import Sidebar from './Sidebar';
 import AdminTopBar from './AdminTopBar';
-import AdminRightSidebar from './AdminRightSidebar';
+// import AdminRightSidebar from './AdminRightSidebar'; // Disabled for deployment v1
 import { startPermissionSync, stopPermissionSync } from '../../services/permissionSyncService';
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
@@ -517,53 +517,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             className={`flex-1 admin-scroll no-scrollbar ${isSettings ? 'overflow-hidden' : 'overflow-y-auto'}`}
             style={{ background: 'var(--bg-secondary)', minHeight: 0 }}
           >
-            {children || <Outlet />}
+          {children || <Outlet />}
           </main>
 
-          {/* Right sidebar — desktop permanent, injected CSS hides on <1280px */}
-          {isDashboard && user?.role === UserRole.ADMIN && (
-            <>
-              <div className="admin-right-desktop">
-                <AdminRightSidebar />
-              </div>
-
-              {/* Right sidebar — mobile slide-over, only when opened */}
-              {isRightOpen && (
-                <>
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,.65)' }}
-                    onClick={() => setRightOpen(false)}
-                  />
-                  <div
-                    className="right-panel-slideover"
-                    style={{
-                      position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 50,
-                      width: 296, display: 'flex', flexDirection: 'column',
-                      background: 'var(--bg1)', borderLeft: '1px solid var(--border-color)',
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0 16px', height: 56, flexShrink: 0,
-                      borderBottom: '1px solid var(--border-color)',
-                    }}>
-                      <span style={{ color: 'var(--em)', fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.12em' }}>
-                        Pastoral Priorities
-                      </span>
-                      <button className="tb-btn" onClick={() => setRightOpen(false)} aria-label="Close">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M18 6L6 18M6 6l12 12"/>
-                        </svg>
-                      </button>
-                    </div>
-                    <div style={{ flex: 1, overflowY: 'auto' }} className="admin-scroll">
-                      <AdminRightSidebar />
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+          {/* Right sidebar — disabled for deployment v1, will be re-enabled in future versions */}
         </div>
       </div>
     </AdminThemeContext.Provider>

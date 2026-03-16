@@ -66,31 +66,115 @@ SectionSkeleton.displayName = 'SectionSkeleton';
 // ============================================================================
 
 /**
- * Hero Section - Optimized for LCP (Largest Contentful Paint)
+ * Hero Section - Optimized for LCP with dynamic content from API
+ * Falls back to hardcoded defaults if no data is available
  */
 const HeroSection = memo(() => {
+  const [heroData, setHeroData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Hardcoded defaults as fallback
+  const defaultHeroData = {
+    label: 'Latest Sabbath Teaching',
+    title: 'Finding Peace in the Midst of Chaos',
+    description: 'In a world that demands our constant attention, discover the ancient practice of stillness and how it can restore your soul.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCmiGfKPo3C5C31KrHMj-ltzQLfdJ3_qiogV51o0w8MyCcWFkT8CrDxo7MK_DWvImHumwhxPDIWKZtI8v3PkVB8ZjRJy3nqLa7WpWwdOCNcCsJnePc-9RP3X9ZP7y8fsy1j8SLZfrsOx9jjmBJ9oXpSrb_0rgyYbKUKcIb3o9AQCcJ9v-1-PSMQX6W-bZeVrPfQZChiJzLn5jBOVV83E5wUpRsDT3yxI_27reldQFRdFdyT-ebm4Gg84EYFTSCkuR4IH-1y6ZZWznw',
+    image_alt_text: 'Peaceful field with golden sunlight representing tranquility and spiritual rest',
+    button1_label: 'Watch Sermon',
+    button1_url: '#',
+    button1_icon: 'play_circle',
+    button2_label: 'Listen Audio',
+    button2_url: '#',
+    button2_icon: '',
+  };
+
+  useEffect(() => {
+    const fetchHeroData = async () => {
+      try {
+        setLoading(true);
+        // Fetch from public API endpoint
+        const response = await fetch('/api/v1/public/hero-sections/');
+        if (response.ok) {
+          const data = await response.json();
+          // Get the first active hero section
+          const hero = Array.isArray(data.results) ? data.results[0] : (Array.isArray(data) ? data[0] : null);
+          if (hero) {
+            setHeroData(hero);
+          } else {
+            // No hero data in DB, use default
+            setHeroData(defaultHeroData);
+          }
+        } else {
+          // API error, use default
+          setHeroData(defaultHeroData);
+        }
+      } catch (error) {
+        // Network error, use default
+        console.error('Failed to fetch hero section:', error);
+        setHeroData(defaultHeroData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHeroData();
+  }, []);
+
+  const hero = heroData || defaultHeroData;
+
+  if (loading) {
+    return (
+      <section className="relative px-6 py-12 md:py-20 lg:py-1 max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="flex flex-col gap-6 order-2 lg:order-1">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-text-muted/10 rounded w-32"></div>
+              <div className="h-16 bg-text-muted/10 rounded w-full"></div>
+              <div className="h-20 bg-text-muted/10 rounded w-full"></div>
+              <div className="h-14 bg-text-muted/10 rounded w-32"></div>
+            </div>
+          </div>
+          <div className="relative order-1 lg:order-2">
+            <div className="aspect-[4/5] bg-text-muted/10 rounded-[4rem] animate-pulse"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="relative px-6 py-12 md:py-20 lg:py-1 max-w-[1200px] mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         <div className="flex flex-col gap-6 order-2 lg:order-1">
           <div className="flex items-center gap-3">
             <span className="w-8 h-[1px] bg-text-muted" aria-hidden="true"></span>
-            <span className="text-base font-bold tracking-[0.15em] uppercase text-text-muted">Latest Sabbath Teaching</span>
+            <span className="text-base font-bold tracking-[0.15em] uppercase text-text-muted">{hero.label}</span>
           </div>
           <h1 className="text-6xl md:text-7xl lg:text-[5.625rem] leading-[1.1] font-serif font-normal text-text-main tracking-tight">
-            Finding Peace in the Midst of Chaos
+            {hero.title}
           </h1>
           <p className="text-2xl md:text-2xl text-text-muted leading-relaxed max-w-md font-light">
-            In a world that demands our constant attention, discover the ancient practice of stillness and how it can restore your soul.
+            {hero.description}
           </p>
           <div className="pt-4 flex flex-wrap gap-4">
-            <button className="flex items-center gap-2 bg-primary text-white h-14 px-8 rounded-btn font-bold text-lg tracking-wide shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300">
-              <Icon name="play_circle" size={20} ariaHidden />
-              Watch Sermon
-            </button>
-            <button className="flex items-center gap-2 bg-white text-text-main border border-accent-sand h-14 px-8 rounded-btn font-bold text-lg tracking-wide hover:border-primary/50 transition-all duration-300">
-              Listen Audio
-            </button>
+            {hero.button1_url && (
+              <a
+                href={hero.button1_url}
+                className="flex items-center gap-2 bg-primary text-white h-14 px-8 rounded-btn font-bold text-lg tracking-wide shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300"
+              >
+                {hero.button1_icon && <Icon name={hero.button1_icon} size={20} ariaHidden />}
+                {hero.button1_label}
+              </a>
+            )}
+            {hero.button2_url && (
+              <a
+                href={hero.button2_url}
+                className="flex items-center gap-2 bg-white text-text-main border border-accent-sand h-14 px-8 rounded-btn font-bold text-lg tracking-wide hover:border-primary/50 transition-all duration-300"
+              >
+                {hero.button2_icon && <Icon name={hero.button2_icon} size={20} ariaHidden />}
+                {hero.button2_label}
+              </a>
+            )}
           </div>
         </div>
         
@@ -105,9 +189,9 @@ const HeroSection = memo(() => {
             style={{ aspectRatio: '4/5' }}
           >
             <img 
-              alt="Peaceful field with golden sunlight representing tranquility and spiritual rest" 
+              alt={hero.image_alt_text || 'Hero section image'} 
               className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmiGfKPo3C5C31KrHMj-ltzQLfdJ3_qiogV51o0w8MyCcWFkT8CrDxo7MK_DWvImHumwhxPDIWKZtI8v3PkVB8ZjRJy3nqLa7WpWwdOCNcCsJnePc-9RP3X9ZP7y8fsy1j8SLZfrsOx9jjmBJ9oXpSrb_0rgyYbKUKcIb3o9AQCcJ9v-1-PSMQX6W-bZeVrPfQZChiJzLn5jBOVV83E5wUpRsDT3yxI_27reldQFRdFdyT-ebm4Gg84EYFTSCkuR4IH-1y6ZZWznw"
+              src={hero.image}
               // Critical for LCP - Load this image with high priority
               fetchPriority="high"
               // Decode image asynchronously to avoid blocking main thread

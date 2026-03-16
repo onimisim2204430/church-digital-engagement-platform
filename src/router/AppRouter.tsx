@@ -68,6 +68,7 @@ import {
   FinancialDashboard,
 } from '../admin/FinancialManagement';
 import ContentDashboard from '../admin/ContentManagement/dashboard/ContentDashboard';
+import NotificationsPage from '../admin/NotificationsPage';
 import CommunityDashboard from '../admin/CommunityDashboard';
 import { MinistryHub } from '../admin/MinistryManagement';
 import GrowthDashboard from '../admin/GrowthDashboard';
@@ -260,6 +261,7 @@ const AppRouter: React.FC = () => {
           <Route path="email" element={<PermissionGatedRoute code="outreach.email"><EmailCampaigns /></PermissionGatedRoute>} />
           <Route path="reports" element={<PermissionGatedRoute code="analytics.reports"><ModerationReports /></PermissionGatedRoute>} />
           <Route path="settings" element={<AdminOnlyRoute><AdminSettings /></AdminOnlyRoute>} />
+          <Route path="notifications" element={<NotificationsPage />} />
         </Route>
         
         {/* Error Pages */}

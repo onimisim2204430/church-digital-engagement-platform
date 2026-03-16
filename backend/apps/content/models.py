@@ -624,3 +624,107 @@ class WeeklyEvent(models.Model):
     def get_day_name(self):
         """Get the full day name"""
         return self.get_day_of_week_display()
+
+
+class HeroSection(models.Model):
+    """
+    Dynamic hero section content for the public homepage.
+    Stores featured sermon/teaching information with image, title, description, and action buttons.
+    
+    Contains all hardcoded hero content that should be editable from admin:
+    - Title, description, category label
+    - Featured image with fallback
+    - Two action buttons with icons and URLs
+    - Active/inactive toggle for display
+    - Display ordering for multiple hero sections
+    """
+    HERO_TYPES = [
+        ('featured_sermon', 'Featured Sermon'),
+        ('announcement', 'Announcement'),
+        ('event', 'Event'),
+    ]
+    
+    title = models.CharField(
+        max_length=200,
+        help_text="Main heading (e.g., 'Finding Peace in the Midst of Chaos')"
+    )
+    description = models.TextField(
+        help_text="Subtitle/description text"
+    )
+    label = models.CharField(
+        max_length=100,
+        default="Latest Sabbath Teaching",
+        help_text="Category label above title (e.g., 'Latest Sabbath Teaching')"
+    )
+    image = models.ImageField(
+        upload_to='hero_images/',
+        help_text="Hero section image"
+    )
+    image_alt_text = models.CharField(
+        max_length=255,
+        default="Church content image",
+        help_text="Alt text for accessibility"
+    )
+    
+    # Button 1 (Primary action)
+    button1_label = models.CharField(
+        max_length=100,
+        default="Watch Sermon",
+        help_text="Text for primary button"
+    )
+    button1_url = models.URLField(
+        blank=True,
+        help_text="URL or action for primary button"
+    )
+    button1_icon = models.CharField(
+        max_length=50,
+        default="play_circle",
+        help_text="Icon name from Icon component"
+    )
+    
+    # Button 2 (Secondary action)
+    button2_label = models.CharField(
+        max_length=100,
+        default="Listen Audio",
+        help_text="Text for secondary button"
+    )
+    button2_url = models.URLField(
+        blank=True,
+        help_text="URL or action for secondary button"
+    )
+    button2_icon = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Icon name from Icon component"
+    )
+    
+    # Metadata
+    hero_type = models.CharField(
+        max_length=20,
+        choices=HERO_TYPES,
+        default='featured_sermon'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this hero section is currently displayed"
+    )
+    display_order = models.PositiveIntegerField(
+        default=1,
+        help_text="Order of display if multiple hero sections"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Admin who last updated this hero section"
+    )
+    
+    class Meta:
+        ordering = ['-display_order', '-updated_at']
+        verbose_name = "Hero Section"
+        verbose_name_plural = "Hero Sections"
+    
+    def __str__(self):
+        return f"{self.label} - {self.title}"

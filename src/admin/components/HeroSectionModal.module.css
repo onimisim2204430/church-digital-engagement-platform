@@ -1,0 +1,322 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-elevated);
+  z-index: 10;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.closeButton:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.form {
+  padding: var(--space-6);
+}
+
+.section {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section:last-of-type {
+  border-bottom: none;
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-4) 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.formGroup {
+  margin-bottom: var(--space-4);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  background-color: var(--bg-disabled);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  font-family: var(--font-mono);
+}
+
+.error {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.successMessage {
+  padding: var(--space-3);
+  background-color: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: var(--space-4);
+}
+
+.errorMessage {
+  padding: var(--space-3);
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: var(--space-4);
+}
+
+.imageUpload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-hover);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.imageUpload:hover {
+  border-color: var(--primary);
+  background-color: rgba(var(--primary-rgb), 0.05);
+}
+
+.fileInput {
+  display: block;
+  cursor: pointer;
+}
+
+.imagePreview {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.buttonGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: var(--space-6) 0;
+}
+
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.checkboxLabel {
+  margin: 0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+.footer {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-color);
+  margin-top: var(--space-6);
+  position: sticky;
+  bottom: 0;
+  background-color: var(--bg-elevated);
+  padding-bottom: var(--space-6);
+  z-index: 10;
+}
+
+.cancelButton,
+.submitButton {
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.cancelButton {
+  background-color: var(--bg-elevated);
+  color: var(--text-main);
+  border: 2px solid var(--primary);
+  font-weight: 700;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  border-color: var(--primary-dark);
+}
+
+.submitButton {
+  background-color: var(--primary);
+  color: white;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
+}
+
+.submitButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    max-height: 95vh;
+    border-radius: var(--radius-md);
+  }
+
+  .header {
+    padding: var(--space-4);
+  }
+
+  .form {
+    padding: var(--space-4);
+  }
+
+  .section {
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-4);
+  }
+
+  .buttonGroup {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    flex-direction: column-reverse;
+  }
+
+  .submitButton,
+  .cancelButton {
+    width: 100%;
+  }
+}

@@ -474,3 +474,45 @@ class WeeklyEventCreateUpdateSerializer(serializers.ModelSerializer):
         if not (0 <= value <= 6):
             raise serializers.ValidationError("Day of week must be 0-6 (0=Monday, 6=Sunday)")
         return value
+
+
+class HeroSectionSerializer(serializers.ModelSerializer):
+    """Serializer for reading HeroSection data"""
+    
+    class Meta:
+        from .models import HeroSection
+        model = HeroSection
+        fields = [
+            'id', 'title', 'description', 'label', 'image', 'image_alt_text',
+            'button1_label', 'button1_url', 'button1_icon',
+            'button2_label', 'button2_url', 'button2_icon',
+            'hero_type', 'is_active', 'display_order',
+            'created_at', 'updated_at', 'updated_by'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class HeroSectionCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating hero sections (admin only)"""
+    
+    class Meta:
+        from .models import HeroSection
+        model = HeroSection
+        fields = [
+            'title', 'description', 'label', 'image', 'image_alt_text',
+            'button1_label', 'button1_url', 'button1_icon',
+            'button2_label', 'button2_url', 'button2_icon',
+            'hero_type', 'is_active', 'display_order', 'updated_by'
+        ]
+    
+    def validate_button1_icon(self, value):
+        """Validate button icons are valid icon names"""
+        if value and len(value) > 50:
+            raise serializers.ValidationError("Icon name too long")
+        return value
+    
+    def validate_button2_icon(self, value):
+        """Validate button icons are valid icon names"""
+        if value and len(value) > 50:
+            raise serializers.ValidationError("Icon name too long")
+        return value

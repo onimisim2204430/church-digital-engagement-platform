@@ -365,6 +365,24 @@ const AdminTopBar: React.FC<TopBarProps> = ({
                   );
                 })}
               </div>
+
+              {/* Footer - View All Button */}
+              <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
+                <button
+                  onClick={() => {
+                    setShowNotif(false);
+                    navigate('/admin/notifications', { state: { from: 'topnav' } });
+                  }}
+                  style={{
+                    fontSize: 11, fontWeight: 700, color: 'var(--em)', background: 'none',
+                    border: 'none', cursor: 'pointer', padding: '6px 0'
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                >
+                  VIEW ALL NOTIFICATIONS
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -443,7 +461,7 @@ const AdminTopBar: React.FC<TopBarProps> = ({
               <div style={{ padding: '4px 0' }}>
                 {[
                   { label: 'Settings',    icon: 'settings', action: () => { navigate('/admin/settings'); setShowUser(false); } },
-                  { label: 'Public Site', icon: 'public',   action: () => { navigate('/');               setShowUser(false); } },
+                  { label: 'Public Site', icon: 'public',   action: () => { window.open('/', '_blank'); setShowUser(false); } },
                 ].map(item => (
                   <button key={item.label} onClick={item.action}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 16px',

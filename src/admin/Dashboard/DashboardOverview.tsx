@@ -20,7 +20,10 @@ import React, { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense 
 import { useAuth } from '../../auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { adminContentService } from '../../services/admin-content.service';
+import apiService from '../../services/api.service';
 import Icon from '../../components/common/Icon';
+import { HeroSectionModal } from '../components/HeroSectionModal';
+import { heroSectionService } from '../services/heroSectionService';
 
 import type { ActivityItem, ContentItem, MetricShape } from './types/dashboard.types';
 import {
@@ -31,6 +34,7 @@ import {
 import MetricCard from './components/MetricCard';
 import ActivityFeedItem from './components/ActivityFeedItem';
 import PipelineCard from './components/PipelineCard';
+import NotificationsPanel from './components/NotificationsPanel';
 
 // Lazy-load heavy components with Suspense boundaries
 const MapPanel       = lazy(() => import('./components/MapPanel'));
@@ -56,6 +60,14 @@ const DashboardOverview: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const [totalPosts, setTotalPosts] = useState<number>(0);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [financialBalance, setFinancialBalance] = useState<string>('--');
+  const [financialBalanceRaw, setFinancialBalanceRaw] = useState<string>('');
+  const [mediaReachVisits, setMediaReachVisits] = useState<string>('--');
+  const [loadingFinancial, setLoadingFinancial] = useState(false);
+  const [loadingMediaReach, setLoadingMediaReach] = useState(false);
+  const [showBalance, setShowBalance] = useState(false);
+  const [heroSectionModalOpen, setHeroSectionModalOpen] = useState(false);
+  const [savingHeroSection, setSavingHeroSection] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -93,15 +105,92 @@ const DashboardOverview: React.FC = () => {
     return () => controller.abort();
   }, []);
 
-  /** Rebuilt only when totalPosts or loadingStats change */
+  // Format balance with shorthand notation (M for millions, K for thousands) - NO ROUNDING
+  const formatBalanceShorthand = (ngn: number): string => {
+    if (ngn >= 1_000_000) {
+      const millions = ngn / 1_000_000;
+      const truncated = Math.floor(millions * 100) / 100;
+      return truncated + 'M';
+    } else if (ngn >= 1_000) {
+      const thousands = ngn / 1_000;
+      const truncated = Math.floor(thousands * 100) / 100;
+      return truncated + 'K';
+    } else {
+      return ngn.toFixed(0);
+    }
+  };
+
+  // Fetch financial balance from Paystack
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchFinancialBalance = async () => {
+      try {
+        setLoadingFinancial(true);
+        const response = await apiService.get('/payments/admin/paystack-balance/');
+        if (controller.signal.aborted) return;
+        
+        // Balance is in kobo, convert to NGN
+        const balanceInKobo = response?.balance ?? 0;
+        const balanceInNGN = balanceInKobo / 100;
+        const fullBalance = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'NGN',
+          minimumFractionDigits: 0,
+        }).format(balanceInNGN);
+        const shortBalance = formatBalanceShorthand(balanceInNGN);
+        setFinancialBalanceRaw(fullBalance);
+        setFinancialBalance(shortBalance);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to fetch balance:', err);
+          setFinancialBalance('--');
+          setFinancialBalanceRaw('--');
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoadingFinancial(false);
+      }
+    };
+
+    fetchFinancialBalance();
+    return () => controller.abort();
+  }, []);
+
+  // Fetch media reach visits (total unique visitors)
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchMediaReachVisits = async () => {
+      try {
+        setLoadingMediaReach(true);
+        const response = await apiService.get('/analytics/dashboard/visitor-count/');
+        if (controller.signal.aborted) return;
+        
+        const visitCount = response?.total_visits ?? response?.count ?? 0;
+        setMediaReachVisits(String(visitCount));
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to fetch visitor count:', err);
+          setMediaReachVisits('--');
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoadingMediaReach(false);
+      }
+    };
+
+    fetchMediaReachVisits();
+    return () => controller.abort();
+  }, []);
+
+  /** Rebuilt only when totalPosts, loadingStats, financialBalance, or mediaReachVisits change */
   const metrics = useMemo<(MetricShape)[]>(() => [
-    { label: 'Engagement',    value: '--',                                    change: '--', changePositive: true,  bars: [2, 4, 3, 5, 7], special: null, loading: false },
-    { label: 'Total Content', value: loadingStats ? '...' : String(totalPosts), change: '--', changePositive: true,  bars: [3, 4, 5, 6, 4], special: null, loading: loadingStats },
-    { label: 'Financials',    value: '--',                                    change: '--', changePositive: true,  bars: [6, 7, 5, 4, 3], special: null, loading: false },
-    { label: 'Media Reach',   value: '--',                                    change: '--', changePositive: true,  bars: [2, 3, 4, 6, 8], special: null, loading: false },
-    { label: 'System Health', value: '--',                                    change: '--', changePositive: true,  bars: null,            special: 'health', loading: false },
-    { label: 'Live Active',   value: '--',                                    change: '--', changePositive: true,  bars: null,            special: 'live', loading: false },
-  ], [totalPosts, loadingStats]);
+    { label: 'Engagement',    value: '--',                                      change: '--', changePositive: true,  bars: [2, 4, 3, 5, 7], special: null, loading: false },
+    { label: 'Total Content', value: loadingStats ? '...' : String(totalPosts),  change: '--', changePositive: true,  bars: [3, 4, 5, 6, 4], special: null, loading: loadingStats },
+    { label: 'Financials',    value: showBalance ? financialBalance : '••••••',change: '--', changePositive: true,  bars: [6, 7, 5, 4, 3], special: null, loading: loadingFinancial, isHidden: !showBalance, onToggleVisibility: () => setShowBalance(!showBalance), fullValue: financialBalanceRaw },
+    { label: 'Media Reach',   value: mediaReachVisits,                          change: '--', changePositive: true,  bars: [2, 3, 4, 6, 8], special: null, loading: loadingMediaReach },
+    { label: 'System Health', value: '--',                                      change: '--', changePositive: true,  bars: null,            special: 'health', loading: false },
+    { label: 'Live Active',   value: '--',                                      change: '--', changePositive: true,  bars: null,            special: 'live', loading: false },
+  ], [totalPosts, loadingStats, financialBalance, financialBalanceRaw, loadingFinancial, mediaReachVisits, loadingMediaReach, showBalance]);
 
   /** Single O(n) group pass — replaces 3× filter calls */
   const contentByStatus = useMemo(() => {
@@ -111,6 +200,22 @@ const DashboardOverview: React.FC = () => {
   }, []); // CONTENT_ITEMS is module-level — this runs exactly once
 
   const goToContent = useCallback(() => navigate('/admin/content'), [navigate]);
+
+  const handleSaveHeroSection = useCallback(async (data: any) => {
+    try {
+      setSavingHeroSection(true);
+      if (data.id) {
+        await heroSectionService.update(data.id, data);
+      } else {
+        await heroSectionService.create(data);
+      }
+    } catch (error) {
+      console.error('Error saving hero section:', error);
+      throw error;
+    } finally {
+      setSavingHeroSection(false);
+    }
+  }, []);
 
   return (
     <div className="p-6 space-y-6">
@@ -128,19 +233,27 @@ const DashboardOverview: React.FC = () => {
         </Suspense>
 
         <div className="rounded-lg border border-border-light dark:border-slate-700 bg-white dark:bg-slate-800/60 flex flex-col h-[360px]">
-          <div className="border-b border-border-light dark:border-slate-700 px-4 py-3 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/40 flex-shrink-0">
-            <h2 className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Live Interaction Feed</h2>
-            <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
+          <NotificationsPanel />
+        </div>
+      </div>
+
+      {/* Featured Content Management */}
+      <div className="rounded-lg border border-border-light dark:border-slate-700 bg-white dark:bg-slate-800/60 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Icon name="image" size={20} className="text-primary" />
+            <div>
+              <h3 className="font-semibold text-sm text-text-main">Homepage Hero Section</h3>
+              <p className="text-xs text-text-muted">Featured sermon or announcement</p>
+            </div>
           </div>
-          {/* 
-            NOTE: Any scroll listeners attached to this element must use { passive: true }
-            to avoid blocking the main thread during scroll.
-          */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4" style={HIDE_SCROLLBAR}>
-            {ACTIVITIES.map((activity) => (
-              <ActivityFeedItem key={activity.id} activity={activity} />
-            ))}
-          </div>
+          <button
+            onClick={() => setHeroSectionModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors text-sm font-semibold"
+          >
+            <Icon name="edit" size={16} />
+            Edit Hero Section
+          </button>
         </div>
       </div>
 
@@ -168,6 +281,14 @@ const DashboardOverview: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Hero Section Modal */}
+      <HeroSectionModal
+        isOpen={heroSectionModalOpen}
+        onClose={() => setHeroSectionModalOpen(false)}
+        onSave={handleSaveHeroSection}
+        isLoading={savingHeroSection}
+      />
     </div>
   );
 };

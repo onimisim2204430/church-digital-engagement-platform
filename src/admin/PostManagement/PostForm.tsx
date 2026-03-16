@@ -13,7 +13,7 @@
  */
 
 import React, {
-  useState, useRef, useEffect, useCallback, useMemo, memo,
+  useState, useRef, useEffect, useCallback, useMemo,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -519,112 +519,6 @@ const TemplateModal: React.FC<{ isOpen: boolean; onClose: () => void; onSelect: 
   );
 };
 
-// ─────────────────────────── Sidebar Component (module scope) ───────────────────────────
-interface PostFormSidebarProps {
-  postStatus: 'DRAFT' | 'PUBLISHED';
-  saving: boolean;
-  doPublish: () => Promise<void>;
-  doSaveDraft: () => Promise<void>;
-  doDelete: () => Promise<void>;
-  meta: PostMeta;
-  setMeta: (fn: (prev: PostMeta) => PostMeta) => void;
-  seriesList: Array<{ id: string; title: string }>;
-  newTag: string;
-  setNewTag: (val: string) => void;
-  addTag: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  isEdit: boolean;
-}
-
-const PostFormSidebar = memo<PostFormSidebarProps>(({
-  postStatus, saving, doPublish, doSaveDraft, doDelete,
-  meta, setMeta, seriesList, newTag, setNewTag, addTag, isEdit,
-}) => (
-  <div className="p-6 space-y-8">
-    {/* Publishing */}
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Publishing</h3>
-        <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase ${postStatus === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{postStatus}</span>
-      </div>
-      <button onClick={doPublish} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-        <Rocket className="w-4 h-4" />{saving ? 'Publishing…' : isEdit ? 'Update & Publish' : 'Publish Now'}
-      </button>
-      <button onClick={doSaveDraft} disabled={saving} className="mt-2 w-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50">
-        <Save className="w-4 h-4" />{saving ? 'Saving…' : 'Save Draft'}
-      </button>
-    </section>
-
-    {/* Post Metadata */}
-    <section className="space-y-4">
-      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Post Metadata</h3>
-      <div>
-        <label className="text-xs font-semibold text-slate-500 mb-1 block">Content Type</label>
-        <div className="relative">
-          <select value={meta.contentType} onChange={e => setMeta(p => ({ ...p, contentType: e.target.value }))} className="w-full appearance-none bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-primary pr-8">
-            {['Sermon Note','Article / Essay','Devotional','Announcement','Bible Study','Prayer Journal','Teaching','Testimony'].map(t => <option key={t}>{t}</option>)}
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-slate-500 mb-1 block">Series</label>
-        <div className="relative">
-          <select value={meta.series} onChange={e => setMeta(p => ({ ...p, series: e.target.value }))} className="w-full appearance-none bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-primary pr-8">
-            <option value="">None</option>
-            {seriesList.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-slate-500 mb-1 block">Tags</label>
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {meta.tags.map(tag => (
-            <span key={tag} className="flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full">
-              {tag}<button onClick={() => setMeta(p => ({ ...p, tags: p.tags.filter(t => t !== tag) }))} className="opacity-60 hover:opacity-100"><X className="w-3 h-3" /></button>
-            </span>
-          ))}
-        </div>
-        <input className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Add tag, press Enter…" value={newTag} onChange={e => setNewTag(e.target.value)} onKeyDown={addTag} />
-      </div>
-    </section>
-
-    {/* Media */}
-    <section className="space-y-4">
-      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Media</h3>
-      <div>
-        <label className="text-xs font-semibold text-slate-500 mb-1 block">Featured Image</label>
-        <ImageUploadInput value={meta.featuredImage || ''} onChange={url => setMeta(p => ({ ...p, featuredImage: url }))} />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-slate-500 mb-1 block">Video Link</label>
-        <div className="relative">
-          <Video className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="YouTube or Vimeo URL" value={meta.videoUrl} onChange={e => setMeta(p => ({ ...p, videoUrl: e.target.value }))} />
-        </div>
-      </div>
-    </section>
-
-    {/* Engagement */}
-    <section className="space-y-3">
-      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Engagement</h3>
-      {([['Allow Comments', 'allowComments'], ['Emoji Reactions', 'allowReactions'], ['Feature on Homepage', 'featuredOnHomepage']] as [string, keyof PostMeta][]).map(([label, key]) => (
-        <div key={key} className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
-          <Toggle value={!!meta[key]} onChange={() => setMeta(p => ({ ...p, [key]: !p[key] }))} />
-        </div>
-      ))}
-    </section>
-
-    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-      <button onClick={doDelete} className="w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 py-2.5 rounded-xl text-xs font-bold transition-all">
-        <Trash2 className="w-4 h-4" />Move to Trash
-      </button>
-    </div>
-  </div>
-));
-PostFormSidebar.displayName = 'PostFormSidebar';
-
 // ─────────────────────────── Main Component ───────────────────────────
 const PostForm: React.FC<PostFormProps> = ({ mode = 'create', postId, draftId, initialData, onSuccess, onCancel }) => {
   const navigate = useNavigate();
@@ -991,6 +885,93 @@ const PostForm: React.FC<PostFormProps> = ({ mode = 'create', postId, draftId, i
     if (e.key === 'Enter' && newTag.trim()) { e.preventDefault(); if (!meta.tags.includes(newTag.trim())) setMeta(p => ({ ...p, tags: [...p.tags, newTag.trim()] })); setNewTag(''); }
   };
 
+  // ── Sidebar content (reused for both desktop and mobile sheet) ──
+  const SidebarContent = () => (
+    <div className="p-6 space-y-8">
+      {/* Publishing */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Publishing</h3>
+          <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase ${postStatus === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{postStatus}</span>
+        </div>
+        <button onClick={doPublish} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+          <Rocket className="w-4 h-4" />{saving ? 'Publishing…' : isEdit ? 'Update & Publish' : 'Publish Now'}
+        </button>
+        <button onClick={doSaveDraft} disabled={saving} className="mt-2 w-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+          <Save className="w-4 h-4" />{saving ? 'Saving…' : 'Save Draft'}
+        </button>
+      </section>
+
+      {/* Post Metadata */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Post Metadata</h3>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">Content Type</label>
+          <div className="relative">
+            <select value={meta.contentType} onChange={e => setMeta(p => ({ ...p, contentType: e.target.value }))} className="w-full appearance-none bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-primary pr-8">
+              {['Sermon Note','Article / Essay','Devotional','Announcement','Bible Study','Prayer Journal','Teaching','Testimony'].map(t => <option key={t}>{t}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">Series</label>
+          <div className="relative">
+            <select value={meta.series} onChange={e => setMeta(p => ({ ...p, series: e.target.value }))} className="w-full appearance-none bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-primary pr-8">
+              <option value="">None</option>
+              {seriesList.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">Tags</label>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {meta.tags.map(tag => (
+              <span key={tag} className="flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full">
+                {tag}<button onClick={() => setMeta(p => ({ ...p, tags: p.tags.filter(t => t !== tag) }))} className="opacity-60 hover:opacity-100"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+          </div>
+          <input className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="Add tag, press Enter…" value={newTag} onChange={e => setNewTag(e.target.value)} onKeyDown={addTag} />
+        </div>
+      </section>
+
+      {/* Media */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Media</h3>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">Featured Image</label>
+          <ImageUploadInput value={meta.featuredImage || ''} onChange={url => setMeta(p => ({ ...p, featuredImage: url }))} />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 mb-1 block">Video Link</label>
+          <div className="relative">
+            <Video className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-1 focus:ring-primary" placeholder="YouTube or Vimeo URL" value={meta.videoUrl} onChange={e => setMeta(p => ({ ...p, videoUrl: e.target.value }))} />
+          </div>
+        </div>
+      </section>
+
+      {/* Engagement */}
+      <section className="space-y-3">
+        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Engagement</h3>
+        {([['Allow Comments', 'allowComments'], ['Emoji Reactions', 'allowReactions'], ['Feature on Homepage', 'featuredOnHomepage']] as [string, keyof PostMeta][]).map(([label, key]) => (
+          <div key={key} className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
+            <Toggle value={!!meta[key]} onChange={() => setMeta(p => ({ ...p, [key]: !p[key] }))} />
+          </div>
+        ))}
+      </section>
+
+      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+        <button onClick={doDelete} className="w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 py-2.5 rounded-xl text-xs font-bold transition-all">
+          <Trash2 className="w-4 h-4" />Move to Trash
+        </button>
+      </div>
+    </div>
+  );
+
   // ── Toolbar JSX ──
   const Toolbar = () => (
     <div className="pf-toolbar-scroll flex items-center gap-0.5 overflow-x-auto px-2 py-1.5 flex-nowrap">
@@ -1240,7 +1221,7 @@ const PostForm: React.FC<PostFormProps> = ({ mode = 'create', postId, draftId, i
         <aside
           className={`hidden md:flex flex-col w-72 xl:w-80 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto pf-sidebar transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full w-0 overflow-hidden border-0'}`}
         >
-          <PostFormSidebar postStatus={postStatus} saving={saving} doPublish={doPublish} doSaveDraft={doSaveDraft} doDelete={doDelete} meta={meta} setMeta={setMeta} seriesList={seriesList} newTag={newTag} setNewTag={setNewTag} addTag={addTag} isEdit={isEdit} />
+          <SidebarContent />
         </aside>
       </div>
 
@@ -1253,7 +1234,7 @@ const PostForm: React.FC<PostFormProps> = ({ mode = 'create', postId, draftId, i
               <h3 className="font-bold text-slate-900 dark:text-white text-sm">Post Settings</h3>
               <button onClick={() => setMobileSidebar(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
             </div>
-            <PostFormSidebar postStatus={postStatus} saving={saving} doPublish={doPublish} doSaveDraft={doSaveDraft} doDelete={doDelete} meta={meta} setMeta={setMeta} seriesList={seriesList} newTag={newTag} setNewTag={setNewTag} addTag={addTag} isEdit={isEdit} />
+            <SidebarContent />
           </div>
         </div>
       )}

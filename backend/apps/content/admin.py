@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, PostContentType, Interaction, Draft, WeeklyEvent
+from .models import Post, PostContentType, Interaction, Draft, WeeklyEvent, HeroSection
 
 
 @admin.register(Post)
@@ -86,3 +86,35 @@ class WeeklyEventAdmin(admin.ModelAdmin):
         """Display the day name"""
         return obj.get_day_of_week_display()
     get_day_display.short_description = 'Day'
+
+
+@admin.register(HeroSection)
+class HeroSectionAdmin(admin.ModelAdmin):
+    list_display = ['label', 'title', 'hero_type', 'is_active', 'display_order', 'updated_at']
+    list_filter = ['hero_type', 'is_active', 'display_order']
+    search_fields = ['title', 'label', 'description']
+    ordering = ['-display_order', '-updated_at']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Content', {
+            'fields': ('label', 'title', 'description')
+        }),
+        ('Image', {
+            'fields': ('image', 'image_alt_text')
+        }),
+        ('Primary Button', {
+            'fields': ('button1_label', 'button1_url', 'button1_icon'),
+            'description': 'Main call-to-action button'
+        }),
+        ('Secondary Button', {
+            'fields': ('button2_label', 'button2_url', 'button2_icon'),
+            'description': 'Optional secondary action'
+        }),
+        ('Display Settings', {
+            'fields': ('hero_type', 'is_active', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'updated_by'),
+            'classes': ('collapse',)
+        })
+    )
