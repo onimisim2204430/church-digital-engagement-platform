@@ -478,7 +478,19 @@ class WeeklyEventCreateUpdateSerializer(serializers.ModelSerializer):
 
 class HeroSectionSerializer(serializers.ModelSerializer):
     """Serializer for reading HeroSection data"""
-    
+
+    # Return a fully qualified absolute URL so the frontend can display the image
+    # regardless of the API host or media URL prefix.
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
     class Meta:
         from .models import HeroSection
         model = HeroSection
@@ -494,7 +506,11 @@ class HeroSectionSerializer(serializers.ModelSerializer):
 
 class HeroSectionCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating hero sections (admin only)"""
-    
+
+    # Make image optional so PATCH requests can update other fields
+    # without requiring the image to be re-uploaded.
+    image = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         from .models import HeroSection
         model = HeroSection
@@ -504,13 +520,13 @@ class HeroSectionCreateUpdateSerializer(serializers.ModelSerializer):
             'button2_label', 'button2_url', 'button2_icon',
             'hero_type', 'is_active', 'display_order', 'updated_by'
         ]
-    
+
     def validate_button1_icon(self, value):
         """Validate button icons are valid icon names"""
         if value and len(value) > 50:
             raise serializers.ValidationError("Icon name too long")
         return value
-    
+
     def validate_button2_icon(self, value):
         """Validate button icons are valid icon names"""
         if value and len(value) > 50:

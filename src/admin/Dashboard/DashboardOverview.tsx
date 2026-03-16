@@ -68,6 +68,7 @@ const DashboardOverview: React.FC = () => {
   const [showBalance, setShowBalance] = useState(false);
   const [heroSectionModalOpen, setHeroSectionModalOpen] = useState(false);
   const [savingHeroSection, setSavingHeroSection] = useState(false);
+  const [currentHeroSection, setCurrentHeroSection] = useState<any>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -182,6 +183,23 @@ const DashboardOverview: React.FC = () => {
     return () => controller.abort();
   }, []);
 
+  // Fetch the current active hero section so the edit modal is pre-populated
+  const fetchHeroSection = useCallback(async () => {
+    try {
+      const sections = await heroSectionService.getAll();
+      if (Array.isArray(sections) && sections.length > 0) {
+        setCurrentHeroSection(sections[0]);
+      }
+    } catch (error) {
+      // Non-critical – admin can still create a new hero section
+      console.warn('Could not load existing hero section:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHeroSection();
+  }, [fetchHeroSection]);
+
   /** Rebuilt only when totalPosts, loadingStats, financialBalance, or mediaReachVisits change */
   const metrics = useMemo<(MetricShape)[]>(() => [
     { label: 'Engagement',    value: '--',                                      change: '--', changePositive: true,  bars: [2, 4, 3, 5, 7], special: null, loading: false },
@@ -209,13 +227,15 @@ const DashboardOverview: React.FC = () => {
       } else {
         await heroSectionService.create(data);
       }
+      // Reload the hero section so the modal stays in sync on next open
+      await fetchHeroSection();
     } catch (error) {
       console.error('Error saving hero section:', error);
       throw error;
     } finally {
       setSavingHeroSection(false);
     }
-  }, []);
+  }, [fetchHeroSection]);
 
   return (
     <div className="p-6 space-y-6">
@@ -287,6 +307,7 @@ const DashboardOverview: React.FC = () => {
         isOpen={heroSectionModalOpen}
         onClose={() => setHeroSectionModalOpen(false)}
         onSave={handleSaveHeroSection}
+        initialData={currentHeroSection}
         isLoading={savingHeroSection}
       />
     </div>
