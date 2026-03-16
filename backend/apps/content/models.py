@@ -658,6 +658,8 @@ class HeroSection(models.Model):
     )
     image = models.ImageField(
         upload_to='hero_images/',
+        blank=True,
+        null=True,
         help_text="Hero section image"
     )
     image_alt_text = models.CharField(

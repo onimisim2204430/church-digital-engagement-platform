@@ -24,7 +24,7 @@ interface HeroSectionData {
 interface HeroSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: HeroSectionData) => void;
+  onSave: (data: HeroSectionData) => Promise<void> | void;
   initialData?: HeroSectionData;
   isLoading?: boolean;
 }
@@ -56,6 +56,8 @@ export function HeroSectionModal({
   );
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // True when imagePreview reflects the existing server image (not a newly chosen file)
+  const [isExistingImage, setIsExistingImage] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -64,6 +66,7 @@ export function HeroSectionModal({
       setFormData(initialData);
       if (typeof initialData.image === 'string' && initialData.image.startsWith('http')) {
         setImagePreview(initialData.image);
+        setIsExistingImage(true);
       }
     }
   }, [initialData]);
@@ -104,6 +107,8 @@ export function HeroSectionModal({
       const file = e.target.files?.[0];
       if (file) {
         handleInputChange('image', file);
+        // A new file was chosen – clear the "existing image" flag
+        setIsExistingImage(false);
         // Preview image
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -125,7 +130,7 @@ export function HeroSectionModal({
       }
 
       try {
-        onSave(formData);
+        await onSave(formData);
         setSuccess(formData.id ? 'Hero section updated successfully!' : 'Hero section created successfully!');
         setTimeout(() => {
           onClose();
@@ -236,6 +241,9 @@ export function HeroSectionModal({
                 {imagePreview && (
                   <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
                 )}
+                {imagePreview && isExistingImage && (
+                  <p className={styles.imageHint}>Current image shown above. Select a new file to replace it.</p>
+                )}
               </div>
               {errors.image && <span className={styles.error}>{errors.image}</span>}
             </div>
@@ -294,7 +302,7 @@ export function HeroSectionModal({
 
               <div className={styles.formGroup}>
                 <label htmlFor="button1_icon" className={styles.label}>
-                  Primary Button URL (Optional)
+                  Primary Button Icon (Optional)
                 </label>
                 <input
                   id="button1_icon"

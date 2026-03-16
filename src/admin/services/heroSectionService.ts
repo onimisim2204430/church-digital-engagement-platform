@@ -98,11 +98,17 @@ class HeroSectionService {
     try {
       const formData = new FormData();
 
-      // Add all fields to formData
+      // Add all fields to formData, but skip `image` when it is still a URL
+      // string (the existing server-side image) – only include it when the
+      // admin has selected a new local File to upload.
       Object.entries(data).forEach(([key, value]) => {
         if (value !== null && value !== undefined && key !== 'id') {
-          if (value instanceof File) {
-            formData.append(key, value);
+          if (key === 'image') {
+            // Only attach the image when a new File has been chosen
+            if (value instanceof File) {
+              formData.append(key, value);
+            }
+            // Otherwise omit the field so the existing image is preserved
           } else {
             formData.append(key, String(value));
           }
