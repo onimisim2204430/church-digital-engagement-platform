@@ -1,11 +1,21 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
+import Icon from '../../components/common/Icon';
+
+interface VoiceCard {
+  title: string;
+  name: string;
+  img: string;
+  videoUrl?: string;
+}
+
+const MAX_PUBLIC_STORIES = 2;
 
 /**
  * VoicesSection Component - Lazy loaded below-fold content
  * Displays community testimonial videos with optimized loading
  */
 const VoicesSection: React.FC = memo(() => {
-  const voices = useMemo(() => [
+  const fallbackVoices = useMemo<VoiceCard[]>(() => [
     { 
       title: 'A Journey to Stillness', 
       name: 'James\' Story', 
@@ -18,6 +28,65 @@ const VoicesSection: React.FC = memo(() => {
     },
   ], []);
 
+  const [voices, setVoices] = useState<VoiceCard[]>(fallbackVoices);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const mergeWithFallback = (databaseVoices: VoiceCard[]): VoiceCard[] => {
+      if (databaseVoices.length >= MAX_PUBLIC_STORIES) {
+        return databaseVoices.slice(0, MAX_PUBLIC_STORIES);
+      }
+
+      const seenKeys = new Set(databaseVoices.map((item) => `${item.name}::${item.title}`));
+      const remainingFallback = fallbackVoices.filter((item) => !seenKeys.has(`${item.name}::${item.title}`));
+
+      return [...databaseVoices, ...remainingFallback].slice(0, MAX_PUBLIC_STORIES);
+    };
+
+    const fetchVoices = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/public/testimonials/');
+        if (!response.ok) {
+          throw new Error('Could not load testimonials');
+        }
+
+        const payload = await response.json();
+        const items = Array.isArray(payload) ? payload : payload.results || [];
+
+        const normalizedVoices: VoiceCard[] = items
+          .filter((item: any) => item?.title && item?.name && item?.thumbnail_image)
+          .map((item: any) => ({
+            title: item.title,
+            name: item.name,
+            img: item.thumbnail_image,
+            videoUrl: item.video_file || item.video_url || undefined,
+          }));
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!normalizedVoices.length) {
+          setVoices(fallbackVoices);
+          return;
+        }
+
+        setVoices(mergeWithFallback(normalizedVoices));
+      } catch (error) {
+        if (!cancelled) {
+          setVoices(fallbackVoices);
+        }
+      }
+    };
+
+    fetchVoices();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fallbackVoices]);
+
   return (
     <section className="py-24 px-6 bg-text-main text-background-light" aria-labelledby="voices-heading">
       <div className="max-w-[1200px] mx-auto">
@@ -28,9 +97,14 @@ const VoicesSection: React.FC = memo(() => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {voices.map((voice, index) => (
             <article 
-              key={index} 
+              key={`${voice.name}-${voice.title}-${index}`}
               className="group relative overflow-hidden rounded-card aspect-video cursor-pointer"
               aria-label={`${voice.title} - ${voice.name}`}
+              onClick={() => {
+                if (voice.videoUrl) {
+                  window.open(voice.videoUrl, '_blank', 'noopener,noreferrer');
+                }
+              }}
             >
               {/* Aspect ratio container prevents CLS */}
               <div style={{ aspectRatio: '16/9' }}>
@@ -48,7 +122,7 @@ const VoicesSection: React.FC = memo(() => {
               {/* Play button overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-16 h-16 rounded-full border border-white/30 flex items-center justify-center bg-white/10 backdrop-blur-sm group-hover:bg-primary group-hover:border-primary transition-all">
-                  <span className="material-symbols-outlined text-white text-3xl" aria-hidden="true">play_arrow</span>
+                  <Icon name="play_arrow" size={32} className="text-white" ariaHidden />
                 </div>
               </div>
               <div className="absolute bottom-6 left-6 right-6">

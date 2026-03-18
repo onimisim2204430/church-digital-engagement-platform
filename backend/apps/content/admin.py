@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, PostContentType, Interaction, Draft, WeeklyEvent, HeroSection
+from .models import Post, PostContentType, Interaction, Draft, WeeklyEvent, HeroSection, Testimonial, SpiritualPractice
 
 
 @admin.register(Post)
@@ -112,6 +112,55 @@ class HeroSectionAdmin(admin.ModelAdmin):
         }),
         ('Display Settings', {
             'fields': ('hero_type', 'is_active', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'updated_by'),
+            'classes': ('collapse',)
+        })
+    )
+
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ['name', 'title', 'is_active', 'display_order', 'updated_at']
+    list_filter = ['is_active', 'display_order']
+    search_fields = ['name', 'title', 'description']
+    ordering = ['display_order', '-updated_at']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Content', {
+            'fields': ('name', 'title', 'description')
+        }),
+        ('Media', {
+            'fields': ('thumbnail_image', 'video_file', 'video_url'),
+            'description': 'Provide a video file, a video URL, or both.'
+        }),
+        ('Display', {
+            'fields': ('is_active', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'updated_by'),
+            'classes': ('collapse',)
+        })
+    )
+
+
+@admin.register(SpiritualPractice)
+class SpiritualPracticeAdmin(admin.ModelAdmin):
+    list_display = ['title', 'slug', 'is_active', 'display_order', 'updated_at']
+    list_filter = ['is_active', 'accent_color', 'icon_name']
+    search_fields = ['title', 'slug', 'short_description', 'full_content']
+    ordering = ['display_order', '-updated_at']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Card Content', {
+            'fields': ('title', 'slug', 'short_description', 'duration_label', 'icon_name', 'accent_color')
+        }),
+        ('Detail Content', {
+            'fields': ('full_content', 'cover_image', 'audio_url')
+        }),
+        ('Display', {
+            'fields': ('is_active', 'display_order')
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at', 'updated_by'),

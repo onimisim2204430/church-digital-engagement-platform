@@ -16,12 +16,13 @@
  * - CLS < 0.1 (via aspect ratio boxes)
  */
 
-import React, { useEffect, useCallback, useMemo, lazy, Suspense, memo, useState } from 'react';
+import React, { useEffect, useCallback, useMemo, lazy, Suspense, memo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SharedNavigation from './shared/SharedNavigation';
 import Icon from '../components/common/Icon';
 import { weeklyFlowService } from '../services/weeklyFlow.service';
 import { dailyWordService } from '../services/dailyWord.service';
+import { publicSpiritualPracticeService, type PublicSpiritualPractice } from '../services/publicSpiritualPractice.service';
 
 // ============================================================================
 // LAZY LOADED COMPONENTS (Code Splitting for Below-Fold Content)
@@ -356,36 +357,59 @@ WeeklyFlowSection.displayName = 'WeeklyFlowSection';
  * Spiritual Practices Section - Optimized with Intersection Observer
  */
 const SpiritualPracticesSection = memo(() => {
-  const practices = useMemo(() => [
-    { 
-      icon: 'self_improvement', 
-      title: 'Breath Meditation', 
-      desc: 'A 10-minute guided session focusing on mindful presence and anxiety release.', 
-      time: '10 Min', 
-      color: 'accent-sage' 
-    },
-    { 
-      icon: 'auto_stories', 
-      title: 'Lectio Divina', 
-      desc: 'A daily rhythmic reading of Psalm 23 for deep reflection and contemplation.', 
-      time: '5 Min Read', 
-      color: 'primary' 
-    },
-    { 
-      icon: 'edit_note', 
-      title: 'Examen Journaling', 
-      desc: 'Prompts to help you review your day and find God\'s presence in small moments.', 
-      time: 'Prompt', 
-      color: 'accent-sand' 
-    },
-    { 
-      icon: 'nature', 
-      title: 'Creation Walk', 
-      desc: 'An audio-guided walk designed to connect your movement with the natural world.', 
-      time: '15 Min', 
-      color: 'accent-sage' 
-    },
-  ], []);
+  const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [apiPractices, setApiPractices] = useState<PublicSpiritualPractice[]>([]);
+
+  const practices = useMemo(() => {
+    return apiPractices.map((practice: PublicSpiritualPractice, index: number) => ({
+      id: practice.id ?? index,
+      slug: practice.slug || '',
+      icon: practice.icon_name || 'self_improvement',
+      title: practice.title || 'Spiritual Practice',
+      desc: (practice.short_description || '').trim(),
+      time: (practice.duration_label || '').trim() || 'Practice',
+      color: practice.accent_color || 'accent-sage',
+    }));
+  }, [apiPractices]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPractices = async () => {
+      try {
+        const data = await publicSpiritualPracticeService.getAllActive();
+        if (!isMounted) {
+          return;
+        }
+
+        setApiPractices(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('[SpiritualPracticesSection] Failed to fetch practices:', error);
+        if (isMounted) {
+          setApiPractices([]);
+        }
+      }
+    };
+
+    fetchPractices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const scrollByCard = useCallback((direction: 1 | -1) => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const firstCard = container.querySelector('article');
+    const cardWidth = firstCard instanceof HTMLElement ? firstCard.offsetWidth : 320;
+    const scrollAmount = (cardWidth + 24) * direction;
+    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  }, []);
 
   return (
     <section id="practices" className="py-20 bg-accent-sand/10" aria-labelledby="practices-heading">
@@ -396,12 +420,14 @@ const SpiritualPracticesSection = memo(() => {
             <button 
               className="p-2 rounded-full bg-white border border-accent-sand/30 hover:border-primary transition-colors"
               aria-label="Previous practices"
+              onClick={() => scrollByCard(-1)}
             >
               <Icon name="chevron_left" size={16} />
             </button>
             <button 
               className="p-2 rounded-full bg-white border border-accent-sand/30 hover:border-primary transition-colors"
               aria-label="Next practices"
+              onClick={() => scrollByCard(1)}
             >
               <Icon name="chevron_right" size={16} />
             </button>
@@ -409,18 +435,25 @@ const SpiritualPracticesSection = memo(() => {
         </div>
         
         {/* Horizontal scroll container - could be virtualized for better performance */}
-        <div className="flex gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-6 px-6" role="list">
+        <div ref={containerRef} className="flex gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-6 px-6" role="list">
           {practices.map((practice, index) => (
             <article 
-              key={index} 
+              key={practice.id || index} 
               className="min-w-[320px] bg-surface rounded-card p-6 shadow-soft hover:shadow-hover transition-all cursor-pointer group"
+              onClick={() => {
+                if (practice.slug) {
+                  navigate(`/practices/${practice.slug}`);
+                  return;
+                }
+                navigate('/practices');
+              }}
               role="listitem"
             >
               <div className={`w-12 h-12 rounded-full bg-${practice.color}/10 flex items-center justify-center mb-6 group-hover:bg-${practice.color} group-hover:text-white transition-colors text-${practice.color}`} aria-hidden="true">
                 <Icon name={practice.icon} size={24} />
               </div>
-              <h3 className="text-2xl font-serif mb-2">{practice.title}</h3>
-              <p className="text-lg text-text-muted mb-6">{practice.desc}</p>
+              <h3 className="text-2xl font-serif mb-2 truncate" title={practice.title}>{practice.title}</h3>
+              <p className="text-lg text-text-muted mb-6 line-clamp-3">{practice.desc}</p>
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase tracking-widest text-text-muted font-bold">{practice.time}</span>
                 <Icon name="arrow_forward" size={20} className="text-primary group-hover:translate-x-1 transition-transform" ariaHidden />

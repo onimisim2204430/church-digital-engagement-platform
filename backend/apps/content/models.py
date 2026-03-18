@@ -6,6 +6,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 
 
@@ -730,3 +731,192 @@ class HeroSection(models.Model):
     
     def __str__(self):
         return f"{self.label} - {self.title}"
+
+
+class Testimonial(models.Model):
+    """
+    Community story cards shown in the public Voices section.
+    Supports either uploaded video files or external video URLs.
+    """
+
+    title = models.CharField(
+        max_length=200,
+        help_text="Story title (e.g., 'A Journey to Stillness')"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Story author label (e.g., James' Story)"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional detailed description"
+    )
+    video_file = models.FileField(
+        upload_to='testimonials/videos/',
+        blank=True,
+        null=True,
+        help_text="Optional uploaded video file (mp4/webm recommended)"
+    )
+    video_url = models.URLField(
+        blank=True,
+        help_text="Optional external video URL (YouTube/Vimeo/etc.)"
+    )
+    thumbnail_image = models.ImageField(
+        upload_to='testimonials/thumbnails/',
+        help_text="Thumbnail image displayed before playback"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this story appears on the public page"
+    )
+    display_order = models.PositiveIntegerField(
+        default=1,
+        help_text="Display order (lower number appears first)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Admin who last updated this story"
+    )
+
+    class Meta:
+        ordering = ['-display_order', '-created_at']
+        verbose_name = "Testimonial"
+        verbose_name_plural = "Testimonials"
+        indexes = [
+            models.Index(fields=['is_active', '-display_order']),
+        ]
+
+    def clean(self):
+        if not self.video_file and not self.video_url:
+            raise ValidationError("Provide either a video file or a video URL.")
+
+    def __str__(self):
+        return f"{self.name} - {self.title}"
+
+
+class SpiritualPractice(models.Model):
+    """
+    Editable spiritual practice cards and detail content.
+    Used by homepage carousel and dedicated practices pages.
+    """
+
+    ACCENT_COLOR_CHOICES = [
+        ('accent-sage', 'Accent Sage'),
+        ('primary', 'Primary'),
+        ('accent-sand', 'Accent Sand'),
+    ]
+
+    ICON_CHOICES = [
+        ('self_improvement', 'Self Improvement'),
+        ('auto_stories', 'Auto Stories'),
+        ('edit_note', 'Edit Note'),
+        ('nature', 'Nature'),
+        ('menu_book', 'Menu Book'),
+        ('headphones', 'Headphones'),
+        ('favorite', 'Favorite'),
+        ('psychology', 'Psychology'),
+    ]
+
+    title = models.CharField(max_length=20)
+    slug = models.SlugField(max_length=220, unique=True, db_index=True)
+    short_description = models.CharField(
+        max_length=80,
+        help_text="Short card description shown on homepage."
+    )
+    duration_label = models.CharField(
+        max_length=50,
+        default='10 Min',
+        help_text="Compact meta label (e.g., 10 Min, 5 Min Read)."
+    )
+    icon_name = models.CharField(
+        max_length=50,
+        default='self_improvement',
+        choices=ICON_CHOICES,
+        help_text="Icon token from the shared Icon mapping."
+    )
+    accent_color = models.CharField(
+        max_length=30,
+        default='accent-sage',
+        choices=ACCENT_COLOR_CHOICES,
+        help_text="Color token used by homepage card styling."
+    )
+    full_content = models.TextField(
+        blank=True,
+        help_text="Extended content for the dedicated practice detail page."
+    )
+    cover_image = models.ImageField(
+        upload_to='spiritual_practices/covers/',
+        blank=True,
+        null=True,
+        help_text="Optional cover image for practices page/detail."
+    )
+    audio_url = models.URLField(
+        blank=True,
+        help_text="Optional audio guide URL."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this practice is visible to public endpoints."
+    )
+    display_order = models.PositiveIntegerField(
+        default=1,
+        help_text="Display order for homepage carousel and practices pages."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Admin who last updated this practice."
+    )
+
+    class Meta:
+        ordering = ['display_order', '-updated_at']
+        verbose_name = "Spiritual Practice"
+        verbose_name_plural = "Spiritual Practices"
+        indexes = [
+            models.Index(fields=['is_active', 'display_order']),
+            models.Index(fields=['slug']),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['display_order'], name='content_spiritualpractice_unique_display_order'),
+        ]
+
+    def clean(self):
+        if len((self.title or '').strip()) > 20:
+            raise ValidationError({
+                'title': "Title must be 20 characters or less."
+            })
+
+        if len((self.short_description or '').strip()) > 80:
+            raise ValidationError({
+                'short_description': "Short description must be 80 characters or less."
+            })
+
+        if self.display_order is not None:
+            duplicate = SpiritualPractice.objects.filter(display_order=self.display_order).exclude(pk=self.pk).exists()
+            if duplicate:
+                raise ValidationError({
+                    'display_order': "Display order must be unique. Choose another order number."
+                })
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)[:200] or 'practice'
+            candidate = base_slug
+            suffix = 2
+            while SpiritualPractice.objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                suffix_text = f"-{suffix}"
+                candidate = f"{base_slug[:220-len(suffix_text)]}{suffix_text}"
+                suffix += 1
+            self.slug = candidate
+
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title

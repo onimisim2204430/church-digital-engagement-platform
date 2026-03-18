@@ -19,3 +19,18 @@ media/
 .DS_Store
 Thumbs.db
 "@ | Out-File -FilePath .gitignore -Encoding utf8
+
+
+
+ChurchApp-Android/
+app/
+build.gradle.kts
+gradle/
+gradlew
+gradlew.bat
+local.properties
+settings.gradle.kts
+*.iml
+.idea/
+gradle.properties
+.gradle/

@@ -12,11 +12,13 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 from apps.users.permissions import IsModerator, IsAdmin, HasModulePermission
 from apps.moderation.models import AuditLog, ActionType
-from .models import Post, PostContentType
+from .models import Post, PostContentType, Testimonial, SpiritualPractice
 from .serializers import (
     PostSerializer, PostCreateSerializer, PostUpdateSerializer,
     PostListSerializer, PostPublishSerializer, PostContentTypeSerializer,
-    PostContentTypeCreateSerializer, PostContentTypeUpdateSerializer
+    PostContentTypeCreateSerializer, PostContentTypeUpdateSerializer,
+    TestimonialSerializer, TestimonialCreateUpdateSerializer,
+    SpiritualPracticeSerializer, SpiritualPracticeCreateUpdateSerializer
 )
 
 
@@ -614,3 +616,49 @@ class PublicHeroSectionViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         from .serializers import HeroSectionSerializer
         return HeroSectionSerializer
+
+
+class AdminTestimonialViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for managing Community Stories testimonials.
+    Requires moderator+ permissions.
+    """
+
+    permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_queryset(self):
+        return Testimonial.objects.all().order_by('display_order', '-updated_at')
+
+    def get_serializer_class(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return TestimonialCreateUpdateSerializer
+        return TestimonialSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+
+class AdminSpiritualPracticeViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for Spiritual Practices CMS.
+    Requires moderator+ permissions.
+    """
+
+    permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_queryset(self):
+        return SpiritualPractice.objects.all().order_by('display_order', '-updated_at')
+
+    def get_serializer_class(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return SpiritualPracticeCreateUpdateSerializer
+        return SpiritualPracticeSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user.email)

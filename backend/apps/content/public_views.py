@@ -10,8 +10,15 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 
-from .models import Post, PostStatus, PostContentType, WeeklyEvent
-from .serializers import PostSerializer, PostListSerializer, DailyWordSerializer, WeeklyEventSerializer
+from .models import Post, PostStatus, PostContentType, WeeklyEvent, Testimonial, SpiritualPractice
+from .serializers import (
+    PostSerializer,
+    PostListSerializer,
+    DailyWordSerializer,
+    WeeklyEventSerializer,
+    TestimonialSerializer,
+    SpiritualPracticeSerializer,
+)
 
 
 class PublicPostViewSet(viewsets.ReadOnlyModelViewSet):
@@ -292,4 +299,31 @@ class PublicHeroSectionViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         from .serializers import HeroSectionSerializer
         return HeroSectionSerializer
+
+
+class PublicTestimonialViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public API for Community Stories testimonials.
+    Returns only active stories ordered for stable UI rendering.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = TestimonialSerializer
+
+    def get_queryset(self):
+        return Testimonial.objects.filter(is_active=True).order_by('display_order', '-updated_at')[:2]
+
+
+class PublicSpiritualPracticeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public API for spiritual practices.
+    Returns all active practices (no fixed cap) in display order.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = SpiritualPracticeSerializer
+    lookup_field = 'slug'
+
+    def get_queryset(self):
+        return SpiritualPractice.objects.filter(is_active=True).order_by('display_order', '-updated_at')
 

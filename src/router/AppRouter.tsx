@@ -34,6 +34,8 @@ import Forbidden from '../pages/Forbidden';
 import VerifyEmail from '../pages/VerifyEmail';
 import DailyWordDetailPage from '../public/DailyWordDetailPage';
 import OpenBiblePage from '../public/pages/OpenBiblePage';
+import PracticesPage from '../public/practices/PracticesPage';
+import PracticeDetailPage from '../public/practices/PracticeDetailPage';
 
 // Member pages
 import MemberOverview from '../member/views/MemberOverview';
@@ -73,6 +75,8 @@ import CommunityDashboard from '../admin/CommunityDashboard';
 import { MinistryHub } from '../admin/MinistryManagement';
 import GrowthDashboard from '../admin/GrowthDashboard';
 import AdminPlaceholder from '../admin/AdminPlaceholder';
+import CommunityStoriesPage from '../admin/CommunityStoriesPage';
+import SpiritualPracticesPage from '../admin/SpiritualPracticesPage';
 import AdminLayout from '../admin/layouts/AdminLayout';
 import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
 import PermissionGatedRoute from '../admin/components/PermissionGatedRoute';
@@ -176,6 +180,8 @@ const AppRouter: React.FC = () => {
         <Route path="/library/series/:slug" element={<SeriesPanel />} />
         <Route path="/library/sermon/:id" element={<SermonDetail />} />
         <Route path="/bible" element={<OpenBiblePage />} />
+        <Route path="/practices" element={<PracticesPage />} />
+        <Route path="/practices/:slug" element={<PracticeDetailPage />} />
         <Route path="/connect" element={<ConnectPage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/giving" element={<GivingPage />} />
@@ -240,6 +246,8 @@ const AppRouter: React.FC = () => {
           {/* <Route path="financial-dashboard" element={<PermissionGatedRoute code="fin.*"><FinancialDashboard /></PermissionGatedRoute>} /> */}
           <Route path="growth-dashboard"    element={<PermissionGatedRoute code="outreach.*"><GrowthDashboard /></PermissionGatedRoute>} />
           <Route path="content" element={<PermissionGatedRoute code="content.posts"><ContentManager /></PermissionGatedRoute>} />
+          <Route path="community-stories" element={<PermissionGatedRoute code="content.posts"><CommunityStoriesPage /></PermissionGatedRoute>} />
+          <Route path="spiritual-practices" element={<PermissionGatedRoute code="content.posts"><SpiritualPracticesPage /></PermissionGatedRoute>} />
           <Route path="series" element={<PermissionGatedRoute code="content.series"><SeriesManager /></PermissionGatedRoute>} />
           <Route path="series/new" element={<PermissionGatedRoute code="content.series"><SeriesCreate /></PermissionGatedRoute>} />
           <Route path="series/:id" element={<PermissionGatedRoute code="content.series"><SeriesEdit /></PermissionGatedRoute>} />

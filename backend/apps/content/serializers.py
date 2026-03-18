@@ -4,7 +4,7 @@ Content Serializers
 from rest_framework import serializers
 from django.utils import timezone
 from django.core.exceptions import ValidationError as DjangoValidationError
-from .models import Post, PostType, PostStatus, PostContentType, Draft
+from .models import Post, PostType, PostStatus, PostContentType, Draft, Testimonial, SpiritualPractice
 from apps.series.models import Series
 
 
@@ -531,4 +531,149 @@ class HeroSectionCreateUpdateSerializer(serializers.ModelSerializer):
         """Validate button icons are valid icon names"""
         if value and len(value) > 50:
             raise serializers.ValidationError("Icon name too long")
+        return value
+
+
+class TestimonialSerializer(serializers.ModelSerializer):
+    """Serializer for reading public/admin testimonial data."""
+
+    video_file = serializers.SerializerMethodField()
+    thumbnail_image = serializers.SerializerMethodField()
+
+    def get_video_file(self, obj):
+        if not obj.video_file:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.video_file.url)
+        return obj.video_file.url
+
+    def get_thumbnail_image(self, obj):
+        if not obj.thumbnail_image:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.thumbnail_image.url)
+        return obj.thumbnail_image.url
+
+    class Meta:
+        model = Testimonial
+        fields = [
+            'id', 'title', 'name', 'description',
+            'video_file', 'video_url', 'thumbnail_image',
+            'is_active', 'display_order',
+            'created_at', 'updated_at', 'updated_by'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class TestimonialCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating testimonials from admin."""
+
+    video_file = serializers.FileField(required=False, allow_null=True)
+    thumbnail_image = serializers.ImageField(required=False, allow_null=True)
+    video_url = serializers.URLField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Testimonial
+        fields = [
+            'title', 'name', 'description',
+            'video_file', 'video_url', 'thumbnail_image',
+            'is_active', 'display_order', 'updated_by'
+        ]
+
+    def validate(self, attrs):
+        instance = getattr(self, 'instance', None)
+
+        video_file = attrs.get('video_file')
+        video_url = attrs.get('video_url')
+
+        if instance is not None:
+            has_video_file = bool(video_file) if 'video_file' in attrs else bool(instance.video_file)
+            has_video_url = bool(video_url) if 'video_url' in attrs else bool(instance.video_url)
+            has_thumbnail = bool(attrs.get('thumbnail_image')) if 'thumbnail_image' in attrs else bool(instance.thumbnail_image)
+        else:
+            has_video_file = bool(video_file)
+            has_video_url = bool(video_url)
+            has_thumbnail = bool(attrs.get('thumbnail_image'))
+
+        if not has_video_file and not has_video_url:
+            raise serializers.ValidationError("Provide either a video file or a video URL.")
+
+        if not has_thumbnail:
+            raise serializers.ValidationError({"thumbnail_image": "Thumbnail image is required."})
+
+        # Enforce hard cap: only two stories can be selected for public rendering.
+        is_active_value = attrs.get('is_active', instance.is_active if instance else False)
+        if is_active_value:
+            active_count = Testimonial.objects.filter(is_active=True).count()
+
+            # If updating a currently selected record, exclude it from the count.
+            if instance is not None and instance.is_active:
+                active_count -= 1
+
+            if active_count >= 2:
+                raise serializers.ValidationError({
+                    "is_active": "Only two stories can be selected for public display."
+                })
+
+        return attrs
+
+
+class SpiritualPracticeSerializer(serializers.ModelSerializer):
+    """Serializer for public/admin read operations."""
+
+    cover_image = serializers.SerializerMethodField()
+
+    def get_cover_image(self, obj):
+        if not obj.cover_image:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.cover_image.url)
+        return obj.cover_image.url
+
+    class Meta:
+        model = SpiritualPractice
+        fields = [
+            'id', 'title', 'slug', 'short_description', 'duration_label',
+            'icon_name', 'accent_color', 'full_content', 'cover_image', 'audio_url',
+            'is_active', 'display_order', 'created_at', 'updated_at', 'updated_by'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class SpiritualPracticeCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for admin create/update operations."""
+
+    cover_image = serializers.ImageField(required=False, allow_null=True)
+    audio_url = serializers.URLField(required=False, allow_blank=True)
+    slug = serializers.SlugField(required=False, allow_blank=True)
+
+    class Meta:
+        model = SpiritualPractice
+        fields = [
+            'title', 'slug', 'short_description', 'duration_label',
+            'icon_name', 'accent_color', 'full_content', 'cover_image', 'audio_url',
+            'is_active', 'display_order', 'updated_by'
+        ]
+
+    def validate_short_description(self, value):
+        if len((value or '').strip()) > 80:
+            raise serializers.ValidationError("Short description must be 80 characters or less.")
+        return value
+
+    def validate_title(self, value):
+        if len((value or '').strip()) > 20:
+            raise serializers.ValidationError("Title must be 20 characters or less.")
+        return value
+
+    def validate_display_order(self, value):
+        instance = getattr(self, 'instance', None)
+        duplicate_qs = SpiritualPractice.objects.filter(display_order=value)
+        if instance is not None:
+            duplicate_qs = duplicate_qs.exclude(pk=instance.pk)
+
+        if duplicate_qs.exists():
+            raise serializers.ValidationError("Display order must be unique. Choose another order number.")
         return value
