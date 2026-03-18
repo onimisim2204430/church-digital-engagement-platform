@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hero Section Status Check</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+    .section { background: white; padding: 20px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #ddd; }
+    .success { border-left-color: #4caf50; }
+    .error { border-left-color: #f44336; }
+    .loading { border-left-color: #2196F3; }
+    pre { background: #eee; padding: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Hero Section Status</h1>
+  
+  <div id="status-backend" class="section loading">
+    <h3>Backend API (http://localhost:8000)</h3>
+    <p id="backend-result">Checking...</p>
+  </div>
+  
+  <div id="status-frontend" class="section loading">
+    <h3>Frontend via Full URL (from React)</h3>
+    <p id="frontend-result">Checking...</p>
+  </div>
+  
+  <div id="hero-preview" class="section">
+    <h3>Hero Section Preview</h3>
+    <div id="preview-content"></div>
+  </div>
+
+  <script>
+    // Test backend API directly
+    async function testBackendAPI() {
+      const el = document.getElementById('backend-result');
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/public/hero-sections/');
+        const data = await response.json();
+        
+        if (data.results && data.results[0]) {
+          const hero = data.results[0];
+          document.getElementById('status-backend').classList.remove('loading');
+          document.getElementById('status-backend').classList.add('success');
+          el.innerHTML = `✅ Success (Status: ${response.status})<br>
+            Count: ${data.count}<br>
+            First Hero: <strong>${hero.title}</strong><br>
+            Image: ${hero.image}<br>
+            Active: ${hero.is_active ? '✅ Yes' : '❌ No'}`;
+          return hero;
+        } else {
+          throw new Error('No hero in results');
+        }
+      } catch (err) {
+        document.getElementById('status-backend').classList.remove('loading');
+        document.getElementById('status-backend').classList.add('error');
+        el.innerHTML = `❌ Error: ${err.message}`;
+        return null;
+      }
+    }
+    
+    // Test frontend fetch (simulating HomePage component)
+    async function testFrontendFetch() {
+      const el = document.getElementById('frontend-result');
+      try {
+        // This simulates what the HomePage component now does with the fix
+        const response = await fetch('http://localhost:8000/api/v1/public/hero-sections/');
+        const data = await response.json();
+        
+        const hero = Array.isArray(data.results) ? data.results[0] : (Array.isArray(data) ? data[0] : null);
+        
+        if (hero) {
+          document.getElementById('status-frontend').classList.remove('loading');
+          document.getElementById('status-frontend').classList.add('success');
+          el.innerHTML = `✅ Success (Status: ${response.status})<br>
+            Fetch URL: http://localhost:8000/api/v1/public/hero-sections/<br>
+            Response parsed correctly: ✅`;
+          return hero;
+        } else {
+          throw new Error('Could not extract hero from response');
+        }
+      } catch (err) {
+        document.getElementById('status-frontend').classList.remove('loading');
+        document.getElementById('status-frontend').classList.add('error');
+        el.innerHTML = `❌ Error: ${err.message}`;
+        return null;
+      }
+    }
+    
+    // Test and display hero preview
+    async function showHeroPreview() {
+      const hero = await testFrontendFetch();
+      
+      if (hero && hero.image) {
+        const preview = document.getElementById('preview-content');
+        preview.innerHTML = `
+          <h4>${hero.label}</h4>
+          <h2>${hero.title}</h2>
+          <p>${hero.description}</p>
+          <img src="${hero.image}" alt="${hero.image_alt_text}" style="max-width: 100%; height: auto; margin-top: 20px;">
+        `;
+      }
+    }
+    
+    // Run tests
+    (async () => {
+      await testBackendAPI();
+      await showHeroPreview();
+    })();
+  </script>
+</body>
+</html>

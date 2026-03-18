@@ -92,25 +92,32 @@ const HeroSection = memo(() => {
     const fetchHeroData = async () => {
       try {
         setLoading(true);
-        // Fetch from public API endpoint
-        const response = await fetch('/api/v1/public/hero-sections/');
+        console.log('[HeroSection] Fetching from http://localhost:8000/api/v1/public/hero-sections/');
+        // Fetch from public API endpoint using full URL to bypass dev server proxy issues
+        const response = await fetch('http://localhost:8000/api/v1/public/hero-sections/');
+        console.log('[HeroSection] Response status:', response.status);
         if (response.ok) {
           const data = await response.json();
+          console.log('[HeroSection] Data received:', data);
           // Get the first active hero section
           const hero = Array.isArray(data.results) ? data.results[0] : (Array.isArray(data) ? data[0] : null);
+          console.log('[HeroSection] Extracted hero:', hero);
           if (hero) {
+            console.log('[HeroSection] Setting hero data from API');
             setHeroData(hero);
           } else {
             // No hero data in DB, use default
+            console.log('[HeroSection] No hero found, using default');
             setHeroData(defaultHeroData);
           }
         } else {
           // API error, use default
+          console.log('[HeroSection] API error, using default');
           setHeroData(defaultHeroData);
         }
       } catch (error) {
         // Network error, use default
-        console.error('Failed to fetch hero section:', error);
+        console.error('[HeroSection] Failed to fetch hero section:', error);
         setHeroData(defaultHeroData);
       } finally {
         setLoading(false);

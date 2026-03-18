@@ -22,7 +22,7 @@ export interface HeroSectionData {
 }
 
 class HeroSectionService {
-  private baseUrl = 'content/hero-sections';
+  private baseUrl = 'admin/content/hero-sections';
   private publicBaseUrl = 'public/hero-sections';
 
   /**
@@ -30,7 +30,7 @@ class HeroSectionService {
    */
   async getAll(): Promise<HeroSectionData[]> {
     try {
-      const response = await apiService.get(this.baseUrl);
+      const response = await apiService.get(this.baseUrl + '/');
       return response.results || response;
     } catch (error) {
       console.error('Error fetching hero sections:', error);
@@ -43,7 +43,7 @@ class HeroSectionService {
    */
   async getById(id: number): Promise<HeroSectionData> {
     try {
-      return await apiService.get(`${this.baseUrl}/${id}`);
+      return await apiService.get(`${this.baseUrl}/${id}/`);
     } catch (error) {
       console.error(`Error fetching hero section ${id}:`, error);
       throw error;
@@ -55,7 +55,7 @@ class HeroSectionService {
    */
   async getLatestPublic(): Promise<HeroSectionData | null> {
     try {
-      const response = await apiService.get(this.publicBaseUrl);
+      const response = await apiService.get(this.publicBaseUrl + '/');
       const data = response.results || response;
       return Array.isArray(data) && data.length > 0 ? data[0] : null;
     } catch (error) {
@@ -82,7 +82,7 @@ class HeroSectionService {
         }
       });
 
-      return await apiService.post(this.baseUrl, formData, {
+      return await apiService.post(this.baseUrl + '/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     } catch (error) {
@@ -115,7 +115,7 @@ class HeroSectionService {
         }
       });
 
-      return await apiService.patch(`${this.baseUrl}/${id}`, formData, {
+      return await apiService.patch(`${this.baseUrl}/${id}/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     } catch (error) {
@@ -129,7 +129,7 @@ class HeroSectionService {
    */
   async delete(id: number): Promise<void> {
     try {
-      await apiService.delete(`${this.baseUrl}/${id}`);
+      await apiService.delete(`${this.baseUrl}/${id}/`);
     } catch (error) {
       console.error(`Error deleting hero section ${id}:`, error);
       throw error;

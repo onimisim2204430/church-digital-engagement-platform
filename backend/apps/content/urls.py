@@ -3,7 +3,7 @@ Content App URLs
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AdminPostViewSet, AdminDailyWordViewSet, AdminWeeklyEventViewSet, AdminHeroSectionViewSet, PublicHeroSectionViewSet
+from .views import AdminPostViewSet, AdminDailyWordViewSet, AdminWeeklyEventViewSet, AdminHeroSectionViewSet
 from .content_type_views import ContentTypeViewSet
 from .interaction_views import InteractionViewSet
 from .draft_views import DraftViewSet
@@ -20,10 +20,6 @@ admin_router.register(r'hero-sections', AdminHeroSectionViewSet, basename='admin
 admin_router.register(r'content-types', ContentTypeViewSet, basename='content-type')
 admin_router.register(r'interactions', InteractionViewSet, basename='interaction')
 admin_router.register(r'drafts', DraftViewSet, basename='draft')
-
-# Public router - for unauthenticated public endpoints
-public_router = DefaultRouter()
-public_router.register(r'hero-sections', PublicHeroSectionViewSet, basename='public-hero-section')
 
 urlpatterns = [
     path('', include(admin_router.urls)),

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hero Section API Test</title>
+</head>
+<body>
+  <h1>Hero Section API Test</h1>
+  <div id="status"></div>
+  <pre id="response"></pre>
+  
+  <script>
+    const statusEl = document.getElementById('status');
+    const responseEl = document.getElementById('response');
+    
+    async function test() {
+      try {
+        statusEl.textContent = 'Fetching...';
+        const response = await fetch('/api/v1/public/hero-sections/');
+        statusEl.textContent = `Status: ${response.status}`;
+        const data = await response.json();
+        responseEl.textContent = JSON.stringify(data, null, 2);
+        
+        if (data.results && data.results[0]) {
+          console.log('Hero found:', data.results[0]);
+          statusEl.innerHTML += '<br>✅ Hero section found in response';
+        }
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+        responseEl.textContent = err.stack;
+      }
+    }
+    
+    test();
+  </script>
+</body>
+</html>

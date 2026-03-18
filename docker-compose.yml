@@ -65,9 +65,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "python backend/manage.py migrate &&
-             gunicorn --chdir backend --bind 0.0.0.0:8000 --workers 4 --threads 2 
-             --worker-tmp-dir /dev/shm --log-level info --access-logfile - 
-             --error-logfile - config.wsgi:application"
+             daphne -b 0.0.0.0 -p 8000 -v 2 config.asgi:application"
 
   # Celery Worker (for background tasks)
   celery:
