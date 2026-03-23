@@ -38,7 +38,7 @@ const Footer: React.FC<FooterProps> = memo(({ fullWidth = true }) => {
           <nav className="flex flex-col" aria-labelledby="footer-contact-heading">
             <h2 id="footer-contact-heading" className="text-base font-bold uppercase tracking-widest text-text-main mb-6">Contact</h2>
             <ul className="space-y-4 text-lg text-text-muted">
-              <li><Link to="/connect" className="hover:text-primary transition-colors">Connect Form</Link></li>
+              <li><Link to="/contact" className="hover:text-primary transition-colors">Contact Form</Link></li>
               <li><Link to="/giving" className="hover:text-primary transition-colors">Giving</Link></li>
               <li><Link to="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
             </ul>

@@ -23,6 +23,7 @@ import SeriesPage from '../public/library/Series/SeriesPage';
 import SeriesPanel from '../public/library/Series/SeriesPanel';
 import SermonDetail from '../public/library/sermon/SermonDetail';
 import ConnectPage from '../public/ConnectPage';
+import ContactPage from '../public/ContactPage';
 import EventsPage from '../public/EventsPage';
 import GivingPage from '../public/GivingPage';
 import LoginPage from '../public/LoginPage';
@@ -65,6 +66,7 @@ import DraftsManager from '../admin/DraftsManager';
 import WeeklyFlowPage from '../admin/WeeklyFlowManagement';
 import EventManager from '../admin/EventManagement/EventManager';
 import ConnectManager from '../admin/ConnectManagement/ConnectManager';
+import ContactInbox from '../admin/ContactManagement/ContactInbox';
 import SeedManager from '../admin/SeedManagement';
 import {
   FinancialHub,
@@ -186,6 +188,7 @@ const AppRouter: React.FC = () => {
         <Route path="/practices" element={<PracticesPage />} />
         <Route path="/practices/:slug" element={<PracticeDetailPage />} />
         <Route path="/connect" element={<ConnectPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/giving" element={<GivingPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -268,6 +271,7 @@ const AppRouter: React.FC = () => {
           <Route path="users" element={<AdminOnlyRoute><UserManager /></AdminOnlyRoute>} />
           <Route path="moderation" element={<PermissionGatedRoute code="community.moderation"><InteractionModeration /></PermissionGatedRoute>} />
           <Route path="small-groups" element={<PermissionGatedRoute code="community.groups"><ConnectManager /></PermissionGatedRoute>} />
+          <Route path="contact-inbox" element={<ContactInbox />} />
           <Route path="prayer-wall" element={<PermissionGatedRoute code="community.prayer"><AdminPlaceholder title="Prayer Wall" icon="volunteer_activism" description="Monitor and moderate community prayer requests." /></PermissionGatedRoute>} />
           <Route path="events" element={<PermissionGatedRoute code="schedule.events"><EventManager /></PermissionGatedRoute>} />
           <Route path="volunteers" element={<PermissionGatedRoute code="community.volunteers"><AdminPlaceholder title="Volunteers" icon="manage_accounts" description="Coordinate volunteer roles, schedules and assignments." /></PermissionGatedRoute>} />
