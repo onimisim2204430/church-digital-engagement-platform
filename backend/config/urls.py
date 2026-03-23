@@ -66,6 +66,9 @@ urlpatterns = [
 
         # Notifications endpoints
         path('notifications/', include('apps.notifications.urls')),
+
+        # Contact form (public submit + admin inbox)
+        path('contact/', include('apps.contact.urls')),
     ])),
 
      # Bible Module (offline-first, cached)

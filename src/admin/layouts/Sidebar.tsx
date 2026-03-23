@@ -49,6 +49,7 @@ const navGroups = [
       { id: 'moderation',   label: 'Moderation',   icon: 'forum',              path: '/admin/moderation',   roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'community.moderation' },
       { id: 'small-groups', label: 'Small Groups', icon: 'groups_2',           path: '/admin/small-groups', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'community.groups'     },
       { id: 'prayer-wall',  label: 'Prayer Wall',  icon: 'volunteer_activism', path: '/admin/prayer-wall',  roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'community.prayer'     },
+      { id: 'contact-inbox', label: 'Contact Inbox', icon: 'mail', path: '/admin/contact-inbox', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
     ],
   },
   {
