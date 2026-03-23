@@ -3,12 +3,6 @@
  * and admin contact inbox management.
  */
 import apiService from './api.service';
-import axios from 'axios';
-
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  process.env.REACT_APP_API_BASE_URL ||
-  'http://localhost:8000/api/v1';
 
 export type ContactCategory =
   | 'GENERAL'
@@ -94,10 +88,10 @@ export const CONTACT_CATEGORIES: { value: ContactCategory; label: string }[] = [
 class ContactService {
   /**
    * Submit a contact message (public — no auth required).
+   * Uses apiService which is always configured with the correct base URL.
    */
   async submitMessage(payload: ContactSubmitPayload): Promise<{ id: string; message: string }> {
-    const response = await axios.post(`${API_BASE_URL}/contact/submit/`, payload);
-    return response.data;
+    return apiService.post<{ id: string; message: string }>('/contact/submit/', payload);
   }
 
   /**

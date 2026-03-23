@@ -73,6 +73,11 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
+        'contact': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -303,6 +308,11 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'NON_FIELD_ERRORS_KEY': 'error',
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
+    # Throttle rates (used by contact submit and any future rate-limited views)
+    'DEFAULT_THROTTLE_RATES': {
+        'contact_submit':      '5/hour',   # Anonymous IP: 5 submissions per hour
+        'contact_submit_user': '20/hour',  # Authenticated user: 20 per hour
+    },
 }
 
 

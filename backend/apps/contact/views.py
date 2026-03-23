@@ -4,16 +4,17 @@ Contact Views
 Public endpoint for submitting contact messages (no auth required).
 Admin endpoints for managing the contact inbox and replying.
 """
+import html as html_module
 import logging
 import os
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.decorators import api_view, permission_classes
 
 from apps.users.permissions import IsModerator as IsAdminOrModerator
 from .models import ContactMessage, ContactReply, ContactStatus
@@ -25,6 +26,17 @@ from .serializers import (
 )
 
 logger = logging.getLogger('contact')
+
+
+class ContactSubmitThrottle(AnonRateThrottle):
+    """5 submissions per hour per IP for anonymous users."""
+    scope = 'contact_submit'
+
+
+class ContactSubmitUserThrottle(UserRateThrottle):
+    """20 submissions per hour for authenticated users."""
+    scope = 'contact_submit_user'
+
 
 # Category → Gmail alias mapping (falls back to primary admin email)
 CATEGORY_RECIPIENT_MAP = {
@@ -98,18 +110,32 @@ def _send_admin_notification_email(contact_message: ContactMessage) -> bool:
         recipient = _get_recipient_for_category(contact_message.category)
         category_label = contact_message.get_category_display()
 
+        # Escape all user-supplied values to prevent XSS in the email body
+        esc_name    = html_module.escape(contact_message.sender_name)
+        esc_email   = html_module.escape(contact_message.sender_email)
+        esc_phone   = html_module.escape(contact_message.sender_phone)
+        esc_subject = html_module.escape(contact_message.subject)
+        esc_pref    = html_module.escape(contact_message.preferred_contact)
+        esc_message = html_module.escape(contact_message.message)
+        esc_cat     = html_module.escape(category_label)
+
+        phone_row = (
+            f'<tr><td><strong>Phone</strong></td><td>{esc_phone}</td></tr>'
+            if esc_phone else ''
+        )
+
         body_html = f"""
-<h2>New Contact Message — {category_label}</h2>
+<h2>New Contact Message — {esc_cat}</h2>
 <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%">
-  <tr><td><strong>From</strong></td><td>{contact_message.sender_name} &lt;{contact_message.sender_email}&gt;</td></tr>
-  {'<tr><td><strong>Phone</strong></td><td>' + contact_message.sender_phone + '</td></tr>' if contact_message.sender_phone else ''}
-  <tr><td><strong>Category</strong></td><td>{category_label}</td></tr>
-  <tr><td><strong>Subject</strong></td><td>{contact_message.subject}</td></tr>
-  <tr><td><strong>Preferred contact</strong></td><td>{contact_message.preferred_contact}</td></tr>
+  <tr><td><strong>From</strong></td><td>{esc_name} &lt;{esc_email}&gt;</td></tr>
+  {phone_row}
+  <tr><td><strong>Category</strong></td><td>{esc_cat}</td></tr>
+  <tr><td><strong>Subject</strong></td><td>{esc_subject}</td></tr>
+  <tr><td><strong>Preferred contact</strong></td><td>{esc_pref}</td></tr>
   <tr><td><strong>Submitted</strong></td><td>{contact_message.created_at.strftime('%Y-%m-%d %H:%M UTC')}</td></tr>
 </table>
 <h3>Message</h3>
-<p style="white-space:pre-wrap">{contact_message.message}</p>
+<p style="white-space:pre-wrap">{esc_message}</p>
 <hr>
 <p><small>Manage this message in the <a href="/admin/contact-inbox">Admin Contact Inbox</a>.</small></p>
 """
@@ -144,13 +170,21 @@ def _send_reply_email(reply: ContactReply) -> bool:
             reply.replied_by.get_full_name()
             if reply.replied_by else 'The Team'
         )
+
+        # Escape all user-supplied values to prevent XSS in the reply email
+        esc_sender   = html_module.escape(contact_msg.sender_name)
+        esc_subject  = html_module.escape(contact_msg.subject)
+        esc_replier  = html_module.escape(replier_name)
+        esc_reply    = html_module.escape(reply.reply_text)
+        esc_orig_msg = html_module.escape(contact_msg.message)
+
         body_html = f"""
-<h2>Re: {contact_msg.subject}</h2>
-<p>Dear {contact_msg.sender_name},</p>
-<p>Thank you for reaching out to us. {replier_name} has responded to your message:</p>
-<blockquote style="border-left:3px solid #ccc;padding-left:16px;margin:16px 0;white-space:pre-wrap">{reply.reply_text}</blockquote>
+<h2>Re: {esc_subject}</h2>
+<p>Dear {esc_sender},</p>
+<p>Thank you for reaching out to us. {esc_replier} has responded to your message:</p>
+<blockquote style="border-left:3px solid #ccc;padding-left:16px;margin:16px 0;white-space:pre-wrap">{esc_reply}</blockquote>
 <p>Your original message:</p>
-<blockquote style="border-left:3px solid #eee;padding-left:16px;color:#666;white-space:pre-wrap">{contact_msg.message}</blockquote>
+<blockquote style="border-left:3px solid #eee;padding-left:16px;color:#666;white-space:pre-wrap">{esc_orig_msg}</blockquote>
 <hr>
 <p><small>This is an automated response from Serene Sanctuary. Please do not reply directly to this email.</small></p>
 """
@@ -178,8 +212,13 @@ class PublicContactSubmitView(APIView):
     Public endpoint (no auth required). Accepts contact form submissions.
     Authenticated users have their identity optionally linked; anonymous users
     supply their own name/email.
+
+    Rate limits (via DRF throttle):
+        - Anonymous: 5 submissions/hour per IP  (ContactSubmitThrottle)
+        - Authenticated: 20 submissions/hour    (ContactSubmitUserThrottle)
     """
     permission_classes = [AllowAny]
+    throttle_classes = [ContactSubmitThrottle, ContactSubmitUserThrottle]
 
     def post(self, request):
         serializer = ContactMessageCreateSerializer(data=request.data)
