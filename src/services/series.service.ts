@@ -115,6 +115,35 @@ export interface ReorderSeriesPostsData {
   }>;
 }
 
+export interface SetFeaturedSeriesData {
+  series_ids: string[];
+}
+
+export interface CurrentSeriesSpotlight {
+  id: number;
+  series: Series | null;
+  series_id?: string | null;
+  section_label: string;
+  latest_part_number: number;
+  latest_part_status: 'AVAILABLE' | 'COMING_SOON';
+  latest_part_label: string;
+  description_override: string;
+  cta_label: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CurrentSeriesSpotlightUpdateData {
+  series_id?: string | null;
+  section_label?: string;
+  latest_part_number?: number;
+  latest_part_status?: 'AVAILABLE' | 'COMING_SOON';
+  description_override?: string;
+  cta_label?: string;
+  is_active?: boolean;
+}
+
 export const SERIES_VISIBILITY_OPTIONS = [
   { value: 'PUBLIC', label: 'Public' },
   { value: 'MEMBERS_ONLY', label: 'Members Only' },
@@ -267,6 +296,33 @@ class SeriesService {
     return response.data;
   }
 
+  /**
+   * Atomically set exactly 3 featured series for homepage archive.
+   */
+  async setFeaturedSeriesSelection(data: SetFeaturedSeriesData): Promise<Series[]> {
+    const response = await this.api.post('/set-featured/', data);
+    if (response.data?.results !== undefined) {
+      return response.data.results;
+    }
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  /**
+   * Get admin current spotlight config.
+   */
+  async getCurrentSeriesSpotlightAdmin(): Promise<CurrentSeriesSpotlight> {
+    const response = await this.api.get('/current-spotlight/');
+    return response.data;
+  }
+
+  /**
+   * Save admin current spotlight config.
+   */
+  async saveCurrentSeriesSpotlight(data: CurrentSeriesSpotlightUpdateData): Promise<CurrentSeriesSpotlight> {
+    const response = await this.api.post('/current-spotlight/', data);
+    return response.data;
+  }
+
   // PUBLIC ENDPOINTS
 
   /**
@@ -312,6 +368,17 @@ class SeriesService {
     }
     
     return Array.isArray(response.data) ? response.data : [];
+  }
+
+  /**
+   * Get public current spotlight config for homepage section.
+   */
+  async getPublicCurrentSeriesSpotlight(): Promise<CurrentSeriesSpotlight | null> {
+    const response = await this.publicApi.get('/current-spotlight/');
+    if (!response.data || Object.keys(response.data).length === 0) {
+      return null;
+    }
+    return response.data;
   }
 }
 

@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { BibleReader, BibleLoader, useBible } from '../../bible';
 import SharedNavigation from '../shared/SharedNavigation';
-import Footer from '../sections/Footer';
 
 const pageStyles = `
+  /*
+   * Bible page container contract:
+   * - In normal mode, public top nav is fixed at top.
+   * - Bible reader gets the remaining viewport height and owns scrolling.
+   * - In reading/presentation modes, reader uses full viewport height.
+   */
   .obp-root {
+    --obp-topnav-height: 80px;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    background: #FAF7F0;  }
+    height: 100vh;
+    overflow: hidden;
+    background: #FAF7F0;
+  }
 
-  .obp-root.with-topnav {    padding-top: 84px; /* Account for fixed topnav */
+  .obp-root.with-topnav {
+    padding-top: 0;
   }
 
   .obp-loading {
@@ -21,13 +30,39 @@ const pageStyles = `
     justify-content: center;
     gap: 1.5rem;
     background: #FAF7F0;
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - var(--obp-topnav-height));
+  }
+
+  .obp-root.with-topnav .obp-loading {
+    margin-top: var(--obp-topnav-height);
+    height: calc(100vh - var(--obp-topnav-height));
+    min-height: 0;
   }
 
   .obp-reader {
-    flex: 1;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .obp-root.with-topnav .obp-reader {
+    margin-top: var(--obp-topnav-height);
+    height: calc(100vh - var(--obp-topnav-height));
+  }
+
+  .obp-root.mode-reading .obp-reader,
+  .obp-root.mode-presentation .obp-reader {
+    margin-top: 0;
+    height: 100vh;
+  }
+
+  .obp-root.mode-reading .obp-loading,
+  .obp-root.mode-presentation .obp-loading {
+    margin-top: 0;
+    height: 100vh;
+    min-height: 0;
   }
 
   /* Remove footer padding when Bible is open for immersive reading */
@@ -54,7 +89,7 @@ const OpenBiblePage: React.FC = () => {
   return (
     <>
       <style>{pageStyles}</style>
-      <div className={`obp-root${bibleMode === 'normal' ? ' with-topnav' : ''}`}>
+      <div className={`obp-root mode-${bibleMode}${bibleMode === 'normal' ? ' with-topnav' : ''}`}>
         {bibleMode === 'normal' && (
           <SharedNavigation isScrolled={isScrolled} currentPage="bible" fullWidth={true} />
         )}

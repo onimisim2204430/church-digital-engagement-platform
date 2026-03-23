@@ -60,6 +60,7 @@ export interface DailyWordCreateRequest {
   scripture?: string;
   prayer?: string;
   scheduled_date: string;
+  status?: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED';
   content_type?: string;
   tags?: string[];
 }
@@ -70,11 +71,12 @@ export interface DailyWordUpdateRequest {
   scripture?: string;
   prayer?: string;
   scheduled_date?: string;
+  status?: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED';
 }
 
 export interface WeeklyEvent {
   id: string;
-  day_of_week: number; // 0-6 (Sunday-Saturday)
+  day_of_week: number; // 0-6 (Monday-Sunday)
   title: string;
   time: string;
   description?: string;

@@ -14,7 +14,7 @@ const Footer = lazy(() =>
 
 interface PublicLayoutProps {
   children: React.ReactNode;
-  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events';
+  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events' | 'bible' | 'giving';
   fullWidth?: boolean; // If true, removes max-width constraints
 }
 

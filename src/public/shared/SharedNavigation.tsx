@@ -10,7 +10,7 @@
  */
 
 import { memo, useMemo, useState, useEffect, Suspense, lazy } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import Icon from '../../components/common/Icon';
 
@@ -21,12 +21,13 @@ const MegaMenu = lazy(() =>
 
 interface SharedNavigationProps {
   isScrolled?: boolean;
-  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events' | 'bible';
+  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events' | 'bible' | 'giving';
   fullWidth?: boolean; // If true, removes max-width and uses full width
 }
 
 const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = true }: SharedNavigationProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   // State for mega menu visibility
   const [showMegaMenu, setShowMegaMenu] = useState(false);
@@ -70,8 +71,26 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
     return `${base} ${scrollClasses} backdrop-blur-sm will-change-transform`;
   }, [isScrolled]);
 
+  const activePage = useMemo(() => {
+    const pathname = location.pathname.toLowerCase();
+
+    if (pathname === '/') return 'home';
+    if (pathname === '/library/series' || pathname.startsWith('/library/series/')) return 'series';
+    if (pathname.startsWith('/library/sermon/')) return 'library';
+    if (pathname === '/library' || pathname.startsWith('/library/')) return 'library';
+    if (pathname === '/bible' || pathname.startsWith('/bible/')) return 'bible';
+    if (pathname === '/practices' || pathname.startsWith('/practices/')) return 'practices';
+    if (pathname === '/connect' || pathname.startsWith('/connect/')) return 'connect';
+    if (pathname === '/events' || pathname.startsWith('/events/')) return 'events';
+    if (pathname === '/giving' || pathname.startsWith('/giving/')) return 'giving';
+
+    return currentPage;
+  }, [location.pathname, currentPage]);
+
   // Determine if a nav item is active
-  const isActive = (page: string) => currentPage === page;
+  const isActive = (page: string) => activePage === page;
+  const isLibraryClusterActive = activePage === 'library' || activePage === 'series';
+  const isConnectClusterActive = activePage === 'connect' || activePage === 'events' || activePage === 'giving';
 
   return (
     <>
@@ -93,10 +112,11 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
           >
             <button 
               className={`flex items-center gap-1 font-medium transition-colors ${
-                isActive('library') ? 'text-primary' : 'text-text-main hover:text-primary'
+                isLibraryClusterActive ? 'text-primary' : 'text-text-main hover:text-primary'
               }`}
               aria-expanded={showMegaMenu}
               aria-haspopup="true"
+              aria-current={isLibraryClusterActive ? 'page' : undefined}
             >
               Library <Icon name="expand_more" size={16} ariaHidden />
             </button>
@@ -106,7 +126,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   Loading...
                 </div>
               }>
-                <MegaMenu currentPage={currentPage} />
+                <MegaMenu currentPage={activePage} />
               </Suspense>
             )}
           </div>
@@ -117,30 +137,34 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
             className={`font-medium transition-colors ${
               isActive('bible') ? 'text-primary' : 'text-text-main hover:text-primary'
             }`}
+            aria-current={isActive('bible') ? 'page' : undefined}
           >
             Open Bible
-          </Link>
-          <Link 
-            to="/library/series" 
-            className={`font-medium transition-colors ${
-              isActive('series') ? 'text-primary' : 'text-text-main hover:text-primary'
-            }`}
-          >
-            Series
           </Link>
           <Link 
             to="/practices" 
             className={`font-medium transition-colors ${
               isActive('practices') ? 'text-primary' : 'text-text-main hover:text-primary'
             }`}
+            aria-current={isActive('practices') ? 'page' : undefined}
           >
             Practices
           </Link>
           <Link 
+            to="/events" 
+            className={`font-medium transition-colors ${
+              isActive('events') ? 'text-primary' : 'text-text-main hover:text-primary'
+            }`}
+            aria-current={isActive('events') ? 'page' : undefined}
+          >
+            Events
+          </Link>
+          <Link 
             to="/connect" 
             className={`font-medium transition-colors ${
-              isActive('connect') ? 'text-primary' : 'text-text-main hover:text-primary'
+              isConnectClusterActive ? 'text-primary' : 'text-text-main hover:text-primary'
             }`}
+            aria-current={isConnectClusterActive ? 'page' : undefined}
           >
             Connect
           </Link>
@@ -189,12 +213,12 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
 
           {/* Sidebar */}
           <div 
-            className="fixed top-0 right-0 bottom-0 w-[280px] bg-background-light z-[70] md:hidden shadow-2xl animate-slide-in-right overflow-y-auto"
+            className="fixed top-0 right-0 bottom-0 w-[280px] bg-background-light z-[70] md:hidden shadow-2xl animate-slide-in-right flex flex-col"
             role="dialog"
             aria-label="Mobile navigation menu"
           >
             {/* Sidebar Header */}
-            <div className="flex items-center justify-between p-6 border-b border-accent-sand/30">
+            <div className="flex items-center justify-between p-6 border-b border-accent-sand/30 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Icon name="spa" size={28} className="text-primary" ariaHidden />
                 <span className="font-display font-semibold text-base tracking-tight text-text-main">Menu</span>
@@ -209,13 +233,14 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
             </div>
 
             {/* Navigation Links */}
-            <div className="flex flex-col p-6 space-y-2">
+            <div className="flex flex-col p-6 space-y-2 flex-1 overflow-y-auto">
               <Link 
                 to="/" 
                 className={`flex items-center gap-3 px-4 py-3 rounded-btn text-base font-medium transition-colors ${
                   isActive('home') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('home') ? 'page' : undefined}
               >
                 <Icon name="home" size={16} />
                 Home
@@ -227,6 +252,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   isActive('library') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('library') ? 'page' : undefined}
               >
                 <Icon name="library_books" size={16} />
                 Library
@@ -238,6 +264,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   isActive('bible') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('bible') ? 'page' : undefined}
               >
                 <Icon name="menu_book" size={16} />
                 Open Bible
@@ -249,6 +276,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   isActive('series') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('series') ? 'page' : undefined}
               >
                 <Icon name="collections_bookmark" size={16} />
                 Series
@@ -260,6 +288,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
                   isActive('practices') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('practices') ? 'page' : undefined}
               >
                 <Icon name="self_improvement" size={16} />
                 Practices
@@ -268,12 +297,37 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
               <Link 
                 to="/connect" 
                 className={`flex items-center gap-3 px-4 py-3 rounded-btn text-base font-medium transition-colors ${
-                  isActive('connect') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
+                  isConnectClusterActive ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
+                aria-current={isConnectClusterActive ? 'page' : undefined}
               >
                 <Icon name="group" size={16} />
                 Connect
+              </Link>
+
+              <Link 
+                to="/events" 
+                className={`flex items-center gap-3 px-4 py-3 rounded-btn text-base font-medium transition-colors ${
+                  isActive('events') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('events') ? 'page' : undefined}
+              >
+                <Icon name="event" size={16} />
+                Events
+              </Link>
+
+              <Link 
+                to="/giving" 
+                className={`flex items-center gap-3 px-4 py-3 rounded-btn text-base font-medium transition-colors ${
+                  isActive('giving') ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-accent-sand/20 hover:text-primary'
+                }`}
+                onClick={() => setShowMobileMenu(false)}
+                aria-current={isActive('giving') ? 'page' : undefined}
+              >
+                <Icon name="volunteer_activism" size={16} />
+                Giving
               </Link>
 
               {/* Divider */}
@@ -306,7 +360,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
             </div>
 
             {/* Sidebar Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-accent-sand/30 bg-white/50 backdrop-blur-sm">
+            <div className="p-6 border-t border-accent-sand/30 bg-white/50 backdrop-blur-sm flex-shrink-0">
               <p className="text-sm text-text-muted text-center">
                 © 2024 Serene Sanctuary
               </p>

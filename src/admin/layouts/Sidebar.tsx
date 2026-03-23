@@ -34,8 +34,8 @@ const navGroups = [
     label: 'Content Pipeline',
     items: [
       { id: 'content',     label: 'Posts & Sermons', icon: 'movie',         path: '/admin/content',     roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.posts'        },
-      { id: 'community-stories', label: 'Community Stories', icon: 'movie', path: '/admin/community-stories', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.posts' },
-      { id: 'spiritual-practices', label: 'Spiritual Practices', icon: 'self_improvement', path: '/admin/spiritual-practices', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.posts' },
+      { id: 'homepage-content', label: 'Homepage Content', icon: 'widgets', path: '/admin/homepage-content', roles: [UserRole.ADMIN] },
+      { id: 'privacy-policy', label: 'Privacy Policy', icon: 'policy', path: '/admin/privacy-policy', roles: [UserRole.ADMIN] },
       { id: 'series',      label: 'Series',          icon: 'library_books', path: '/admin/series',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.series'       },
       // { id: 'drafts',      label: 'Post Drafts',     icon: 'edit_note',     path: '/admin/drafts',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.drafts'       },
       { id: 'weekly-flow', label: 'Weekly Flow',     icon: 'schedule',      path: '/admin/weekly-flow', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.weekly_flow' },

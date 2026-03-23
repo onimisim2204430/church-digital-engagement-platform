@@ -810,7 +810,7 @@ const GivingPage: React.FC = () => {
   }, [activeFilter, givingItems]);
 
   return (
-    <PublicLayout currentPage="connect">
+    <PublicLayout currentPage="giving">
       <div className="pt-6 md:pt-8">
         <div className="w-full px-4 md:px-12 py-10 md:py-16">
         <div className="max-w-[1200px] mx-auto flex flex-col gap-12">

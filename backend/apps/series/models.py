@@ -206,3 +206,104 @@ class Series(models.Model):
         
         self.total_views = total or 0
         self.save(update_fields=['total_views'])
+
+
+class CurrentSeriesSpotlight(models.Model):
+    """Singleton-style config for the public Current Series section."""
+
+    class LatestPartStatus(models.TextChoices):
+        AVAILABLE = 'AVAILABLE', 'Available'
+        COMING_SOON = 'COMING_SOON', 'Coming Soon'
+
+    singleton_key = models.CharField(
+        max_length=32,
+        unique=True,
+        default='default',
+        editable=False,
+        help_text='Enforces a single spotlight configuration row',
+    )
+
+    series = models.ForeignKey(
+        Series,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='current_spotlight_entries',
+        help_text='Series selected for the Current Series section',
+    )
+
+    section_label = models.CharField(
+        max_length=80,
+        default='Current Series',
+        help_text='Section tag text shown above the title',
+    )
+
+    latest_part_number = models.PositiveIntegerField(
+        default=4,
+        help_text='Manual part number shown on artwork badge',
+    )
+
+    latest_part_status = models.CharField(
+        max_length=20,
+        choices=LatestPartStatus.choices,
+        default=LatestPartStatus.AVAILABLE,
+        help_text='Manual latest part status shown on artwork badge',
+    )
+
+    latest_part_label = models.CharField(
+        max_length=120,
+        default='Part 4 Available',
+        help_text='Generated label shown on the artwork badge',
+    )
+
+    description_override = models.TextField(
+        blank=True,
+        help_text='Optional custom description for public section',
+    )
+
+    cta_label = models.CharField(
+        max_length=80,
+        default='View Series Collection',
+        help_text='CTA text shown on the left column',
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Whether this spotlight config is active on public pages',
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_current_series_spotlights',
+        help_text='Admin/moderator who last updated this spotlight config',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Current Series Spotlight'
+        verbose_name_plural = 'Current Series Spotlight'
+
+    def __str__(self):
+        if self.series:
+            return f'Current Spotlight: {self.series.title}'
+        return 'Current Spotlight: Not configured'
+
+    def save(self, *args, **kwargs):
+        if not self.singleton_key:
+            self.singleton_key = 'default'
+
+        if self.latest_part_number is None or self.latest_part_number < 1:
+            self.latest_part_number = 1
+
+        status_label = dict(self.LatestPartStatus.choices).get(
+            self.latest_part_status,
+            self.LatestPartStatus.AVAILABLE,
+        )
+        self.latest_part_label = f'Part {self.latest_part_number} {status_label}'
+
+        super().save(*args, **kwargs)

@@ -3,8 +3,9 @@ Series Serializers
 """
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Series, SeriesVisibility
+from .models import Series, SeriesVisibility, CurrentSeriesSpotlight
 from apps.content.models import Post
+from apps.users.models import UserRole
 
 
 class SeriesAuthorSerializer(serializers.Serializer):
@@ -66,6 +67,18 @@ class SeriesCreateSerializer(serializers.ModelSerializer):
             'title', 'description', 'cover_image',
             'visibility', 'is_featured', 'featured_priority'
         ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if attrs.get('is_featured'):
+            featured_count = Series.objects.filter(is_deleted=False, is_featured=True).count()
+            if featured_count >= 3:
+                raise serializers.ValidationError({
+                    'is_featured': 'Only 3 series can be featured. Use the Featured Series selector to update the set.'
+                })
+
+        return attrs
     
     def create(self, validated_data):
         # Author is set in the view
@@ -81,6 +94,102 @@ class SeriesUpdateSerializer(serializers.ModelSerializer):
             'title', 'description', 'cover_image',
             'visibility', 'is_featured', 'featured_priority'
         ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        requested_featured = attrs.get('is_featured')
+        instance = getattr(self, 'instance', None)
+
+        if requested_featured is True and instance and not instance.is_featured:
+            featured_count = Series.objects.filter(is_deleted=False, is_featured=True).exclude(pk=instance.pk).count()
+            if featured_count >= 3:
+                raise serializers.ValidationError({
+                    'is_featured': 'Only 3 series can be featured. Use the Featured Series selector to update the set.'
+                })
+
+        return attrs
+
+
+class SetFeaturedSeriesSerializer(serializers.Serializer):
+    """Validate payload for atomic featured series selection."""
+    series_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        min_length=3,
+        max_length=3,
+        allow_empty=False,
+        required=True,
+    )
+
+    def validate_series_ids(self, value):
+        if len(set(value)) != len(value):
+            raise serializers.ValidationError('Duplicate series IDs are not allowed.')
+        return value
+
+
+class CurrentSeriesSpotlightSerializer(serializers.ModelSerializer):
+    """Serializer for current series spotlight settings."""
+    series = SeriesSerializer(read_only=True)
+    series_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+    latest_part_status = serializers.ChoiceField(
+        choices=CurrentSeriesSpotlight.LatestPartStatus.choices,
+        required=False,
+    )
+
+    class Meta:
+        model = CurrentSeriesSpotlight
+        fields = [
+            'id',
+            'series',
+            'series_id',
+            'section_label',
+            'latest_part_number',
+            'latest_part_status',
+            'latest_part_label',
+            'description_override',
+            'cta_label',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'series', 'latest_part_label']
+
+    def validate_latest_part_number(self, value):
+        if value is None:
+            return value
+        if value < 1:
+            raise serializers.ValidationError('Latest part number must be at least 1.')
+        return value
+
+    def validate_series_id(self, value):
+        if value is None:
+            return value
+
+        try:
+            series = Series.objects.get(pk=value, is_deleted=False)
+        except Series.DoesNotExist as exc:
+            raise serializers.ValidationError('Selected series does not exist.') from exc
+
+        request = self.context.get('request')
+        if request and request.user.role == UserRole.MODERATOR and series.author != request.user:
+            raise serializers.ValidationError('You can only spotlight series that you created.')
+
+        return value
+
+    def update(self, instance, validated_data):
+        series_id = validated_data.pop('series_id', serializers.empty)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if series_id is not serializers.empty:
+            if series_id is None:
+                instance.series = None
+            else:
+                instance.series = Series.objects.get(pk=series_id, is_deleted=False)
+
+        instance.save()
+        return instance
 
 
 class SeriesPostSerializer(serializers.ModelSerializer):

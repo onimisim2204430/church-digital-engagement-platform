@@ -227,12 +227,21 @@ const WeeklyFlowSection = memo(() => {
   const [error, setError] = useState<string | null>(null);
   const [topicMap, setTopicMap] = useState<Record<string, string>>({});
 
+  const toLocalISODate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Returns the ISO date string for a given day-of-week in the current week
   const getDateForDay = (dayOfWeek: number): string => {
+    // Backend convention is Monday=0 ... Sunday=6.
     const t = new Date();
     const d = new Date(t);
-    d.setDate(t.getDate() - t.getDay() + dayOfWeek);
-    return d.toISOString().split('T')[0];
+    const backendTodayIndex = (t.getDay() + 6) % 7;
+    d.setDate(t.getDate() + (dayOfWeek - backendTodayIndex));
+    return toLocalISODate(d);
   };
 
   useEffect(() => {
@@ -272,8 +281,8 @@ const WeeklyFlowSection = memo(() => {
     loadData();
   }, []);
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const todayStr = new Date().toISOString().split('T')[0];
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const todayStr = toLocalISODate(new Date());
 
   const handleDayClick = (dayOfWeek: number) => {
     navigate(`/daily-word/${getDateForDay(dayOfWeek)}`);
@@ -311,8 +320,8 @@ const WeeklyFlowSection = memo(() => {
           ))
         ) : (
           events.map((event) => {
-            const dayName = dayNames[event.day_of_week];
-            const isToday = new Date().getDay() === event.day_of_week;
+            const dayName = dayNames[event.day_of_week] || event.day_of_week_display || '';
+            const isToday = ((new Date().getDay() + 6) % 7) === event.day_of_week;
             const dateStr = getDateForDay(event.day_of_week);
             const isFuture = dateStr > todayStr;
             const topic = !isFuture ? topicMap[dateStr] : undefined;

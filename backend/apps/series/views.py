@@ -14,11 +14,12 @@ from apps.users.permissions import IsModerator, IsAdmin, HasModulePermission
 from apps.users.models import UserRole
 from apps.moderation.models import AuditLog, ActionType
 from apps.content.models import Post
-from .models import Series, SeriesVisibility
+from .models import Series, SeriesVisibility, CurrentSeriesSpotlight
 from .serializers import (
     SeriesSerializer, SeriesCreateSerializer, SeriesUpdateSerializer,
     SeriesDetailSerializer, AddPostToSeriesSerializer,
-    RemovePostFromSeriesSerializer, ReorderSeriesPostsSerializer
+    RemovePostFromSeriesSerializer, ReorderSeriesPostsSerializer,
+    SetFeaturedSeriesSerializer, CurrentSeriesSpotlightSerializer
 )
 
 
@@ -176,6 +177,94 @@ class AdminSeriesViewSet(viewsets.ModelViewSet):
             content_object=instance,
             request=self.request
         )
+
+    @action(detail=False, methods=['post'], url_path='set-featured')
+    def set_featured(self, request):
+        """
+        Atomically set exactly 3 featured series for homepage archive.
+        POST /api/v1/admin/series/set-featured/
+        Body: {"series_ids": ["uuid-1", "uuid-2", "uuid-3"]}
+        """
+        serializer = SetFeaturedSeriesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        selected_ids = serializer.validated_data['series_ids']
+
+        allowed_queryset = self.get_queryset()
+        selected_series = list(allowed_queryset.filter(pk__in=selected_ids))
+
+        if len(selected_series) != 3:
+            return Response(
+                {'series_ids': ['One or more selected series were not found or are not accessible.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        missing_ids = [str(series_id) for series_id in selected_ids if str(series_id) not in {str(s.pk) for s in selected_series}]
+        if missing_ids:
+            return Response(
+                {'series_ids': [f"Invalid or inaccessible series IDs: {', '.join(missing_ids)}"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order_map = {str(series_id): index for index, series_id in enumerate(selected_ids)}
+
+        with transaction.atomic():
+            # Clear existing featured flags in the requester's queryset scope.
+            allowed_queryset.exclude(pk__in=selected_ids).filter(is_featured=True).update(
+                is_featured=False,
+                featured_priority=0,
+            )
+
+            # Set selected items as featured and assign descending priority by selected order.
+            for series in selected_series:
+                selected_index = order_map[str(series.pk)]
+                series.is_featured = True
+                series.featured_priority = 3 - selected_index
+                series.save(update_fields=['is_featured', 'featured_priority', 'updated_at'])
+
+        ordered_featured = list(
+            allowed_queryset.filter(pk__in=selected_ids, is_featured=True)
+        )
+        ordered_featured.sort(key=lambda s: order_map[str(s.pk)])
+
+        create_audit_log(
+            user=request.user,
+            action_type=ActionType.UPDATE,
+            description='Updated featured series selection for homepage archive',
+            request=request,
+        )
+
+        output = SeriesSerializer(ordered_featured, many=True, context={'request': request})
+        return Response({'results': output.data}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get', 'post'], url_path='current-spotlight')
+    def current_spotlight(self, request):
+        """
+        Get or update the singleton Current Series spotlight config.
+        GET/POST /api/v1/admin/series/current-spotlight/
+        """
+        spotlight, _created = CurrentSeriesSpotlight.objects.get_or_create(singleton_key='default')
+
+        if request.method == 'GET':
+            serializer = CurrentSeriesSpotlightSerializer(spotlight, context={'request': request})
+            return Response(serializer.data)
+
+        serializer = CurrentSeriesSpotlightSerializer(
+            spotlight,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save(updated_by=request.user)
+
+        create_audit_log(
+            user=request.user,
+            action_type=ActionType.UPDATE,
+            description='Updated Current Series spotlight settings',
+            request=request,
+        )
+
+        return Response(CurrentSeriesSpotlightSerializer(updated, context={'request': request}).data)
     
     @action(detail=True, methods=['post'])
     def add_post(self, request, pk=None):

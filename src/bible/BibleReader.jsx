@@ -2,6 +2,33 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useBible } from './BibleProvider';
 import { useChapter, useBooks } from './useBible';
 
+const BOOK_GROUPS = [
+  { id: 'law', testament: 'OT', label: 'Law', start: 1, end: 5 },
+  { id: 'history-ot', testament: 'OT', label: 'History', start: 6, end: 17 },
+  { id: 'poetry', testament: 'OT', label: 'Poetry', start: 18, end: 22 },
+  { id: 'prophets', testament: 'OT', label: 'Prophets', start: 23, end: 39 },
+  { id: 'gospels', testament: 'NT', label: 'Gospels', start: 40, end: 43 },
+  { id: 'history-nt', testament: 'NT', label: 'History', start: 44, end: 44 },
+  { id: 'letters', testament: 'NT', label: 'Letters', start: 45, end: 65 },
+  { id: 'prophecy', testament: 'NT', label: 'Prophecy', start: 66, end: 66 },
+];
+
+const DESKTOP_BREAKPOINT = 768;
+
+function getGroupForBook(bookNumber) {
+  return BOOK_GROUPS.find(g => bookNumber >= g.start && bookNumber <= g.end) || null;
+}
+
+function getTestamentForBook(bookNumber) {
+  return bookNumber <= 39 ? 'OT' : 'NT';
+}
+
+function getCompactVerseSnippet(text, maxLength = 120) {
+  const compact = String(text || '').replace(/\s+/g, ' ').trim();
+  if (compact.length <= maxLength) return compact;
+  return `${compact.slice(0, maxLength).trim()}...`;
+}
+
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cinzel:wght@400;500;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap');
 
@@ -9,7 +36,7 @@ const styles = `
    * KEY LAYOUT PRINCIPLE:
    * .br-root uses height: 100% — it fills whatever container the page gives it.
    * The page (OpenBiblePage) must give the container a defined height:
-   *   e.g.  height: calc(100vh - 64px)   <- 64px = your page top nav height
+    *   e.g.  height: calc(100vh - NAV_HEIGHT)
    * This way the bible nav never overlaps the page nav.
    * In reading/presentation mode the bible nav collapses to 0 height,
    * giving even more space to the reading pane.
@@ -57,7 +84,7 @@ const styles = `
     height: 56px;
     box-shadow: 0 2px 16px rgba(0,0,0,0.22);
     z-index: 40;
-    overflow: hidden;
+    overflow: visible;
     transition: height 0.22s ease, opacity 0.22s ease, border 0.22s ease;
   }
 
@@ -66,6 +93,7 @@ const styles = `
     opacity: 0;
     border: none;
     pointer-events: none;
+    overflow: hidden;
   }
 
   .br-nav-brand {
@@ -85,6 +113,202 @@ const styles = `
     gap: 0.4rem;
     flex: 1;
     max-width: 480px;
+    min-width: 0;
+  }
+
+  .br-book-picker-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .br-book-picker-trigger {
+    width: 100%;
+    appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px;
+    color: #fff;
+    font-family: 'Lora', serif;
+    font-size: 0.83rem;
+    padding: 0.38rem 0.65rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .br-book-picker-trigger:hover { border-color: rgba(212,175,74,0.65); }
+  .br-book-picker-trigger:focus { outline: none; border-color: var(--gold); }
+  .br-book-picker-trigger.open {
+    border-color: var(--gold);
+    background: rgba(184,148,42,0.18);
+  }
+
+  .br-book-picker-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .br-book-picker-chevron {
+    color: var(--gold-light);
+    font-size: 0.7rem;
+    line-height: 1;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .br-book-picker-trigger.open .br-book-picker-chevron {
+    transform: rotate(180deg);
+  }
+
+  .br-book-picker-panel {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    width: min(680px, 84vw);
+    max-height: min(62vh, 520px);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--gold);
+    border-radius: 8px;
+    box-shadow: 0 16px 36px rgba(26,39,68,0.18);
+    z-index: 48;
+    padding: 0.7rem;
+  }
+
+  .br-book-picker-section + .br-book-picker-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .br-book-picker-title {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 0.45rem;
+  }
+
+  .br-book-picker-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+    gap: 0.35rem;
+  }
+
+  .br-book-picker-option {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    font-family: 'Lora', serif;
+    font-size: 0.78rem;
+    line-height: 1;
+    border-radius: 5px;
+    min-height: 30px;
+    padding: 0.35rem 0.45rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .br-book-picker-option:hover {
+    border-color: var(--gold);
+    background: var(--parchment-warm);
+    color: var(--navy);
+  }
+  .br-book-picker-option.active {
+    border-color: var(--gold);
+    background: rgba(184,148,42,0.14);
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  .br-chapter-picker-wrap {
+    position: relative;
+    width: 125px;
+    flex: 0 0 125px;
+  }
+
+  .br-chapter-picker-trigger {
+    width: 100%;
+    appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px;
+    color: #fff;
+    font-family: 'Lora', serif;
+    font-size: 0.83rem;
+    padding: 0.38rem 0.65rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .br-chapter-picker-trigger:hover { border-color: rgba(212,175,74,0.65); }
+  .br-chapter-picker-trigger:focus { outline: none; border-color: var(--gold); }
+  .br-chapter-picker-trigger.open {
+    border-color: var(--gold);
+    background: rgba(184,148,42,0.18);
+  }
+
+  .br-chapter-picker-value {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .br-chapter-picker-panel {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    width: min(360px, 72vw);
+    max-height: min(56vh, 420px);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--gold);
+    border-radius: 8px;
+    box-shadow: 0 16px 36px rgba(26,39,68,0.18);
+    z-index: 49;
+    padding: 0.6rem;
+  }
+
+  .br-chapter-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .br-chapter-picker-option {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    font-family: 'Lora', serif;
+    font-size: 0.78rem;
+    line-height: 1;
+    border-radius: 5px;
+    min-height: 30px;
+    padding: 0.3rem 0.2rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .br-chapter-picker-option:hover {
+    border-color: var(--gold);
+    background: var(--parchment-warm);
+    color: var(--navy);
+  }
+  .br-chapter-picker-option.active {
+    border-color: var(--gold);
+    background: rgba(184,148,42,0.14);
+    color: var(--navy);
+    font-weight: 600;
   }
 
   .br-select {
@@ -107,6 +331,7 @@ const styles = `
   .br-select:focus { outline: none; border-color: var(--gold); }
   .br-select option { background: var(--navy); color: #fff; }
   .br-select-divider { color: rgba(255,255,255,0.25); font-size: 0.85rem; flex-shrink: 0; }
+  .br-select-prefix { color: rgba(255,255,255,0.5); font-size: 0.8rem; flex-shrink: 0; }
 
   .br-nav-btn {
     display: flex;
@@ -152,6 +377,7 @@ const styles = `
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
     transition: opacity 0.22s ease;
+    overscroll-behavior: contain;
   }
   .br-sidebar::-webkit-scrollbar { width: 4px; }
   .br-sidebar::-webkit-scrollbar-track { background: transparent; }
@@ -188,6 +414,114 @@ const styles = `
   }
   .br-search-input:focus { border-color: var(--gold); }
   .br-search-input::placeholder { color: var(--ink-muted); font-style: italic; }
+
+  .br-recent-wrap {
+    padding: 0.55rem 0.9rem 0.65rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.35);
+  }
+
+  .br-meta-label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 0.54rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.45rem;
+  }
+
+  .br-recent-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .br-recent-chip {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink-soft);
+    border-radius: 999px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.72rem;
+    line-height: 1;
+    padding: 0.34rem 0.62rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .br-recent-chip:hover { border-color: var(--gold-light); color: var(--navy); }
+  .br-recent-chip.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  .br-testament-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+    padding: 0.62rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--parchment-warm);
+  }
+
+  .br-testament-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 6px;
+    height: 30px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .br-testament-tab:hover { border-color: var(--gold-light); color: var(--navy); }
+  .br-testament-tab.active { border-color: var(--navy); background: var(--navy); color: #fff; }
+
+  .br-group-wrap {
+    padding: 0.35rem 0 1rem;
+  }
+
+  .br-group-block {
+    border-bottom: 1px solid rgba(221,213,192,0.7);
+  }
+
+  .br-group-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0.58rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Cinzel', serif;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+
+  .br-group-toggle:hover {
+    color: var(--navy);
+    background: rgba(184,148,42,0.06);
+  }
+
+  .br-group-chevron {
+    font-size: 0.62rem;
+    color: var(--gold);
+    transition: transform 0.15s;
+    transform: rotate(0deg);
+  }
+
+  .br-group-chevron.expanded {
+    transform: rotate(180deg);
+  }
 
   /* Active book chapter pills */
   .br-active-book-header {
@@ -268,6 +602,7 @@ const styles = `
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
     position: relative;
+    overscroll-behavior: contain;
   }
   .br-reading::-webkit-scrollbar { width: 5px; }
   .br-reading::-webkit-scrollbar-track { background: transparent; }
@@ -493,39 +828,237 @@ const styles = `
 
   /* ─── MOBILE ─── */
   @media (max-width: 768px) {
-    .br-root { height: auto !important; overflow: visible; }
-    .br-layout { grid-template-columns: 1fr !important; overflow: visible; min-height: auto; }
+    .br-root { height: 100% !important; overflow: hidden; }
+    .br-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 52px;
+      padding: 0 0.65rem;
+      gap: 0.45rem;
+    }
+    .br-layout { grid-template-columns: 1fr !important; overflow: hidden; min-height: 0; }
     .br-sidebar { display: none !important; }
-    .br-reading { overflow: visible; min-height: auto; }
+    .br-reading { overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
     .br-reading-inner { padding: 1.75rem 1.1rem 3.5rem; }
     .br-nav-brand { display: none; }
+    .br-nav-selects { max-width: none; gap: 0.35rem; }
+    .br-book-picker-wrap { display: block; }
+    .br-book-picker-panel {
+      position: fixed;
+      top: 56px;
+      left: 0.6rem;
+      right: 0.6rem;
+      width: auto;
+      max-height: min(72vh, 560px);
+      border-radius: 10px;
+      padding: 0.65rem;
+      z-index: 62;
+    }
+    .br-book-picker-columns {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.3rem;
+    }
+    .br-book-picker-option {
+      min-height: 32px;
+      padding: 0.35rem 0.2rem;
+      text-align: center;
+      font-size: 0.76rem;
+    }
+    .br-chapter-picker-wrap { width: 96px; flex-basis: 96px; }
+    .br-chapter-picker-panel {
+      position: fixed;
+      top: 56px;
+      left: 0.6rem;
+      right: 0.6rem;
+      width: auto;
+      max-height: min(68vh, 520px);
+      z-index: 63;
+    }
+    .br-chapter-picker-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.3rem;
+    }
+    .br-chapter-picker-option {
+      min-height: 32px;
+      font-size: 0.76rem;
+    }
+    .br-select { font-size: 0.78rem; }
+    .br-select-prefix { font-size: 0.7rem; }
     .br-bottom-btn span { display: none; }
   }
 `;
 
 export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange }) {
-  const { isReady, isOnline, getChapterCount, getBookInfo } = useBible();
+  const { isReady, isOnline, getChapterCount, getBookInfo, searchVersesPaged } = useBible();
 
   const [bookNum, setBookNum]       = useState(defaultBook);
   const [chapterNum, setChapterNum] = useState(defaultChapter);
   const [searchQuery, setSearch]    = useState('');
   const [highlighted, setHighlight] = useState(null);
+  const [activeTestament, setActiveTestament] = useState(getTestamentForBook(defaultBook));
+  const [expandedGroups, setExpandedGroups] = useState({
+    law: true,
+    'history-ot': false,
+    poetry: false,
+    prophets: false,
+    gospels: false,
+    'history-nt': false,
+    letters: false,
+    prophecy: false,
+  });
+  const [recentBooks, setRecentBooks] = useState([]);
+  const [sidebarMode, setSidebarMode] = useState('books');
+  const [verseSearchQuery, setVerseSearchQuery] = useState('');
+  const [debouncedVerseSearchQuery, setDebouncedVerseSearchQuery] = useState('');
+  const [verseSearchPage, setVerseSearchPage] = useState(1);
+  const [verseSearchItems, setVerseSearchItems] = useState([]);
+  const [verseSearchTotal, setVerseSearchTotal] = useState(0);
+  const [verseSearchHasMore, setVerseSearchHasMore] = useState(false);
   // 'normal' | 'reading' | 'presentation'
   const [mode, setMode] = useState('normal');
+  const [isBookPickerOpen, setIsBookPickerOpen] = useState(false);
+  const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth > DESKTOP_BREAKPOINT;
+  });
 
   const readingRef = useRef(null);
   const rootRef    = useRef(null);
+  const bookPickerRef = useRef(null);
+  const chapterPickerRef = useRef(null);
+  const verseSearchLoadMoreRef = useRef(null);
+  const verseSearchAutoLoadLockRef = useRef(false);
 
   const books    = useBooks();
   const verses   = useChapter(bookNum, chapterNum);
   const maxCh    = getChapterCount(bookNum);
   const bookInfo = getBookInfo(bookNum);
 
-  const oldTestament = books.filter(b => b.testament === 'OT');
-  const newTestament = books.filter(b => b.testament === 'NT');
+  const oldTestamentOrdered = books
+    .filter(b => b.testament === 'OT')
+    .sort((a, b) => a.number - b.number);
+  const newTestamentOrdered = books
+    .filter(b => b.testament === 'NT')
+    .sort((a, b) => a.number - b.number);
   const filteredBooks = searchQuery
-    ? books.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? books.filter(b => (
+        b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.abbreviation.toLowerCase().includes(searchQuery.toLowerCase())
+      ))
     : null;
+  const activeGroups = BOOK_GROUPS.filter(g => g.testament === activeTestament);
+  const VERSE_PAGE_SIZE = 100;
+
+  useEffect(() => {
+    const group = getGroupForBook(bookNum);
+    if (!group) return;
+
+    setActiveTestament(group.testament);
+    setExpandedGroups(prev => ({ ...prev, [group.id]: true }));
+    setRecentBooks(prev => {
+      const next = [bookNum, ...prev.filter(n => n !== bookNum)];
+      return next.slice(0, 5);
+    });
+  }, [bookNum]);
+
+  useEffect(() => {
+    if (!isBookPickerOpen && !isChapterPickerOpen) return;
+
+    function handleOutsideClick(event) {
+      const clickedBookPicker = bookPickerRef.current?.contains(event.target);
+      const clickedChapterPicker = chapterPickerRef.current?.contains(event.target);
+      if (!clickedBookPicker && !clickedChapterPicker) {
+        setIsBookPickerOpen(false);
+        setIsChapterPickerOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setIsBookPickerOpen(false);
+        setIsChapterPickerOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isBookPickerOpen, isChapterPickerOpen]);
+
+  useEffect(() => {
+    function updateViewportMode() {
+      setIsDesktop(window.innerWidth > DESKTOP_BREAKPOINT);
+    }
+
+    window.addEventListener('resize', updateViewportMode);
+    return () => window.removeEventListener('resize', updateViewportMode);
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedVerseSearchQuery(verseSearchQuery.trim());
+    }, 180);
+    return () => window.clearTimeout(timeout);
+  }, [verseSearchQuery]);
+
+  useEffect(() => {
+    setVerseSearchPage(1);
+    setVerseSearchItems([]);
+    verseSearchAutoLoadLockRef.current = false;
+  }, [debouncedVerseSearchQuery]);
+
+  useEffect(() => {
+    if (debouncedVerseSearchQuery.length < 2) {
+      setVerseSearchItems([]);
+      setVerseSearchTotal(0);
+      setVerseSearchHasMore(false);
+      verseSearchAutoLoadLockRef.current = false;
+      return;
+    }
+
+    const offset = (verseSearchPage - 1) * VERSE_PAGE_SIZE;
+    const { results, total, hasMore } = searchVersesPaged(
+      debouncedVerseSearchQuery,
+      undefined,
+      offset,
+      VERSE_PAGE_SIZE,
+    );
+
+    setVerseSearchItems(prev => (verseSearchPage === 1 ? results : [...prev, ...results]));
+    setVerseSearchTotal(total);
+    setVerseSearchHasMore(hasMore);
+    verseSearchAutoLoadLockRef.current = false;
+  }, [debouncedVerseSearchQuery, verseSearchPage, searchVersesPaged]);
+
+  useEffect(() => {
+    if (sidebarMode !== 'verses') return;
+    if (debouncedVerseSearchQuery.length < 2) return;
+    if (!verseSearchHasMore) return;
+
+    const sentinel = verseSearchLoadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        if (verseSearchAutoLoadLockRef.current) return;
+
+        verseSearchAutoLoadLockRef.current = true;
+        setVerseSearchPage(p => p + 1);
+      },
+      { root: null, rootMargin: '180px 0px', threshold: 0.01 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [sidebarMode, debouncedVerseSearchQuery, verseSearchHasMore]);
 
   // Notify parent when mode changes
   useEffect(() => {
@@ -571,9 +1104,29 @@ export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange 
   }
 
   function selectBook(num) {
+    const group = getGroupForBook(num);
+    if (group) {
+      setActiveTestament(group.testament);
+      setExpandedGroups(prev => ({ ...prev, [group.id]: true }));
+    }
+    setIsBookPickerOpen(false);
+    setIsChapterPickerOpen(false);
     setBookNum(num); setChapterNum(1); setSearch(''); setHighlight(null); scrollReadingToTop();
   }
+
+  function selectSearchVerse(result) {
+    const group = getGroupForBook(result.book);
+    if (group) {
+      setActiveTestament(group.testament);
+      setExpandedGroups(prev => ({ ...prev, [group.id]: true }));
+    }
+    setBookNum(result.book);
+    setChapterNum(result.chapter);
+    setHighlight(result.verse);
+    scrollReadingToTop();
+  }
   function selectChapter(num) {
+    setIsChapterPickerOpen(false);
     setChapterNum(num); setHighlight(null); scrollReadingToTop();
   }
   function goToPrev() {
@@ -604,8 +1157,8 @@ export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange 
       ? { name: getBookInfo(bookNum+1)?.name, ch: 1 }
       : null;
 
-  const navHidden     = mode === 'reading' || mode === 'presentation';
-  const sidebarHidden = mode === 'reading' || mode === 'presentation';
+  const navHidden     = !isDesktop && (mode === 'reading' || mode === 'presentation');
+  const sidebarHidden = !isDesktop && (mode === 'reading' || mode === 'presentation');
   const showFloatBar  = navHidden;
 
   if (!isReady) {
@@ -633,6 +1186,10 @@ export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange 
     </button>
   ));
 
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+  };
+
   return (
     <>
       <style>{styles}</style>
@@ -657,31 +1214,94 @@ export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange 
           <span className="br-nav-brand">Holy Scripture · KJV</span>
 
           <div className="br-nav-selects">
-            <select
-              className="br-select"
-              value={bookNum}
-              onChange={e => { setBookNum(Number(e.target.value)); setChapterNum(1); scrollReadingToTop(); }}
-              aria-label="Select book"
-            >
-              <optgroup label="— Old Testament —">
-                {oldTestament.map(b => <option key={b.number} value={b.number}>{b.name}</option>)}
-              </optgroup>
-              <optgroup label="— New Testament —">
-                {newTestament.map(b => <option key={b.number} value={b.number}>{b.name}</option>)}
-              </optgroup>
-            </select>
+            <div className="br-book-picker-wrap" ref={bookPickerRef}>
+              <button
+                type="button"
+                className={`br-book-picker-trigger${isBookPickerOpen ? ' open' : ''}`}
+                onClick={() => {
+                  setIsBookPickerOpen(prev => !prev);
+                  setIsChapterPickerOpen(false);
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={isBookPickerOpen}
+                aria-label="Select book"
+              >
+                <span className="br-book-picker-value">{bookInfo?.abbreviation || 'Book'}</span>
+                <span className="br-book-picker-chevron">▼</span>
+              </button>
+
+              {isBookPickerOpen && (
+                <div className="br-book-picker-panel" role="dialog" aria-label="Bible books">
+                  <section className="br-book-picker-section">
+                    <span className="br-book-picker-title">Old Testament</span>
+                    <div className="br-book-picker-columns">
+                      {oldTestamentOrdered.map(b => (
+                        <button
+                          type="button"
+                          key={b.number}
+                          className={`br-book-picker-option ${b.number === bookNum ? 'active' : ''}`}
+                          onClick={() => selectBook(b.number)}
+                        >
+                          {b.abbreviation}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="br-book-picker-section">
+                    <span className="br-book-picker-title">New Testament</span>
+                    <div className="br-book-picker-columns">
+                      {newTestamentOrdered.map(b => (
+                        <button
+                          type="button"
+                          key={b.number}
+                          className={`br-book-picker-option ${b.number === bookNum ? 'active' : ''}`}
+                          onClick={() => selectBook(b.number)}
+                        >
+                          {b.abbreviation}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              )}
+            </div>
+
             <span className="br-select-divider">·</span>
-            <select
-              className="br-select"
-              style={{ maxWidth: 125 }}
-              value={chapterNum}
-              onChange={e => selectChapter(Number(e.target.value))}
-              aria-label="Select chapter"
-            >
-              {Array.from({ length: maxCh }, (_, i) => i + 1).map(n => (
-                <option key={n} value={n}>Chapter {n}</option>
-              ))}
-            </select>
+            <span className="br-select-prefix">Chapter</span>
+            <div className="br-chapter-picker-wrap" ref={chapterPickerRef}>
+              <button
+                type="button"
+                className={`br-chapter-picker-trigger${isChapterPickerOpen ? ' open' : ''}`}
+                onClick={() => {
+                  setIsChapterPickerOpen(prev => !prev);
+                  setIsBookPickerOpen(false);
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={isChapterPickerOpen}
+                aria-label="Select chapter"
+              >
+                <span className="br-chapter-picker-value">{chapterNum}</span>
+                <span className="br-book-picker-chevron">▼</span>
+              </button>
+
+              {isChapterPickerOpen && (
+                <div className="br-chapter-picker-panel" role="dialog" aria-label="Chapters">
+                  <div className="br-chapter-picker-grid">
+                    {Array.from({ length: maxCh }, (_, i) => i + 1).map(n => (
+                      <button
+                        type="button"
+                        key={n}
+                        className={`br-chapter-picker-option ${n === chapterNum ? 'active' : ''}`}
+                        onClick={() => selectChapter(n)}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Prev / Next */}
@@ -742,16 +1362,88 @@ export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange 
           {/* SIDEBAR */}
           <aside className="br-sidebar">
             <div className="br-search-wrap">
-              <input
-                className="br-search-input"
-                type="search"
-                placeholder="Find a book..."
-                value={searchQuery}
-                onChange={e => setSearch(e.target.value)}
-              />
+              <div className="br-testament-tabs" style={{ marginBottom: '0.55rem' }}>
+                <button
+                  className={`br-testament-tab ${sidebarMode === 'books' ? 'active' : ''}`}
+                  onClick={() => setSidebarMode('books')}
+                >
+                  Browse
+                </button>
+                <button
+                  className={`br-testament-tab ${sidebarMode === 'verses' ? 'active' : ''}`}
+                  onClick={() => setSidebarMode('verses')}
+                >
+                  Verse Search
+                </button>
+              </div>
+
+              {sidebarMode === 'books' ? (
+                <input
+                  className="br-search-input"
+                  type="search"
+                  placeholder="Find a book or abbreviation..."
+                  value={searchQuery}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              ) : (
+                <input
+                  className="br-search-input"
+                  type="search"
+                  placeholder="Search words, phrases, or sentences..."
+                  value={verseSearchQuery}
+                  onChange={e => setVerseSearchQuery(e.target.value)}
+                />
+              )}
             </div>
 
-            {filteredBooks ? (
+            {sidebarMode === 'verses' ? (
+              <div>
+                {debouncedVerseSearchQuery.length < 2 ? (
+                  <p style={{ padding: '0.9rem', fontSize: '0.76rem', color: '#6B6B6B', textAlign: 'center' }}>
+                    Type at least 2 characters to search the entire Bible instantly.
+                  </p>
+                ) : (
+                  <>
+                    <div style={{ padding: '0.55rem 0.9rem', borderBottom: '1px solid #DDD5C0', fontSize: '0.72rem', color: '#6B6B6B' }}>
+                      {verseSearchTotal} matches for &ldquo;{debouncedVerseSearchQuery}&rdquo;
+                    </div>
+
+                    <div>
+                      {verseSearchItems.map(result => (
+                        <button
+                          key={`${result.book}-${result.chapter}-${result.verse}`}
+                          className="br-book-btn"
+                          onClick={() => selectSearchVerse(result)}
+                          style={{ display: 'block', width: '100%', textAlign: 'left' }}
+                        >
+                          <span style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.04em', color: '#6B6B6B', marginBottom: '0.2rem' }}>
+                            {result.book_name} {result.chapter}:{result.verse}
+                          </span>
+                          <span style={{ fontSize: '0.73rem', lineHeight: '1.35', color: '#1C1C1C' }}>
+                            {getCompactVerseSnippet(result.text)}
+                          </span>
+                        </button>
+                      ))}
+
+                      {verseSearchItems.length === 0 && (
+                        <p style={{ padding: '1rem', fontStyle: 'italic', color: '#6B6B6B', fontSize: '0.78rem', textAlign: 'center' }}>
+                          No verses found.
+                        </p>
+                      )}
+
+                      {verseSearchHasMore && (
+                        <div
+                          ref={verseSearchLoadMoreRef}
+                          style={{ padding: '0.9rem', textAlign: 'center', fontSize: '0.72rem', color: '#6B6B6B' }}
+                        >
+                          Scroll to load more...
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : filteredBooks ? (
               <div>
                 {filteredBooks.map(b => (
                   <button key={b.number} className={`br-book-btn ${b.number === bookNum ? 'active' : ''}`} onClick={() => selectBook(b.number)}>
@@ -772,11 +1464,59 @@ export function BibleReader({ defaultBook = 1, defaultChapter = 1, onModeChange 
                     ))}
                   </div>
                 </div>
-                <div>
-                  <span className="br-testament-label">Old Testament</span>
-                  {renderBookList(oldTestament)}
-                  <span className="br-testament-label" style={{ marginTop: '0.5rem' }}>New Testament</span>
-                  {renderBookList(newTestament)}
+
+                {recentBooks.length > 0 && (
+                  <div className="br-recent-wrap">
+                    <span className="br-meta-label">Recent Books</span>
+                    <div className="br-recent-list">
+                      {recentBooks.map(number => {
+                        const recentBook = getBookInfo(number);
+                        if (!recentBook) return null;
+                        return (
+                          <button
+                            key={number}
+                            className={`br-recent-chip ${number === bookNum ? 'active' : ''}`}
+                            onClick={() => selectBook(number)}
+                          >
+                            {recentBook.abbreviation}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="br-testament-tabs">
+                  <button
+                    className={`br-testament-tab ${activeTestament === 'OT' ? 'active' : ''}`}
+                    onClick={() => setActiveTestament('OT')}
+                  >
+                    Old Testament
+                  </button>
+                  <button
+                    className={`br-testament-tab ${activeTestament === 'NT' ? 'active' : ''}`}
+                    onClick={() => setActiveTestament('NT')}
+                  >
+                    New Testament
+                  </button>
+                </div>
+
+                <div className="br-group-wrap">
+                  {activeGroups.map(group => {
+                    const booksInGroup = books.filter(b => b.number >= group.start && b.number <= group.end);
+                    const isExpanded = Boolean(expandedGroups[group.id]);
+
+                    return (
+                      <section key={group.id} className="br-group-block">
+                        <button className="br-group-toggle" onClick={() => toggleGroup(group.id)}>
+                          <span>{group.label}</span>
+                          <span className={`br-group-chevron ${isExpanded ? 'expanded' : ''}`}>▼</span>
+                        </button>
+                        {isExpanded && renderBookList(booksInGroup)}
+                      </section>
+                    );
+                  })}
+
                   <div style={{ height: '2rem' }} />
                 </div>
               </>

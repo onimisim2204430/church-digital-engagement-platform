@@ -15,7 +15,7 @@ import React, {
 } from 'react';
 import Icon from '../../components/common/Icon';
 import { dailyWordService } from '../../services/dailyWord.service';
-import { DailyWord } from '../../types/dailyWord.types';
+import { DailyWord, DailyWordConflict } from '../../types/dailyWord.types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +49,12 @@ const pad   = (n: number) => String(n).padStart(2, '0');
 const dstr  = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`;
 const today = () => { const n = new Date(); return dstr(n.getFullYear(), n.getMonth()+1, n.getDate()); };
 const fmt   = (s: string | null) => s ? new Date(s).toLocaleDateString('en-US',{ month:'short', day:'numeric', year:'numeric' }) : '—';
+const isDailyWordConflict = (value: unknown): value is DailyWordConflict => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  return (value as DailyWordConflict).has_conflict === true;
+};
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 
@@ -467,6 +473,106 @@ const CSS = `
 .wf-pfbtn-pub     { background:var(--gold); border:1.5px solid var(--gold); color:#fff; font-weight:800; }
 .wf-pfbtn-pub:not(:disabled):hover     { background:var(--gld2); box-shadow:0 4px 16px rgba(16,185,129,.4); }
 
+/* In-app confirmation modal */
+.wf-confirm-back {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.wf-confirm-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--paper);
+  border: 1px solid var(--cr2);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.35);
+  overflow: hidden;
+}
+.wf-confirm-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--cr2);
+}
+.wf-confirm-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: #d97706;
+}
+.wf-confirm-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--ink2);
+  margin: 0;
+}
+.wf-confirm-body {
+  padding: 12px 16px 16px;
+  color: var(--ink3);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.wf-confirm-highlight {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.1);
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 600;
+}
+.wf-confirm-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.wf-confirm-btn {
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid var(--cr2);
+  padding: 10px 12px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all .14s;
+}
+.wf-confirm-btn-cancel {
+  background: transparent;
+  color: var(--ink3);
+}
+.wf-confirm-btn-cancel:hover {
+  background: var(--bar-btn);
+}
+.wf-confirm-btn-danger {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+.wf-confirm-btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+}
+.wf-confirm-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
 /* ══ MOBILE ═════════════════════════════════════════════════════════════════ */
 /* On small screens, right panel hides; bottom sheet appears instead */
 @media (max-width: 767px) {
@@ -552,6 +658,19 @@ const CSS = `
 .dark .wf-mob-back  { background: rgba(0,0,0,.65); }
 .dark .wf-mob-sheet { background: #1e293b; }
 .dark .wf-mob-handle { background: #334155; }
+.dark .wf-confirm-back { background: rgba(2,6,23,.72); }
+.dark .wf-confirm-card { background: #1e293b; border-color: #334155; }
+.dark .wf-confirm-head { border-bottom-color: #334155; }
+.dark .wf-confirm-title { color: #f1f5f9; }
+.dark .wf-confirm-body { color: #cbd5e1; }
+.dark .wf-confirm-highlight {
+  background: rgba(217,119,6,.16);
+  border-color: rgba(217,119,6,.45);
+  color: #fdba74;
+}
+.dark .wf-confirm-btn { border-color: #334155; }
+.dark .wf-confirm-btn-cancel { color: #cbd5e1; }
+.dark .wf-confirm-btn-cancel:hover { background: rgba(148,163,184,.12); }
 `;
 
 let _css = false;
@@ -576,24 +695,96 @@ const Detail = memo(({ cell, onClose, onSaved, isMobile }: {
   const [saving, setSaving] = useState(false);
   const [ok,     setOk]     = useState(false);
   const [err,    setErr]    = useState('');
+  const [lastSavedStatus, setLastSavedStatus] = useState<WordStatus>('DRAFT');
+  const [lastPublishWasImmediate, setLastPublishWasImmediate] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+
+  const isPastOrToday = cell.date <= today();
+  const isDateLocked = Boolean(cell.word && cell.word.status === 'PUBLISHED' && isPastOrToday);
 
   useEffect(() => {
     setTitle(cell.word?.title     || '');
     setBody(cell.word?.content    || '');
     setRef(cell.word?.scripture   || '');
     setPrayer(cell.word?.prayer   || '');
-    setTab(cell.word ? 'read' : 'write');
+    setTab(isDateLocked ? 'read' : (cell.word ? 'read' : 'write'));
     setOk(false); setErr('');
-  }, [cell.date]);
+    setLastPublishWasImmediate(false);
+    setShowPublishConfirm(false);
+  }, [cell.date, isDateLocked, cell.word]);
 
-  const save = async (status: WordStatus) => {
+  const commitSave = async (status: WordStatus) => {
+    if (isDateLocked) {
+      setErr('This devotional is already public and locked. Editing is no longer allowed.');
+      setTab('read');
+      return;
+    }
+
+    const trimmedTitle = title.trim();
+    const trimmedBody = body.trim();
+    if (!trimmedTitle) {
+      setErr('Title is required before saving.');
+      setTab('write');
+      setShowPublishConfirm(false);
+      return;
+    }
+    if (!trimmedBody) {
+      setErr('Daily Word content is required before saving.');
+      setTab('write');
+      setShowPublishConfirm(false);
+      return;
+    }
+
     setSaving(true); setErr(''); setOk(false);
     try {
-      const p = { title, content: body, scripture: ref, prayer, scheduled_date: cell.date, status };
-      cell.word?.id ? await dailyWordService.update(cell.word.id, p) : await dailyWordService.create(p);
+      const p = {
+        title: trimmedTitle,
+        content: trimmedBody,
+        scripture: ref,
+        prayer,
+        scheduled_date: cell.date,
+        status,
+      };
+      if (cell.word?.id) {
+        await dailyWordService.update(cell.word.id, p);
+      } else {
+        const result = await dailyWordService.create(p);
+        if (isDailyWordConflict(result)) {
+          setErr(result.message || 'A daily word already exists for this date.');
+          return;
+        }
+      }
+      setLastSavedStatus(status);
+      setLastPublishWasImmediate(status === 'PUBLISHED' && isPastOrToday);
       setOk(true); setTimeout(() => setOk(false), 3000); onSaved();
     } catch (e: any) { setErr(e?.response?.data?.detail || 'Failed to save.'); }
     finally { setSaving(false); }
+  };
+
+  const save = async (status: WordStatus) => {
+    const trimmedTitle = title.trim();
+    const trimmedBody = body.trim();
+    if (!trimmedTitle) {
+      setErr('Title is required before saving.');
+      setTab('write');
+      return;
+    }
+    if (!trimmedBody) {
+      setErr('Daily Word content is required before saving.');
+      setTab('write');
+      return;
+    }
+
+    if (status === 'PUBLISHED' && isPastOrToday) {
+      setShowPublishConfirm(true);
+      return;
+    }
+    await commitSave(status);
+  };
+
+  const confirmPublishNow = async () => {
+    setShowPublishConfirm(false);
+    await commitSave('PUBLISHED');
   };
 
   const dt     = new Date(cell.date + 'T00:00:00');
@@ -631,15 +822,32 @@ const Detail = memo(({ cell, onClose, onSaved, isMobile }: {
         <button className={`wf-ptab ${tab==='read'?'on':''}`} onClick={() => setTab('read')}>
           <Icon name="auto_stories" size={12} />Read
         </button>
-        <button className={`wf-ptab ${tab==='write'?'on':''}`} onClick={() => setTab('write')}>
-          <Icon name="edit" size={12} />{word ? 'Edit' : 'Create'}
-        </button>
+        {!isDateLocked && (
+          <button className={`wf-ptab ${tab==='write'?'on':''}`} onClick={() => setTab('write')}>
+            <Icon name="edit" size={12} />{word ? 'Edit' : 'Create'}
+          </button>
+        )}
       </div>
 
       {/* Body */}
       <div className="wf-pbody">
-        {ok  && <div className="wf-ok"><Icon name="check_circle" size={13} />Saved successfully.</div>}
+        {ok  && (
+          <div className="wf-ok">
+            <Icon name="check_circle" size={13} />
+            {lastSavedStatus === 'PUBLISHED'
+              ? (lastPublishWasImmediate
+                ? 'Published instantly. It is now public and locked for editing.'
+                : 'Saved as Ready. It will render publicly on its date.')
+              : 'Draft saved.'}
+          </div>
+        )}
         {err && <div className="wf-err"><Icon name="error_outline" size={13} />{err}</div>}
+        {isDateLocked && (
+          <div className="wf-ok" style={{ marginTop: 0, marginBottom: 12 }}>
+            <Icon name="lock" size={13} />
+            This devotional is public and locked. No further edits are allowed.
+          </div>
+        )}
 
         {tab === 'read' && (
           word ? (
@@ -703,18 +911,50 @@ const Detail = memo(({ cell, onClose, onSaved, isMobile }: {
       </div>
 
       {/* Footer */}
-      {tab === 'write' && (
+      {tab === 'write' && !isDateLocked && (
         <div className="wf-pfoot">
           <button className="wf-pfbtn wf-pfbtn-draft" onClick={() => save('DRAFT')} disabled={saving}>
-            <Icon name="save" size={12} />Draft
-          </button>
-          <button className="wf-pfbtn wf-pfbtn-sched" onClick={() => save('SCHEDULED')} disabled={saving}>
-            <Icon name="schedule" size={12} />Schedule
+            <Icon name="save" size={12} />Save Draft
           </button>
           <button className="wf-pfbtn wf-pfbtn-pub" onClick={() => save('PUBLISHED')} disabled={saving}>
-            <Icon name={saving ? 'hourglass_empty' : 'publish'} size={12} />
-            {saving ? 'Saving…' : 'Publish'}
+            <Icon name={saving ? 'hourglass_empty' : 'check_circle'} size={12} />
+            {saving ? 'Saving…' : (isPastOrToday ? 'Publish Now' : 'Ready')}
           </button>
+        </div>
+      )}
+
+      {showPublishConfirm && (
+        <div className="wf-confirm-back" role="dialog" aria-modal="true" aria-label="Confirm instant publish">
+          <div className="wf-confirm-card">
+            <div className="wf-confirm-head">
+              <Icon name="warning_amber" size={20} className="wf-confirm-icon" />
+              <h3 className="wf-confirm-title">Publish Instantly And Lock Editing?</h3>
+            </div>
+            <div className="wf-confirm-body">
+              You are publishing this devotional immediately to the public page because this date is today or already passed.
+              <div className="wf-confirm-highlight">
+                Once published now, editing for this devotional will be permanently locked.
+              </div>
+            </div>
+            <div className="wf-confirm-actions">
+              <button
+                type="button"
+                className="wf-confirm-btn wf-confirm-btn-cancel"
+                onClick={() => setShowPublishConfirm(false)}
+                disabled={saving}
+              >
+                <Icon name="close" size={14} />Cancel
+              </button>
+              <button
+                type="button"
+                className="wf-confirm-btn wf-confirm-btn-danger"
+                onClick={confirmPublishNow}
+                disabled={saving}
+              >
+                <Icon name="public" size={14} />Publish Now
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
@@ -896,13 +1136,6 @@ const WeeklyFlowPage: React.FC = () => {
             if (t) pick(t);
           }}>
             <Icon name="today" size={12} />Today
-          </button>
-          <button className="wf-btn wf-btn-gold" onClick={() => {
-            const t = cells.find(c => c.date === td && c.isCurrentMonth)
-                   || cells.find(c => c.isCurrentMonth && !c.word);
-            if (t) pick(t);
-          }}>
-            <Icon name="add" size={13} />New Entry
           </button>
         </div>
 

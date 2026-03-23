@@ -2,7 +2,7 @@
 Series Admin Configuration
 """
 from django.contrib import admin
-from .models import Series
+from .models import Series, CurrentSeriesSpotlight
 
 
 @admin.register(Series)
@@ -35,3 +35,10 @@ class SeriesAdmin(admin.ModelAdmin):
     def post_count(self, obj):
         return obj.get_post_count()
     post_count.short_description = 'Posts'
+
+
+@admin.register(CurrentSeriesSpotlight)
+class CurrentSeriesSpotlightAdmin(admin.ModelAdmin):
+    list_display = ['singleton_key', 'series', 'is_active', 'latest_part_label', 'updated_at']
+    readonly_fields = ['singleton_key', 'latest_part_label', 'created_at', 'updated_at']
+    search_fields = ['series__title', 'latest_part_label', 'cta_label']

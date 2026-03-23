@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, PostContentType, Interaction, Draft, WeeklyEvent, HeroSection, Testimonial, SpiritualPractice
+from .models import Post, PostContentType, Interaction, Draft, WeeklyEvent, HeroSection, Testimonial, SpiritualPractice, PrivacyPolicy
 
 
 @admin.register(Post)
@@ -161,6 +161,23 @@ class SpiritualPracticeAdmin(admin.ModelAdmin):
         }),
         ('Display', {
             'fields': ('is_active', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'updated_by'),
+            'classes': ('collapse',)
+        })
+    )
+
+
+@admin.register(PrivacyPolicy)
+class PrivacyPolicyAdmin(admin.ModelAdmin):
+    list_display = ['title', 'is_published', 'updated_at', 'updated_by']
+    list_filter = ['is_published']
+    search_fields = ['title', 'content']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Content', {
+            'fields': ('title', 'content', 'is_published')
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at', 'updated_by'),

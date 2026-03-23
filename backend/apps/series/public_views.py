@@ -9,8 +9,8 @@ from rest_framework.permissions import AllowAny
 from django.db.models import Q
 
 from apps.users.models import UserRole
-from .models import Series, SeriesVisibility
-from .serializers import SeriesSerializer, SeriesDetailSerializer
+from .models import Series, SeriesVisibility, CurrentSeriesSpotlight
+from .serializers import SeriesSerializer, SeriesDetailSerializer, CurrentSeriesSpotlightSerializer
 
 
 class PublicSeriesViewSet(viewsets.ReadOnlyModelViewSet):
@@ -79,4 +79,20 @@ class PublicSeriesViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by('-featured_priority', '-created_at')
         
         serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='current-spotlight')
+    def current_spotlight(self, request):
+        """
+        Get current series spotlight settings for homepage section.
+        GET /api/v1/public/series/current-spotlight/
+        """
+        spotlight = CurrentSeriesSpotlight.objects.filter(singleton_key='default', is_active=True).first()
+        if not spotlight or not spotlight.series or spotlight.series.is_deleted:
+            return Response({})
+
+        if not self.get_queryset().filter(pk=spotlight.series_id).exists():
+            return Response({})
+
+        serializer = CurrentSeriesSpotlightSerializer(spotlight, context={'request': request})
         return Response(serializer.data)

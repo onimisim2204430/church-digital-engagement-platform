@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../ChurchApp-Android"
+		}
+	],
+	"settings": {
+		"window.autoDetectColorScheme": true
+	}
+}

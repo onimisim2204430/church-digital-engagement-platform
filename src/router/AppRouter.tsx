@@ -34,6 +34,7 @@ import Forbidden from '../pages/Forbidden';
 import VerifyEmail from '../pages/VerifyEmail';
 import DailyWordDetailPage from '../public/DailyWordDetailPage';
 import OpenBiblePage from '../public/pages/OpenBiblePage';
+import PrivacyPolicyPage from '../public/pages/PrivacyPolicyPage';
 import PracticesPage from '../public/practices/PracticesPage';
 import PracticeDetailPage from '../public/practices/PracticeDetailPage';
 
@@ -62,6 +63,8 @@ import AdminSettings from '../admin/setting/index';
 import DraftsManager from '../admin/DraftsManager';
 // import DailyWordsPage from '../admin/DailyWordsPage'; // TODO: Restore if bulk daily word management needed
 import WeeklyFlowPage from '../admin/WeeklyFlowManagement';
+import EventManager from '../admin/EventManagement/EventManager';
+import ConnectManager from '../admin/ConnectManagement/ConnectManager';
 import SeedManager from '../admin/SeedManagement';
 import {
   FinancialHub,
@@ -75,8 +78,8 @@ import CommunityDashboard from '../admin/CommunityDashboard';
 import { MinistryHub } from '../admin/MinistryManagement';
 import GrowthDashboard from '../admin/GrowthDashboard';
 import AdminPlaceholder from '../admin/AdminPlaceholder';
-import CommunityStoriesPage from '../admin/CommunityStoriesPage';
-import SpiritualPracticesPage from '../admin/SpiritualPracticesPage';
+import HomepageContentHub from '../admin/HomepageContentHub';
+import PrivacyPolicyManager from '../admin/PrivacyPolicyManager';
 import AdminLayout from '../admin/layouts/AdminLayout';
 import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
 import PermissionGatedRoute from '../admin/components/PermissionGatedRoute';
@@ -185,6 +188,7 @@ const AppRouter: React.FC = () => {
         <Route path="/connect" element={<ConnectPage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/giving" element={<GivingPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         {/* TODO: remove after auth debugging */}
@@ -246,9 +250,13 @@ const AppRouter: React.FC = () => {
           {/* <Route path="financial-dashboard" element={<PermissionGatedRoute code="fin.*"><FinancialDashboard /></PermissionGatedRoute>} /> */}
           <Route path="growth-dashboard"    element={<PermissionGatedRoute code="outreach.*"><GrowthDashboard /></PermissionGatedRoute>} />
           <Route path="content" element={<PermissionGatedRoute code="content.posts"><ContentManager /></PermissionGatedRoute>} />
-          <Route path="community-stories" element={<PermissionGatedRoute code="content.posts"><CommunityStoriesPage /></PermissionGatedRoute>} />
-          <Route path="spiritual-practices" element={<PermissionGatedRoute code="content.posts"><SpiritualPracticesPage /></PermissionGatedRoute>} />
+          <Route path="homepage-content" element={<AdminOnlyRoute><HomepageContentHub /></AdminOnlyRoute>} />
+          <Route path="privacy-policy" element={<AdminOnlyRoute><PrivacyPolicyManager /></AdminOnlyRoute>} />
           <Route path="series" element={<PermissionGatedRoute code="content.series"><SeriesManager /></PermissionGatedRoute>} />
+          <Route path="featured-series" element={<Navigate to="/admin/homepage-content?tab=featured-series" replace />} />
+          <Route path="current-series-spotlight" element={<Navigate to="/admin/homepage-content?tab=current-spotlight" replace />} />
+          <Route path="spiritual-practices" element={<Navigate to="/admin/homepage-content?tab=spiritual-practices" replace />} />
+          <Route path="community-stories" element={<Navigate to="/admin/homepage-content?tab=community-stories" replace />} />
           <Route path="series/new" element={<PermissionGatedRoute code="content.series"><SeriesCreate /></PermissionGatedRoute>} />
           <Route path="series/:id" element={<PermissionGatedRoute code="content.series"><SeriesEdit /></PermissionGatedRoute>} />
           {/* <Route path="daily-words" element={<DailyWordsPage />} /> TODO: Restore if bulk ops needed */}
@@ -259,9 +267,9 @@ const AppRouter: React.FC = () => {
           <Route path="podcasting" element={<PermissionGatedRoute code="schedule.podcasting"><AdminPlaceholder title="Podcasting" icon="podcasts" description="Manage and publish podcast episodes directly from here." /></PermissionGatedRoute>} />
           <Route path="users" element={<AdminOnlyRoute><UserManager /></AdminOnlyRoute>} />
           <Route path="moderation" element={<PermissionGatedRoute code="community.moderation"><InteractionModeration /></PermissionGatedRoute>} />
-          <Route path="small-groups" element={<PermissionGatedRoute code="community.groups"><AdminPlaceholder title="Small Groups" icon="groups_2" description="Oversee and manage church small group communities." /></PermissionGatedRoute>} />
+          <Route path="small-groups" element={<PermissionGatedRoute code="community.groups"><ConnectManager /></PermissionGatedRoute>} />
           <Route path="prayer-wall" element={<PermissionGatedRoute code="community.prayer"><AdminPlaceholder title="Prayer Wall" icon="volunteer_activism" description="Monitor and moderate community prayer requests." /></PermissionGatedRoute>} />
-          <Route path="events" element={<PermissionGatedRoute code="schedule.events"><AdminPlaceholder title="Events Calendar" icon="event" description="Create and manage church events and service schedules." /></PermissionGatedRoute>} />
+          <Route path="events" element={<PermissionGatedRoute code="schedule.events"><EventManager /></PermissionGatedRoute>} />
           <Route path="volunteers" element={<PermissionGatedRoute code="community.volunteers"><AdminPlaceholder title="Volunteers" icon="manage_accounts" description="Coordinate volunteer roles, schedules and assignments." /></PermissionGatedRoute>} />
           <Route path="financial-hub" element={<PermissionGatedRoute code="fin.hub"><FinancialHub /></PermissionGatedRoute>} />
           <Route path="payments" element={<PermissionGatedRoute code="fin.payments"><PaymentRecords /></PermissionGatedRoute>} />

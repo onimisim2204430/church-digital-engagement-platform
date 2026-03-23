@@ -6,19 +6,24 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from django.utils import timezone
+from django.db.models import Case, When, Value, IntegerField
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from apps.users.permissions import IsModerator, IsAdmin, HasModulePermission
 from apps.moderation.models import AuditLog, ActionType
-from .models import Post, PostContentType, Testimonial, SpiritualPractice
+from .models import Post, PostStatus, PostContentType, Testimonial, SpiritualPractice, Event, ConnectMinistry, PrivacyPolicy
 from .serializers import (
     PostSerializer, PostCreateSerializer, PostUpdateSerializer,
     PostListSerializer, PostPublishSerializer, PostContentTypeSerializer,
     PostContentTypeCreateSerializer, PostContentTypeUpdateSerializer,
     TestimonialSerializer, TestimonialCreateUpdateSerializer,
-    SpiritualPracticeSerializer, SpiritualPracticeCreateUpdateSerializer
+    SpiritualPracticeSerializer, SpiritualPracticeCreateUpdateSerializer,
+    EventSerializer, EventCreateUpdateSerializer,
+    ConnectMinistrySerializer, ConnectMinistryCreateUpdateSerializer,
+    PrivacyPolicySerializer, PrivacyPolicyUpdateSerializer,
 )
 
 
@@ -361,6 +366,18 @@ class AdminDailyWordViewSet(viewsets.ModelViewSet):
     - Full CRUD for devotional content
     """
     permission_classes = [IsAuthenticated, IsModerator]
+
+    @staticmethod
+    def _resolve_preferred_post_for_date(base_queryset):
+        """Pick one devotional deterministically when duplicates exist for a date."""
+        return base_queryset.annotate(
+            status_rank=Case(
+                When(status=PostStatus.PUBLISHED, then=Value(0)),
+                When(status=PostStatus.SCHEDULED, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        ).order_by('status_rank', '-updated_at', '-created_at').first()
     
     def get_queryset(self):
         """Filter to only devotional posts"""
@@ -494,11 +511,11 @@ class AdminDailyWordViewSet(viewsets.ModelViewSet):
                     continue
                 
                 check_date = date(year, month, day)
-                post = Post.objects.filter(
+                post = self._resolve_preferred_post_for_date(Post.objects.filter(
                     scheduled_date=check_date,
                     content_type__slug='devotional',
                     is_deleted=False
-                ).first()
+                ))
                 
                 response_data['days'].append({
                     'date': str(check_date),
@@ -525,7 +542,9 @@ class AdminDailyWordViewSet(viewsets.ModelViewSet):
                 'error': 'Invalid date format. Use YYYY-MM-DD'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        post = self.get_queryset().filter(scheduled_date=lookup_date).first()
+        post = self._resolve_preferred_post_for_date(
+            self.get_queryset().filter(scheduled_date=lookup_date)
+        )
         
         if not post:
             return Response({
@@ -556,6 +575,39 @@ class AdminWeeklyEventViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return WeeklyEventCreateUpdateSerializer
         return WeeklyEventSerializer
+
+
+class AdminEventViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for non-recurring special events.
+    """
+    permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('schedule.events')]
+
+    def get_queryset(self):
+        queryset = Event.objects.filter(is_deleted=False).order_by('start_datetime', '-created_at')
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter.upper())
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return EventCreateUpdateSerializer
+        return EventSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.updated_by = self.request.user.email
+        instance.save(update_fields=['is_deleted', 'updated_by', 'updated_at'])
 
 
 class PublicWeeklyEventViewSet(viewsets.ReadOnlyModelViewSet):
@@ -662,3 +714,65 @@ class AdminSpiritualPracticeViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user.email)
+
+
+class AdminConnectMinistryViewSet(viewsets.ModelViewSet):
+    """
+    Admin viewset for Connect page ministries/cards.
+    Requires community.groups permission.
+    """
+
+    permission_classes = [IsAuthenticated, IsModerator]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasModulePermission('community.groups')]
+
+    def get_queryset(self):
+        queryset = ConnectMinistry.objects.all().order_by('display_order', '-updated_at')
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            if is_active.lower() == 'true':
+                queryset = queryset.filter(is_active=True)
+            elif is_active.lower() == 'false':
+                queryset = queryset.filter(is_active=False)
+
+        card_type = self.request.query_params.get('card_type')
+        if card_type:
+            queryset = queryset.filter(card_type=card_type)
+        return queryset
+
+    def get_serializer_class(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return ConnectMinistryCreateUpdateSerializer
+        return ConnectMinistrySerializer
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user.email)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.updated_by = self.request.user.email
+        instance.save(update_fields=['is_active', 'updated_by', 'updated_at'])
+
+
+class AdminPrivacyPolicyAPIView(APIView):
+    """Admin endpoint to manage singleton privacy policy content."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        policy = PrivacyPolicy.get_solo()
+        serializer = PrivacyPolicySerializer(policy, context={'request': request})
+        return Response(serializer.data)
+
+    def patch(self, request):
+        policy = PrivacyPolicy.get_solo()
+        serializer = PrivacyPolicyUpdateSerializer(policy, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_by=request.user.email)
+
+        output = PrivacyPolicySerializer(policy, context={'request': request})
+        return Response(output.data)

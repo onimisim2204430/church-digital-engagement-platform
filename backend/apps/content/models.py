@@ -627,6 +627,137 @@ class WeeklyEvent(models.Model):
         return self.get_day_of_week_display()
 
 
+class EventStatus(models.TextChoices):
+    """Publishing status for special one-time church events."""
+    DRAFT = 'DRAFT', 'Draft'
+    PUBLISHED = 'PUBLISHED', 'Published'
+
+
+class Event(models.Model):
+    """
+    Non-recurring special programs and ceremonies.
+    Separate from WeeklyEvent, which models recurring weekly schedule entries.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    start_datetime = models.DateTimeField(db_index=True)
+    end_datetime = models.DateTimeField(null=True, blank=True)
+    location = models.CharField(max_length=255)
+    banner_image = models.ImageField(upload_to='events/banners/', null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=EventStatus.choices,
+        default=EventStatus.DRAFT,
+        db_index=True,
+    )
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['start_datetime', '-created_at']
+        indexes = [
+            models.Index(fields=['status', 'is_deleted', 'start_datetime']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.start_datetime})"
+
+    def clean(self):
+        if self.end_datetime and self.end_datetime < self.start_datetime:
+            raise ValidationError("End datetime must be greater than or equal to start datetime")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ConnectMinistry(models.Model):
+    """
+    Editable cards for the public/member Connect experience.
+    """
+
+    CARD_TYPE_CHOICES = [
+        ('group', 'Group'),
+        ('serve', 'Serve Team'),
+        ('event', 'Event'),
+    ]
+
+    STYLE_VARIANT_CHOICES = [
+        ('featured_group', 'Featured Group'),
+        ('sand_serve', 'Sand Serve Card'),
+        ('standard_group', 'Standard Group'),
+        ('outlined_serve', 'Outlined Serve Card'),
+        ('featured_event', 'Featured Event'),
+    ]
+
+    title = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=220, unique=True, db_index=True)
+    description = models.TextField()
+    card_type = models.CharField(max_length=20, choices=CARD_TYPE_CHOICES, default='group')
+    style_variant = models.CharField(max_length=30, choices=STYLE_VARIANT_CHOICES, default='standard_group')
+    category_label = models.CharField(max_length=80, blank=True)
+    schedule_label = models.CharField(max_length=120, blank=True)
+    location_label = models.CharField(max_length=120, blank=True)
+    date_label = models.CharField(max_length=120, blank=True)
+    icon_name = models.CharField(max_length=50, blank=True)
+    image_url = models.URLField(max_length=1000, blank=True)
+    cta_label = models.CharField(max_length=80, blank=True)
+    cta_url = models.URLField(max_length=1000, blank=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['display_order', '-updated_at']
+        verbose_name = 'Connect Ministry'
+        verbose_name_plural = 'Connect Ministries'
+        indexes = [
+            models.Index(fields=['is_active', 'display_order']),
+            models.Index(fields=['card_type', 'is_active']),
+            models.Index(fields=['slug']),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['display_order'], name='content_connectministry_unique_display_order'),
+        ]
+
+    def clean(self):
+        if self.card_type == 'event' and not self.date_label.strip():
+            raise ValidationError({'date_label': 'Date label is required for event cards.'})
+
+        if self.card_type in ['group', 'event'] and not self.image_url.strip():
+            raise ValidationError({'image_url': 'Image URL is required for group and event cards.'})
+
+        if self.card_type == 'serve' and not self.icon_name.strip():
+            raise ValidationError({'icon_name': 'Icon name is required for serve cards.'})
+
+        duplicate = ConnectMinistry.objects.filter(display_order=self.display_order).exclude(pk=self.pk).exists()
+        if duplicate:
+            raise ValidationError({'display_order': 'Display order must be unique.'})
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)[:200] or 'connect-item'
+            candidate = base_slug
+            suffix = 2
+            while ConnectMinistry.objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                suffix_text = f"-{suffix}"
+                candidate = f"{base_slug[:220-len(suffix_text)]}{suffix_text}"
+                suffix += 1
+            self.slug = candidate
+
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
 class HeroSection(models.Model):
     """
     Dynamic hero section content for the public homepage.
@@ -920,3 +1051,91 @@ class SpiritualPractice(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class PrivacyPolicy(models.Model):
+    """
+    Singleton-style privacy policy content for public display.
+    Content is stored in DB and editable from admin interfaces.
+    """
+
+    DEFAULT_TITLE = "Privacy Policy"
+    DEFAULT_CONTENT = """
+<h2>Overview</h2>
+<p>This Privacy Policy explains how we collect, use, store, and protect personal information across our church website, member experiences, and digital ministry tools.</p>
+<p>By using this platform, you agree to the practices described below.</p>
+
+<h2>Information We Collect</h2>
+<p>Depending on how you interact with us, we may collect:</p>
+<ul>
+    <li><strong>Identity and contact details</strong> such as your name, email address, and phone number.</li>
+    <li><strong>Account data</strong> such as login activity, profile information, and communication preferences.</li>
+    <li><strong>Engagement data</strong> such as event registrations, prayer submissions, and community interactions.</li>
+    <li><strong>Giving data</strong> related to donations and payment references (processed by secure payment providers).</li>
+</ul>
+
+<h2>How We Use Your Information</h2>
+<p>We use collected data to:</p>
+<ul>
+    <li>Provide church services and ministry communication.</li>
+    <li>Manage user accounts and secure access.</li>
+    <li>Coordinate events, discipleship programs, and community support.</li>
+    <li>Improve platform reliability, safety, and user experience.</li>
+    <li>Comply with legal and financial obligations.</li>
+</ul>
+
+<h2>Legal Basis and Consent</h2>
+<p>Where required by law, we process data based on consent, legitimate ministry interest, contractual necessity, or legal obligation. You may withdraw consent for optional communications at any time.</p>
+
+<h2>Data Sharing</h2>
+<p>We do not sell personal information. We may share limited data with trusted service providers that help us operate core services (for example email delivery, analytics, or payment processing), under appropriate confidentiality and security controls.</p>
+
+<h2>Data Retention</h2>
+<p>We retain personal data only as long as reasonably necessary for ministry purposes, account support, reporting requirements, and legal compliance. Data that is no longer needed is removed or anonymized where practical.</p>
+
+<h2>Security</h2>
+<p>We apply technical and administrative safeguards to protect personal information from unauthorized access, loss, misuse, or disclosure. No internet-based service is 100% secure, but we continually improve protections.</p>
+
+<h2>Your Rights</h2>
+<p>Subject to applicable law, you may have rights to access, correct, delete, or restrict the use of your personal data. You may also request information about data we hold about you.</p>
+
+<h2>Children and Family Data</h2>
+<p>Some ministry activities involve minors. We encourage parents and guardians to supervise children's digital participation and contact us for any privacy concerns related to family or youth information.</p>
+
+<h2>Policy Updates</h2>
+<p>We may update this Privacy Policy from time to time. The "Last updated" date indicates the latest revision. Continued use of the platform after changes means you accept the updated policy.</p>
+
+<h2>Contact</h2>
+<p>If you have questions, requests, or concerns regarding privacy, please contact the church administration team through the official church contact channels.</p>
+""".strip()
+
+    title = models.CharField(max_length=255, default=DEFAULT_TITLE)
+    content = models.TextField(default=DEFAULT_CONTENT)
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Admin who last updated this privacy policy"
+    )
+
+    class Meta:
+        verbose_name = "Privacy Policy"
+        verbose_name_plural = "Privacy Policy"
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def get_solo(cls):
+        policy, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'title': cls.DEFAULT_TITLE,
+                'content': cls.DEFAULT_CONTENT,
+                'is_published': True,
+                'updated_by': 'system-seed',
+            },
+        )
+        return policy

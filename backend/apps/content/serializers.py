@@ -2,9 +2,10 @@
 Content Serializers
 """
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from django.core.exceptions import ValidationError as DjangoValidationError
-from .models import Post, PostType, PostStatus, PostContentType, Draft, Testimonial, SpiritualPractice
+from .models import Post, PostType, PostStatus, PostContentType, Draft, Testimonial, SpiritualPractice, Event, EventStatus, ConnectMinistry, PrivacyPolicy
 from apps.series.models import Series
 
 
@@ -376,14 +377,43 @@ class DailyWordCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'title', 'content', 'scripture', 'prayer', 'scheduled_date', 'category',
+            'title', 'content', 'scripture', 'prayer', 'scheduled_date', 'status', 'category',
             'featured_image', 'audio_url', 'comments_enabled', 'reactions_enabled',
             'is_featured', 'featured_priority'
         ]
     
     def validate(self, attrs):
         """Validate and enforce unique scheduled_date for devotional posts"""
-        # Will be called via the viewset's create/update which should set content_type
+        if 'title' in attrs and isinstance(attrs['title'], str):
+            attrs['title'] = attrs['title'].strip()
+        if 'content' in attrs and isinstance(attrs['content'], str):
+            attrs['content'] = attrs['content'].strip()
+
+        errors = {}
+        title_provided = attrs.get('title')
+        content_provided = attrs.get('content')
+
+        # Prevent whitespace-only values on provided fields.
+        if 'title' in attrs and not title_provided:
+            errors['title'] = ['Title is required.']
+        if 'content' in attrs and not content_provided:
+            errors['content'] = ['Daily Word content is required.']
+
+        requested_status = attrs.get('status')
+        effective_status = requested_status or (self.instance.status if self.instance else PostStatus.DRAFT)
+        effective_title = title_provided if 'title' in attrs else (self.instance.title if self.instance else '')
+        effective_content = content_provided if 'content' in attrs else (self.instance.content if self.instance else '')
+
+        # Publishing requires complete non-empty devotional data.
+        if effective_status == PostStatus.PUBLISHED:
+            if not str(effective_title).strip():
+                errors['title'] = ['Title is required before publishing.']
+            if not str(effective_content).strip():
+                errors['content'] = ['Daily Word content is required before publishing.']
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
         return attrs
     
     def create(self, validated_data):
@@ -391,6 +421,7 @@ class DailyWordCreateUpdateSerializer(serializers.ModelSerializer):
         from apps.users.models import User
         request = self.context.get('request')
         author = validated_data.pop('author', None) or (request.user if request else User.objects.first())
+        requested_status = validated_data.pop('status', PostStatus.DRAFT)
         
         # Set content_type to 'devotional' if not already set
         try:
@@ -407,13 +438,36 @@ class DailyWordCreateUpdateSerializer(serializers.ModelSerializer):
             author=author,
             content_type=devotional_type,
             post_type=PostType.DEVOTIONAL,
-            status=PostStatus.DRAFT,
+            status=requested_status,
             **validated_data
         )
+
+        # Keep publish flags in sync when status is provided from admin UI.
+        if requested_status == PostStatus.PUBLISHED:
+            post.is_published = True
+            if post.published_at is None:
+                post.published_at = timezone.now()
+            post.save(update_fields=['is_published', 'published_at'])
+        elif requested_status in [PostStatus.DRAFT, PostStatus.SCHEDULED]:
+            if post.is_published:
+                post.is_published = False
+                post.save(update_fields=['is_published'])
+
         return post
     
     def update(self, instance, validated_data):
         """Update an existing daily word post"""
+        if (
+            instance.status == PostStatus.PUBLISHED
+            and instance.scheduled_date
+            and instance.scheduled_date <= timezone.now().date()
+        ):
+            raise PermissionDenied(
+                detail='This devotional is public and locked. Editing is no longer allowed.'
+            )
+
+        requested_status = validated_data.pop('status', None)
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
@@ -424,6 +478,16 @@ class DailyWordCreateUpdateSerializer(serializers.ModelSerializer):
             instance.post_type = PostType.DEVOTIONAL
         except PostContentType.DoesNotExist:
             pass
+
+        if requested_status is not None:
+            instance.status = requested_status
+
+        if instance.status == PostStatus.PUBLISHED:
+            instance.is_published = True
+            if instance.published_at is None:
+                instance.published_at = timezone.now()
+        elif instance.status in [PostStatus.DRAFT, PostStatus.SCHEDULED]:
+            instance.is_published = False
         
         instance.full_clean()  # This will call Post.clean() and check uniqueness
         instance.save()
@@ -474,6 +538,65 @@ class WeeklyEventCreateUpdateSerializer(serializers.ModelSerializer):
         if not (0 <= value <= 6):
             raise serializers.ValidationError("Day of week must be 0-6 (0=Monday, 6=Sunday)")
         return value
+
+
+class EventSerializer(serializers.ModelSerializer):
+    """Serializer for special events (admin and public read)."""
+
+    banner_image = serializers.SerializerMethodField()
+
+    def get_banner_image(self, obj):
+        if not obj.banner_image:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.banner_image.url)
+        return obj.banner_image.url
+
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'title', 'description', 'start_datetime', 'end_datetime',
+            'location', 'banner_image', 'status', 'is_deleted',
+            'created_at', 'updated_at', 'updated_by'
+        ]
+        read_only_fields = ['id', 'is_deleted', 'created_at', 'updated_at', 'updated_by']
+
+
+class EventCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for admin create/update of special events."""
+
+    banner_image = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = Event
+        fields = [
+            'title', 'description', 'start_datetime', 'end_datetime',
+            'location', 'banner_image', 'status'
+        ]
+
+    def validate(self, attrs):
+        instance = getattr(self, 'instance', None)
+        start_datetime = attrs.get('start_datetime', getattr(instance, 'start_datetime', None))
+        end_datetime = attrs.get('end_datetime', getattr(instance, 'end_datetime', None))
+
+        if end_datetime and start_datetime and end_datetime < start_datetime:
+            raise serializers.ValidationError({
+                'end_datetime': 'End datetime must be greater than or equal to start datetime.'
+            })
+
+        status_value = attrs.get('status', getattr(instance, 'status', EventStatus.DRAFT))
+        title = attrs.get('title', getattr(instance, 'title', '')).strip()
+        location = attrs.get('location', getattr(instance, 'location', '')).strip()
+        if status_value == EventStatus.PUBLISHED:
+            if not title:
+                raise serializers.ValidationError({'title': 'Title is required to publish an event.'})
+            if not start_datetime:
+                raise serializers.ValidationError({'start_datetime': 'Start date/time is required to publish an event.'})
+            if not location:
+                raise serializers.ValidationError({'location': 'Location is required to publish an event.'})
+
+        return attrs
 
 
 class HeroSectionSerializer(serializers.ModelSerializer):
@@ -677,3 +800,64 @@ class SpiritualPracticeCreateUpdateSerializer(serializers.ModelSerializer):
         if duplicate_qs.exists():
             raise serializers.ValidationError("Display order must be unique. Choose another order number.")
         return value
+
+
+class ConnectMinistrySerializer(serializers.ModelSerializer):
+    """Serializer for public/admin read operations."""
+
+    class Meta:
+        model = ConnectMinistry
+        fields = [
+            'id', 'title', 'slug', 'description', 'card_type', 'style_variant',
+            'category_label', 'schedule_label', 'location_label', 'date_label',
+            'icon_name', 'image_url', 'cta_label', 'cta_url',
+            'is_active', 'display_order', 'created_at', 'updated_at', 'updated_by'
+        ]
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at', 'updated_by']
+
+
+class ConnectMinistryCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for admin create/update operations."""
+
+    class Meta:
+        model = ConnectMinistry
+        fields = [
+            'title', 'slug', 'description', 'card_type', 'style_variant',
+            'category_label', 'schedule_label', 'location_label', 'date_label',
+            'icon_name', 'image_url', 'cta_label', 'cta_url', 'is_active', 'display_order', 'updated_by'
+        ]
+
+    def validate_title(self, value):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('Title is required.')
+        return value
+
+    def validate_display_order(self, value):
+        instance = getattr(self, 'instance', None)
+        duplicate_qs = ConnectMinistry.objects.filter(display_order=value)
+        if instance is not None:
+            duplicate_qs = duplicate_qs.exclude(pk=instance.pk)
+        if duplicate_qs.exists():
+            raise serializers.ValidationError('Display order must be unique. Choose another order number.')
+        return value
+
+
+class PrivacyPolicySerializer(serializers.ModelSerializer):
+    """Serializer for reading privacy policy content."""
+
+    class Meta:
+        model = PrivacyPolicy
+        fields = [
+            'id', 'title', 'content', 'is_published',
+            'created_at', 'updated_at', 'updated_by'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class PrivacyPolicyUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for admin updates of privacy policy content."""
+
+    class Meta:
+        model = PrivacyPolicy
+        fields = ['title', 'content', 'is_published', 'updated_by']

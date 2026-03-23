@@ -10,14 +10,17 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 
-from .models import Post, PostStatus, PostContentType, WeeklyEvent, Testimonial, SpiritualPractice
+from .models import Post, PostStatus, PostContentType, WeeklyEvent, Testimonial, SpiritualPractice, Event, EventStatus, ConnectMinistry, PrivacyPolicy
 from .serializers import (
     PostSerializer,
     PostListSerializer,
     DailyWordSerializer,
     WeeklyEventSerializer,
+    EventSerializer,
     TestimonialSerializer,
     SpiritualPracticeSerializer,
+    ConnectMinistrySerializer,
+    PrivacyPolicySerializer,
 )
 
 
@@ -153,7 +156,7 @@ class PublicDailyWordViewSet(viewsets.ReadOnlyModelViewSet):
         """Get today's daily word"""
         today = timezone.now().date()
         
-        post = self.get_queryset().filter(scheduled_date=today).first()
+        post = self.get_queryset().filter(scheduled_date=today).order_by('-updated_at', '-created_at').first()
         
         if not post:
             return Response({
@@ -206,8 +209,10 @@ class PublicDailyWordViewSet(viewsets.ReadOnlyModelViewSet):
             scheduled_date__year=year,
             scheduled_date__month=month,
             scheduled_date__lte=today  # Only include today and past dates
-        ):
-            posts_dict[post.scheduled_date] = post
+        ).order_by('-scheduled_date', '-updated_at', '-created_at'):
+            # Keep the first (most recently updated) post for each date.
+            if post.scheduled_date not in posts_dict:
+                posts_dict[post.scheduled_date] = post
         
         # Build day array
         for week in cal:
@@ -250,7 +255,7 @@ class PublicDailyWordViewSet(viewsets.ReadOnlyModelViewSet):
                 'message': f'No daily word found for {date}'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        post = self.get_queryset().filter(scheduled_date=lookup_date).first()
+        post = self.get_queryset().filter(scheduled_date=lookup_date).order_by('-updated_at', '-created_at').first()
         
         if not post:
             return Response({
@@ -275,6 +280,45 @@ class PublicWeeklyEventViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         return WeeklyEvent.objects.all().order_by('day_of_week', 'sort_order')
+
+
+class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public API for non-recurring special events.
+    - GET /api/v1/public/events/ - List published events
+    """
+    permission_classes = [AllowAny]
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        queryset = Event.objects.filter(
+            status=EventStatus.PUBLISHED,
+            is_deleted=False,
+        ).order_by('start_datetime', '-created_at')
+
+        time_filter = (self.request.query_params.get('time') or 'upcoming').lower()
+        now = timezone.now()
+        if time_filter == 'upcoming':
+            queryset = queryset.filter(start_datetime__gte=now)
+        elif time_filter == 'past':
+            queryset = queryset.filter(start_datetime__lt=now)
+
+        return queryset
+
+
+class PublicConnectMinistryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public read-only API for active Connect ministries/cards."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ConnectMinistrySerializer
+    lookup_field = 'slug'
+
+    def get_queryset(self):
+        queryset = ConnectMinistry.objects.filter(is_active=True).order_by('display_order', '-updated_at')
+        card_type = self.request.query_params.get('card_type')
+        if card_type:
+            queryset = queryset.filter(card_type=card_type)
+        return queryset
 
 
 # ============================================================================
@@ -326,4 +370,13 @@ class PublicSpiritualPracticeViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return SpiritualPractice.objects.filter(is_active=True).order_by('display_order', '-updated_at')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_privacy_policy(request):
+    """Public endpoint for privacy policy singleton content."""
+    policy = PrivacyPolicy.get_solo()
+    serializer = PrivacyPolicySerializer(policy, context={'request': request})
+    return Response(serializer.data)
 
