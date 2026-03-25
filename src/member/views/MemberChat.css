@@ -221,7 +221,7 @@
 }
 .ch-conv-last {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--m-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -461,7 +461,7 @@
 .ch-msg-sender-name {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary, #6b7280);
+  color: var(--m-text-secondary);
   padding: 0 0.75rem;
   margin-bottom: 0.1rem;
 }
@@ -530,7 +530,7 @@
   transition: background 0.13s;
 }
 .ch-reaction:hover { background: var(--bg-hover, #f3f4f6); }
-.ch-reaction span  { font-size: 11px; color: var(--text-secondary, #6b7280); font-weight: 600; }
+.ch-reaction span  { font-size: 11px; color: var(--m-text-secondary); font-weight: 600; }
 
 /* Typing bubble */
 .ch-typing-bubble {
@@ -682,7 +682,7 @@
 }
 .ch-info-role {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--m-text-secondary);
   margin: 0.3rem 0 0;
   text-align: center;
 }
@@ -753,7 +753,7 @@
   border-radius: 7px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  color: var(--m-text-secondary);
   cursor: pointer;
   font-family: inherit;
   transition: background 0.13s, color 0.13s;
@@ -777,7 +777,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary, #6b7280);
+  color: var(--m-text-secondary);
   transition: background 0.13s, color 0.13s;
 }
 .ch-icon-btn:hover  { background: var(--bg-hover, #f3f4f6); color: var(--m-text-primary); }
@@ -833,7 +833,7 @@
 /* ≤ 1024px — sidebar collapses (MemberLayout already removes sidebar margin) */
 @media (max-width: 1024px) {
   .ch-page {
-    margin: calc(-1 * var(--space-4, 1rem));
+    margin: calc(-1 * var(--m-s4));
     height: calc(100vh - var(--m-topbar-height));
   }
   /* Info panel hides at medium screens */
@@ -842,7 +842,7 @@
 
 /* ≤ 768px — hide contact list, show only chat (tap to go back) */
 @media (max-width: 768px) {
-  .ch-page { margin: calc(-1 * var(--space-4, 1rem)); }
+  .ch-page { margin: calc(-1 * var(--m-s4)); }
 
   .ch-sidebar {
     position: absolute;

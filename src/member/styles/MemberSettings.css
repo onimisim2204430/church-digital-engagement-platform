@@ -939,7 +939,7 @@
   padding: 0.75rem 1rem;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-md);
+  border-radius: var(--m-r-md);
   color: #ef4444;
   font-size: 13px;
   margin-top: 0.5rem;
@@ -958,7 +958,7 @@
   width: 100%;
   padding: 2rem;
   border: 2px dashed var(--m-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--m-r-md);
   background: var(--m-surface-1);
   cursor: pointer;
   transition: var(--m-t-base) var(--m-ease-out);
