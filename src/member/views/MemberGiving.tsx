@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Card } from '../../shared/components/Card';
+
 import Icon from '../../components/common/Icon';
 import paymentService, { MemberPaymentTransaction } from '../../services/payment.service';
 
@@ -104,80 +104,106 @@ const MemberGiving: React.FC = () => {
   }, [transactions]);
 
   return (
-    <>
-      <div className="welcome-section-pro">
-        <h1 className="welcome-title">Giving History</h1>
-        <p className="welcome-subtitle">Track your personal giving transactions and their payment status</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--m-s5)' }}>
+      <div>
+        <h1 style={{
+          fontSize: 'var(--m-text-2xl)',
+          fontWeight: 'var(--m-w-bold)',
+          color: 'var(--m-text-primary)',
+          margin: '0 0 var(--m-s2)',
+          letterSpacing: 'var(--m-tracking-snug)',
+          lineHeight: 'var(--m-lh-snug)',
+        }}>
+          Giving History
+        </h1>
+        <p style={{ fontSize: 'var(--m-text-base)', color: 'var(--m-text-secondary)', margin: 0 }}>
+          Track your personal giving transactions and their payment status
+        </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px', marginBottom: '16px' }}>
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Successful</span>
-            <strong style={{ fontSize: '24px', color: '#047857' }}>{summary.successCount}</strong>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--m-s3)', marginBottom: 'var(--m-s4)' }}>
+        <div className="m-stat-card">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--m-s1)' }}>
+            <span style={{ fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Successful</span>
+            <strong style={{ fontSize: 'var(--m-text-2xl)', color: 'var(--m-success-text)', fontWeight: 'var(--m-w-bold)' }}>{summary.successCount}</strong>
           </div>
-        </Card>
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Failed</span>
-            <strong style={{ fontSize: '24px', color: '#b91c1c' }}>{summary.failedCount}</strong>
+        </div>
+        <div className="m-stat-card">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--m-s1)' }}>
+            <span style={{ fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Failed</span>
+            <strong style={{ fontSize: 'var(--m-text-2xl)', color: 'var(--m-error-text)', fontWeight: 'var(--m-w-bold)' }}>{summary.failedCount}</strong>
           </div>
-        </Card>
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>In Progress</span>
-            <strong style={{ fontSize: '24px', color: '#b45309' }}>{summary.processingCount}</strong>
+        </div>
+        <div className="m-stat-card">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--m-s1)' }}>
+            <span style={{ fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>In Progress</span>
+            <strong style={{ fontSize: 'var(--m-text-2xl)', color: 'var(--m-warning-text)', fontWeight: 'var(--m-w-bold)' }}>{summary.processingCount}</strong>
           </div>
-        </Card>
+        </div>
       </div>
 
-      <Card title="My Transactions" subtitle="Latest 100 records from your account" padding="none">
+      <div className="m-card">
+        <div className="m-card-header">
+          <div>
+            <h2 className="m-card-title">My Transactions</h2>
+            <p style={{ fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', margin: 0 }}>Latest 100 records from your account</p>
+          </div>
+        </div>
         {isLoading ? (
-          <div style={{ padding: '24px', color: 'var(--text-secondary)' }}>Loading transactions...</div>
+          <div style={{ padding: 'var(--m-s6)', display: 'flex', flexDirection: 'column', gap: 'var(--m-s3)' }}>
+            {[1,2,3].map(i => <div key={i} className="m-skeleton" style={{ height: '48px', borderRadius: 'var(--m-r-md)' }} />)}
+          </div>
         ) : errorMessage ? (
-          <div style={{ padding: '24px', color: '#b91c1c' }}>{errorMessage}</div>
+          <div className="m-empty">
+            <p className="m-empty-title" style={{ color: 'var(--m-error-text)' }}>{errorMessage}</p>
+          </div>
         ) : transactions.length === 0 ? (
-          <div style={{ padding: '24px', color: 'var(--text-secondary)' }}>No transactions found yet.</div>
+          <div className="m-empty">
+            <div className="m-empty-icon">
+              <span className="material-symbols-outlined" style={{ fontSize: '32px' }} aria-hidden="true">receipt_long</span>
+            </div>
+            <p className="m-empty-title">No transactions yet</p>
+            <p className="m-empty-subtitle">When you give, your transactions will appear here.</p>
+          </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
               <thead>
-                <tr style={{ background: 'var(--bg-secondary)' }}>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Reference</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Amount</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Method</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Created</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Paid At</th>
+                <tr style={{ background: 'var(--m-surface-2)' }}>
+                  <th style={{ textAlign: 'left', padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Reference</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Amount</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Method</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Created</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-xs)', color: 'var(--m-text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--m-tracking-caps)', fontWeight: 'var(--m-w-semibold)' }}>Paid At</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((tx) => {
                   const badge = statusColor(tx.status);
-                  const isHighlighted = highlightedPayment && 
+                  const isHighlighted = highlightedPayment &&
                     (tx.id === highlightedPayment || tx.reference === highlightedPayment);
-                  
                   return (
-                    <tr 
-                      key={tx.id} 
+                    <tr
+                      key={tx.id}
                       ref={isHighlighted ? highlightedRowRef : null}
-                      style={{ 
-                        borderTop: '1px solid var(--border-color)',
-                        background: isHighlighted ? 'var(--success-50)' : 'transparent',
-                        transition: 'background-color 0.3s ease'
+                      style={{
+                        borderTop: '1px solid var(--m-border)',
+                        background: isHighlighted ? 'var(--m-success-bg)' : 'transparent',
+                        transition: 'background-color var(--m-t-base) var(--m-ease-out)',
                       }}
                     >
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{tx.reference}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-primary)' }}>{formatMoney(tx.amount, tx.currency)}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '999px', background: badge.bg, color: badge.text, fontSize: '12px', fontWeight: 600 }}>
+                      <td style={{ padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-sm)', color: 'var(--m-text-primary)', fontFamily: 'monospace' }}>{tx.reference}</td>
+                      <td style={{ padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-sm)', color: 'var(--m-text-primary)' }}>{formatMoney(tx.amount, tx.currency)}</td>
+                      <td style={{ padding: 'var(--m-s3) var(--m-s4)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--m-s2)', padding: '3px var(--m-s2)', borderRadius: 'var(--m-r-full)', background: badge.bg, color: badge.text, fontSize: 'var(--m-text-xs)', fontWeight: 'var(--m-w-semibold)' }}>
                           <Icon name={badge.icon} size={14} ariaHidden />
                           {tx.status_label || tx.status}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-primary)' }}>{tx.payment_method || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>{formatDateTime(tx.created_at)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>{formatDateTime(tx.paid_at)}</td>
+                      <td style={{ padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-sm)', color: 'var(--m-text-primary)' }}>{tx.payment_method || '—'}</td>
+                      <td style={{ padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-sm)', color: 'var(--m-text-secondary)' }}>{formatDateTime(tx.created_at)}</td>
+                      <td style={{ padding: 'var(--m-s3) var(--m-s4)', fontSize: 'var(--m-text-sm)', color: 'var(--m-text-secondary)' }}>{formatDateTime(tx.paid_at)}</td>
                     </tr>
                   );
                 })}
@@ -185,8 +211,8 @@ const MemberGiving: React.FC = () => {
             </table>
           </div>
         )}
-      </Card>
-    </>
+      </div>
+    </div>
   );
 };
 

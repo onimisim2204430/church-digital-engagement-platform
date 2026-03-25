@@ -9,9 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { apiService } from '../services/api.service';
 import emailVerificationService from '../services/emailVerification.service';
-import { MailIcon } from '../shared/components/Icons';
 import Icon from '../components/common/Icon';
-import '../shared/styles/theme.css';
 import './styles/MemberSettings.css';
 
 const VERIFICATION_COOLDOWN_KEY = 'email_verification_cooldown';
@@ -566,7 +564,7 @@ const MemberSettings: React.FC = () => {
                 </div>
                 {user?.emailVerified ? (
                   <div className="status-box status-success">
-                    <div className="status-icon"><MailIcon size={28} /></div>
+                    <div className="status-icon"><span className="material-symbols-outlined" style={{ fontSize: "28px" }} aria-hidden="true">mail</span></div>
                     <div className="status-content">
                       <h3 className="status-heading">Email Verified</h3>
                       <p className="status-text">
@@ -582,7 +580,7 @@ const MemberSettings: React.FC = () => {
                   </div>
                 ) : (
                   <div className="status-box status-warning">
-                    <div className="status-icon"><MailIcon size={28} /></div>
+                    <div className="status-icon"><span className="material-symbols-outlined" style={{ fontSize: "28px" }} aria-hidden="true">mail</span></div>
                     <div className="status-content">
                       <h3 className="status-heading">Email Not Verified</h3>
                       <p className="status-text">

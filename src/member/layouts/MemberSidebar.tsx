@@ -1,26 +1,38 @@
 /**
- * Member Sidebar Component
- * Professional navigation sidebar for church members
- * Matches Admin design but with member-specific menu items
+ * Member Sidebar — Sovereign Navigation Component
+ * SOVEREIGN: zero shared classes or imports from admin or public.
+ *
+ * Desktop: 256px expanded, collapses to 64px icon-only at 1024px.
+ * Mobile: hidden, replaced by MemberBottomTabBar.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { UserRole } from '../../types/auth.types';
-import {
-  DashboardIcon,
-  BookIcon,
-  CalendarIcon,
-  MessageCircleIcon,
-  HeartIcon,
-  ChartBarIcon,
-  SettingsIcon,
-  GlobeIcon,
-  HomeIcon,
-  XIcon,
-} from '../../shared/components/Icons';
 import './MemberSidebar.css';
+
+/* ── Nav items ─────────────────────────────────────────────── */
+interface NavItem {
+  id: string;
+  label: string;
+  iconName: string;
+  badge?: number;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'overview',   label: 'Dashboard',           iconName: 'grid_view' },
+  { id: 'sermons',    label: 'Sermons & Teachings',  iconName: 'play_circle' },
+  { id: 'events',     label: 'Events & Activities',  iconName: 'event' },
+  { id: 'community',  label: 'Community',            iconName: 'forum' },
+  { id: 'prayer',     label: 'Prayer Requests',      iconName: 'volunteer_activism' },
+  { id: 'giving',     label: 'Giving History',       iconName: 'redeem' },
+  { id: 'chat',       label: 'Chat',                 iconName: 'chat_bubble' },
+];
+
+const ACCOUNT_ITEMS: NavItem[] = [
+  { id: 'settings', label: 'Settings', iconName: 'settings' },
+];
 
 interface SidebarProps {
   activeView: string;
@@ -28,118 +40,185 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-}
+/* ── Inline icon — material symbols ───────────────────────── */
+const NavIcon: React.FC<{ name: string }> = ({ name }) => (
+  <span
+    className="material-symbols-outlined m-nav-icon"
+    aria-hidden="true"
+    style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20" }}
+  >
+    {name}
+  </span>
+);
 
-const memberNavigationItems: NavItem[] = [
-  { id: 'overview', label: 'Dashboard', icon: DashboardIcon },
-  { id: 'sermons', label: 'Sermons & Teachings', icon: BookIcon },
-  { id: 'events', label: 'Events & Activities', icon: CalendarIcon },
-  { id: 'community', label: 'Community', icon: MessageCircleIcon },
-  { id: 'prayer', label: 'Prayer Requests', icon: HeartIcon },
-  { id: 'giving', label: 'Giving History', icon: ChartBarIcon },
-  { id: 'chat', label: 'Chat', icon: MessageCircleIcon },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
-];
-
+/* ── Sidebar component ─────────────────────────────────────── */
 const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const sidebarRef = useRef<HTMLElement>(null);
 
-  const handleNavigation = (view: string) => {
-    // Navigate to the member sub-route
+  const navigate_to = (view: string) => {
     const path = view === 'overview' ? '/member' : `/member/${view}`;
     navigate(path);
-    onClose(); // Close mobile drawer after navigation
+    onClose();
   };
 
-  const canAccessAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.MODERATOR;
+  const canAccessAdmin =
+    user?.role === UserRole.ADMIN || user?.role === UserRole.MODERATOR;
+
+  const initials = (() => {
+    const f = user?.firstName?.charAt(0) ?? '';
+    const l = user?.lastName?.charAt(0) ?? '';
+    return (f + l).toUpperCase() || 'M';
+  })();
+
+  const fullName =
+    user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user?.email?.split('@')[0] ?? 'Member';
+
+  /* Close sidebar on Escape */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  /* Trap focus when open on mobile */
+  useEffect(() => {
+    if (isOpen && sidebarRef.current) {
+      sidebarRef.current.focus();
+    }
+  }, [isOpen]);
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile overlay */}
       {isOpen && (
-        <div className="member-sidebar-overlay" onClick={onClose} aria-hidden="true" />
+        <div
+          className="m-sidebar-overlay"
+          onClick={onClose}
+          aria-hidden="true"
+        />
       )}
 
-      {/* Sidebar */}
-      <aside className={`member-sidebar ${isOpen ? 'open' : ''}`}>
-        {/* Mobile Close Button */}
-        <button className="sidebar-close-mobile" onClick={onClose} aria-label="Close menu">
-          <XIcon size={20} />
-        </button>
-
+      <aside
+        ref={sidebarRef}
+        className={`m-sidebar${isOpen ? ' m-sidebar--open' : ''}`}
+        aria-label="Member navigation"
+        tabIndex={-1}
+      >
         {/* Brand */}
-        <div className="sidebar-brand">
-          <div className="brand-logo">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path
-                d="M16 2L3 9L16 16L29 9L16 2Z"
-                fill="currentColor"
-                opacity="0.8"
-              />
-              <path
-                d="M16 30L3 23V9L16 16V30Z"
-                fill="currentColor"
-              />
-              <path
-                d="M16 30L29 23V9L16 16V30Z"
-                fill="currentColor"
-                opacity="0.6"
-              />
+        <div className="m-sidebar-brand">
+          <div className="m-sidebar-logo" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2L3 7L12 12L21 7L12 2Z" fill="currentColor" opacity="0.9" />
+              <path d="M12 22L3 17V7L12 12V22Z" fill="currentColor" />
+              <path d="M12 22L21 17V7L12 12V22Z" fill="currentColor" opacity="0.65" />
             </svg>
           </div>
-          <div className="brand-info">
-            <div className="brand-name">Member Portal</div>
-            <div className="brand-subtitle">Church Community</div>
+          <div className="m-sidebar-brand-text">
+            <div className="m-sidebar-brand-name">Member Portal</div>
+            <div className="m-sidebar-brand-sub">Church Community</div>
           </div>
+          {/* Mobile close */}
+          <button
+            className="m-sidebar-close"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="sidebar-nav">
-          <div className="nav-section">
-            <div className="nav-section-title">Main Navigation</div>
-            {memberNavigationItems.map(item => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-                  onClick={() => handleNavigation(item.id)}
-                >
-                  <Icon size={20} className="nav-icon" />
-                  <span className="nav-label">{item.label}</span>
-                </button>
-              );
-            })}
+        <nav className="m-sidebar-nav" aria-label="Main navigation">
+          <div className="m-nav-section">
+            <span className="m-nav-section-label">Navigation</span>
+
+            {NAV_ITEMS.map(item => (
+              <button
+                key={item.id}
+                className={`m-nav-item${activeView === item.id ? ' m-nav-item--active' : ''}`}
+                onClick={() => navigate_to(item.id)}
+                aria-current={activeView === item.id ? 'page' : undefined}
+              >
+                <NavIcon name={item.iconName} />
+                <span className="m-nav-label">{item.label}</span>
+                {item.badge && item.badge > 0 && (
+                  <span className="m-nav-badge" aria-label={`${item.badge} unread`}>
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="m-nav-section">
+            <span className="m-nav-section-label">Account</span>
+
+            {ACCOUNT_ITEMS.map(item => (
+              <button
+                key={item.id}
+                className={`m-nav-item${activeView === item.id ? ' m-nav-item--active' : ''}`}
+                onClick={() => navigate_to(item.id)}
+                aria-current={activeView === item.id ? 'page' : undefined}
+              >
+                <NavIcon name={item.iconName} />
+                <span className="m-nav-label">{item.label}</span>
+              </button>
+            ))}
           </div>
         </nav>
 
-        {/* Footer */}
-        <div className="sidebar-footer">
-          {/* Context Switcher */}
-          <div className="context-switcher">
+        {/* Footer — profile + context switcher */}
+        <div className="m-sidebar-footer">
+          {/* Context switcher */}
+          <div className="m-sidebar-context-switcher">
             <button
-              className="context-btn"
+              className="m-context-btn"
               onClick={() => navigate('/')}
-              title="Public Site"
+              title="Visit public site"
             >
-              <GlobeIcon size={16} />
-              <span>Public Site</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>public</span>
+              <span className="m-context-label">Public Site</span>
             </button>
+
             {canAccessAdmin && (
               <button
-                className="context-btn"
+                className="m-context-btn"
                 onClick={() => navigate('/admin')}
-                title="Admin Dashboard"
+                title="Go to admin area"
               >
-                <HomeIcon size={16} />
-                <span>Admin Area</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>admin_panel_settings</span>
+                <span className="m-context-label">Admin Area</span>
               </button>
             )}
+          </div>
+
+          {/* Profile pill */}
+          <div className="m-sidebar-profile">
+            <div className="m-avatar m-avatar-sm" aria-hidden="true">
+              {user?.profilePicture ? (
+                <img src={user.profilePicture} alt="" />
+              ) : (
+                initials
+              )}
+            </div>
+            <div className="m-sidebar-profile-info">
+              <div className="m-sidebar-profile-name m-truncate">{fullName}</div>
+              <div className="m-sidebar-profile-email m-truncate">{user?.email ?? ''}</div>
+            </div>
+            <button
+              className="m-sidebar-logout"
+              onClick={() => { logout(); navigate('/'); }}
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+            </button>
           </div>
         </div>
       </aside>
