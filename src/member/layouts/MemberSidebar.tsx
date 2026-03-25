@@ -10,24 +10,25 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { UserRole } from '../../types/auth.types';
+import MemberIcon, { type MemberIconName } from '../components/MemberIcon';
 import './MemberSidebar.css';
 
 /* ── Nav items ─────────────────────────────────────────────── */
 interface NavItem {
   id: string;
   label: string;
-  iconName: string;
+  iconName: MemberIconName;
   badge?: number;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'overview',   label: 'Dashboard',           iconName: 'grid_view' },
-  { id: 'sermons',    label: 'Sermons & Teachings',  iconName: 'play_circle' },
-  { id: 'events',     label: 'Events & Activities',  iconName: 'event' },
-  { id: 'community',  label: 'Community',            iconName: 'forum' },
-  { id: 'prayer',     label: 'Prayer Requests',      iconName: 'volunteer_activism' },
-  { id: 'giving',     label: 'Giving History',       iconName: 'redeem' },
-  { id: 'chat',       label: 'Chat',                 iconName: 'chat_bubble' },
+  { id: 'overview',   label: 'Dashboard',             iconName: 'dashboard' },
+  { id: 'sermons',    label: 'Sermons & Teachings',   iconName: 'sermons' },
+  { id: 'events',     label: 'Events & Activities',   iconName: 'events' },
+  { id: 'community',  label: 'Community',             iconName: 'community' },
+  { id: 'prayer',     label: 'Prayer Requests',       iconName: 'prayer' },
+  { id: 'giving',     label: 'Giving History',        iconName: 'giving' },
+  { id: 'chat',       label: 'Chat',                  iconName: 'chat' },
 ];
 
 const ACCOUNT_ITEMS: NavItem[] = [
@@ -39,17 +40,6 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-/* ── Inline icon — material symbols ───────────────────────── */
-const NavIcon: React.FC<{ name: string }> = ({ name }) => (
-  <span
-    className="material-symbols-outlined m-nav-icon"
-    aria-hidden="true"
-    style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20" }}
-  >
-    {name}
-  </span>
-);
 
 /* ── Sidebar component ─────────────────────────────────────── */
 const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) => {
@@ -129,7 +119,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
             onClick={onClose}
             aria-label="Close sidebar"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+            <MemberIcon name="close" size={18} />
           </button>
         </div>
 
@@ -145,7 +135,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
                 onClick={() => navigate_to(item.id)}
                 aria-current={activeView === item.id ? 'page' : undefined}
               >
-                <NavIcon name={item.iconName} />
+                <MemberIcon name={item.iconName} size={20} className="m-nav-icon" />
                 <span className="m-nav-label">{item.label}</span>
                 {item.badge && item.badge > 0 && (
                   <span className="m-nav-badge" aria-label={`${item.badge} unread`}>
@@ -166,7 +156,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
                 onClick={() => navigate_to(item.id)}
                 aria-current={activeView === item.id ? 'page' : undefined}
               >
-                <NavIcon name={item.iconName} />
+                <MemberIcon name={item.iconName} size={20} className="m-nav-icon" />
                 <span className="m-nav-label">{item.label}</span>
               </button>
             ))}
@@ -182,7 +172,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
               onClick={() => navigate('/')}
               title="Visit public site"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>public</span>
+              <MemberIcon name="public" size={16} />
               <span className="m-context-label">Public Site</span>
             </button>
 
@@ -192,7 +182,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
                 onClick={() => navigate('/admin')}
                 title="Go to admin area"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>admin_panel_settings</span>
+                <MemberIcon name="admin" size={16} />
                 <span className="m-context-label">Admin Area</span>
               </button>
             )}
@@ -217,7 +207,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
               title="Sign out"
               aria-label="Sign out"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+              <MemberIcon name="logout" size={18} />
             </button>
           </div>
         </div>

@@ -55,6 +55,9 @@ const MemberLayout: React.FC<MemberLayoutProps> = ({ children }) => {
           onClose={() => setIsSidebarOpen(false)}
         />
 
+        {/* Flow spacer keeps content from rendering beneath fixed sidebar */}
+        <div className="member-sidebar-slot" aria-hidden="true" />
+
         <main className="member-content-slot" id="member-main" tabIndex={-1}>
           {/* Skip-to-content target */}
           <a href="#member-main" className="m-skip-link" tabIndex={0}>

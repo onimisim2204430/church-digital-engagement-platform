@@ -16,6 +16,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useNotificationWebSocket } from '../../hooks/useNotificationWebSocket';
 import notificationService, { Notification } from '../../services/notification.service';
+import MemberIcon from '../components/MemberIcon';
 import './MemberTopBar.css';
 
 /* ── Types ─────────────────────────────────────────────────── */
@@ -189,7 +190,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
             onClick={onMenuClick}
             aria-label="Open navigation menu"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>menu</span>
+            <MemberIcon name="menu" size={20} />
           </button>
 
           <div className="m-topbar-title-section">
@@ -228,9 +229,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             title={isDark ? 'Light mode' : 'Dark mode'}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              {isDark ? 'light_mode' : 'dark_mode'}
-            </span>
+            <MemberIcon name={isDark ? 'sun' : 'moon'} size={18} />
           </button>
 
           {/* Notifications */}
@@ -242,9 +241,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
               aria-expanded={showNotifications}
               aria-haspopup="true"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                notifications
-              </span>
+              <MemberIcon name="notifications" size={20} />
               {unreadCount > 0 && (
                 <span className={`m-topbar-notif-badge${unreadCount > 0 ? ' pulse' : ''}`}>
                   {unreadCount > 99 ? '99+' : unreadCount}
@@ -286,13 +283,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                     ))
                   ) : (
                     <div className="m-notif-panel-empty">
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: '40px', opacity: 0.4 }}
-                        aria-hidden="true"
-                      >
-                        notifications_off
-                      </span>
+                      <MemberIcon name="notificationsOff" size={40} color="var(--m-text-tertiary)" />
                       <p>No new notifications</p>
                     </div>
                   )}
@@ -316,13 +307,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                   : initials}
               </div>
               <span className="m-topbar-user-name">{user?.firstName ?? 'Member'}</span>
-              <span
-                className={`material-symbols-outlined m-topbar-chevron`}
-                style={{ fontSize: '16px' }}
-                aria-hidden="true"
-              >
-                expand_more
-              </span>
+              <MemberIcon name="chevronDown" size={16} className="m-topbar-chevron" />
             </button>
 
             {showUserMenu && (
@@ -346,7 +331,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                   role="menuitem"
                   onClick={() => { navigate('/member'); setShowUserMenu(false); }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>person</span>
+                  <MemberIcon name="user" size={16} />
                   My Profile
                 </button>
 
@@ -355,7 +340,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                   role="menuitem"
                   onClick={() => { navigate('/member/settings'); setShowUserMenu(false); }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>settings</span>
+                  <MemberIcon name="settings" size={16} />
                   Settings
                 </button>
 
@@ -366,7 +351,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                   role="menuitem"
                   onClick={() => { logout(); navigate('/'); }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>logout</span>
+                  <MemberIcon name="logout" size={16} />
                   Sign Out
                 </button>
               </div>

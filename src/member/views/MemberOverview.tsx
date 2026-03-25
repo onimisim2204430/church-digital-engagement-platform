@@ -1,15 +1,8 @@
-/**
- * Member Overview — Professional Dashboard
- * Rebuilt for production-grade UI/UX quality.
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import Icon from '../../components/common/Icon';
+import MemberIcon, { type MemberIconName } from '../components/MemberIcon';
 import './MemberOverview.css';
-
-/* ─── Types ─────────────────────────────────────────────────── */
 
 interface Stat {
   id: number;
@@ -17,7 +10,7 @@ interface Stat {
   value: number;
   change: string;
   trend: 'up' | 'down' | 'neutral';
-  icon: string;
+  icon: MemberIconName;
   color: string;
   bg: string;
 }
@@ -26,7 +19,7 @@ interface QuickAction {
   id: string;
   label: string;
   desc: string;
-  icon: string;
+  icon: MemberIconName;
   color: string;
   bg: string;
   badge?: string;
@@ -37,7 +30,7 @@ interface FeedItem {
   title: string;
   desc: string;
   time: string;
-  icon: string;
+  icon: MemberIconName;
   color: string;
   bg: string;
 }
@@ -50,80 +43,146 @@ interface UpcomingEvent {
   time: string;
 }
 
-/* ─── Static data ────────────────────────────────────────────── */
-
 const stats: Stat[] = [
   {
-    id: 1, label: 'New Sermons', value: 3, change: '+2 this week', trend: 'up',
-    icon: 'videocam', color: '#2268f5', bg: 'rgba(34,104,245,0.10)',
+    id: 1,
+    label: 'New Sermons',
+    value: 3,
+    change: '+2 this week',
+    trend: 'up',
+    icon: 'sermons',
+    color: '#4338CA',
+    bg: 'rgba(67,56,202,0.10)',
   },
   {
-    id: 2, label: 'Upcoming Events', value: 5, change: '+1 this month', trend: 'up',
-    icon: 'calendar_today', color: '#10b981', bg: 'rgba(16,185,129,0.10)',
+    id: 2,
+    label: 'Upcoming Events',
+    value: 5,
+    change: '+1 this month',
+    trend: 'up',
+    icon: 'events',
+    color: '#16A34A',
+    bg: 'rgba(22,163,74,0.10)',
   },
   {
-    id: 3, label: 'Unread Messages', value: 2, change: 'New today', trend: 'neutral',
-    icon: 'chat_bubble', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',
+    id: 3,
+    label: 'Unread Messages',
+    value: 2,
+    change: 'New today',
+    trend: 'neutral',
+    icon: 'chat',
+    color: '#D97706',
+    bg: 'rgba(217,119,6,0.10)',
   },
   {
-    id: 4, label: 'Prayer Requests', value: 8, change: '3 this week', trend: 'up',
-    icon: 'favorite', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',
+    id: 4,
+    label: 'Prayer Requests',
+    value: 8,
+    change: '3 this week',
+    trend: 'up',
+    icon: 'prayer',
+    color: '#DC2626',
+    bg: 'rgba(220,38,38,0.10)',
   },
 ];
 
 const quickActions: QuickAction[] = [
   {
-    id: 'sermons', label: 'Sermons', desc: 'Watch & grow',
-    icon: 'play_circle', color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', badge: '3 new',
+    id: 'sermons',
+    label: 'Sermons',
+    desc: 'Watch and grow',
+    icon: 'sermons',
+    color: '#4338CA',
+    bg: 'rgba(67,56,202,0.10)',
+    badge: '3 new',
   },
   {
-    id: 'events', label: 'Events', desc: 'Upcoming activities',
-    icon: 'event', color: '#10b981', bg: 'rgba(16,185,129,0.10)', badge: '5 upcoming',
+    id: 'events',
+    label: 'Events',
+    desc: 'Upcoming activities',
+    icon: 'events',
+    color: '#16A34A',
+    bg: 'rgba(22,163,74,0.10)',
+    badge: '5 upcoming',
   },
   {
-    id: 'community', label: 'Community', desc: 'Connect & discuss',
-    icon: 'forum', color: '#0ea5e9', bg: 'rgba(14,165,233,0.10)',
+    id: 'community',
+    label: 'Community',
+    desc: 'Connect and discuss',
+    icon: 'community',
+    color: '#0891B2',
+    bg: 'rgba(8,145,178,0.10)',
   },
   {
-    id: 'prayer', label: 'Prayer', desc: 'Share & intercede',
-    icon: 'volunteer_activism', color: '#f43f5e', bg: 'rgba(244,63,94,0.10)',
+    id: 'prayer',
+    label: 'Prayer',
+    desc: 'Share and intercede',
+    icon: 'prayer',
+    color: '#E11D48',
+    bg: 'rgba(225,29,72,0.10)',
   },
   {
-    id: 'giving', label: 'Giving', desc: 'Support the ministry',
-    icon: 'redeem', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',
+    id: 'giving',
+    label: 'Giving',
+    desc: 'Support the ministry',
+    icon: 'giving',
+    color: '#D97706',
+    bg: 'rgba(217,119,6,0.10)',
   },
   {
-    id: 'chat', label: 'Chat', desc: 'Message your community',
-    icon: 'chat', color: '#6366f1', bg: 'rgba(99,102,241,0.10)',
+    id: 'chat',
+    label: 'Chat',
+    desc: 'Message your community',
+    icon: 'chat',
+    color: '#4F46E5',
+    bg: 'rgba(79,70,229,0.10)',
   },
 ];
 
 const feedItems: FeedItem[] = [
   {
-    id: 1, title: 'Walking in Faith — Part 3', desc: 'New sermon is now available to watch',
-    time: '2 hours ago', icon: 'videocam', color: '#2268f5', bg: 'rgba(34,104,245,0.10)',
+    id: 1,
+    title: 'Walking in Faith - Part 3',
+    desc: 'A new sermon is now available to watch.',
+    time: '2 hours ago',
+    icon: 'sermons',
+    color: '#4338CA',
+    bg: 'rgba(67,56,202,0.10)',
   },
   {
-    id: 2, title: 'Youth Fellowship Night', desc: 'Event reminder: Tomorrow at 6:00 PM',
-    time: '5 hours ago', icon: 'calendar_today', color: '#10b981', bg: 'rgba(16,185,129,0.10)',
+    id: 2,
+    title: 'Youth Fellowship Night',
+    desc: 'Event reminder: Tomorrow at 6:00 PM.',
+    time: '5 hours ago',
+    icon: 'events',
+    color: '#16A34A',
+    bg: 'rgba(22,163,74,0.10)',
   },
   {
-    id: 3, title: 'Sarah replied to your prayer', desc: '"Praying with you — God is faithful!"',
-    time: '1 day ago', icon: 'chat_bubble', color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',
+    id: 3,
+    title: 'Reply on your prayer request',
+    desc: 'A member of the community prayed with you.',
+    time: '1 day ago',
+    icon: 'chat',
+    color: '#D97706',
+    bg: 'rgba(217,119,6,0.10)',
   },
   {
-    id: 4, title: 'New prayer request shared', desc: 'James posted a new request in the community',
-    time: '2 days ago', icon: 'favorite', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',
+    id: 4,
+    title: 'New prayer request posted',
+    desc: 'A fresh request was shared in the prayer wall.',
+    time: '2 days ago',
+    icon: 'heart',
+    color: '#DC2626',
+    bg: 'rgba(220,38,38,0.10)',
   },
 ];
 
 const upcomingEvents: UpcomingEvent[] = [
-  { id: 1, title: 'Sunday Worship Service', month: 'MAR', day: 9,  time: '10:00 AM' },
-  { id: 2, title: 'Youth Fellowship Night',  month: 'MAR', day: 11, time: '6:00 PM'  },
-  { id: 3, title: 'Men\'s Bible Study',       month: 'MAR', day: 14, time: '7:30 PM'  },
+  { id: 1, title: 'Sunday Worship Service', month: 'MAR', day: 9, time: '10:00 AM' },
+  { id: 2, title: 'Youth Fellowship Night', month: 'MAR', day: 11, time: '6:00 PM' },
+  { id: 3, title: "Men's Bible Study", month: 'MAR', day: 14, time: '7:30 PM' },
 ];
-
-/* ─── Component ──────────────────────────────────────────────── */
 
 const MemberOverview: React.FC = () => {
   const { user } = useAuth();
@@ -131,184 +190,165 @@ const MemberOverview: React.FC = () => {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
   }, []);
 
-  const greeting = () => {
-    const h = now.getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 18) return 'Good afternoon';
+  const greeting = (): string => {
+    const hour = now.getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
 
   const formattedDate = now.toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 
-  const displayName = user?.firstName
-    ? `, ${user.firstName}`
-    : '';
+  const displayName = user?.firstName ? `, ${user.firstName}` : '';
 
   const initials = (() => {
-    const f = user?.firstName?.charAt(0) ?? '';
-    const l = user?.lastName?.charAt(0) ?? '';
-    return (f + l).toUpperCase() || 'M';
+    const first = user?.firstName?.charAt(0) ?? '';
+    const last = user?.lastName?.charAt(0) ?? '';
+    return (first + last).toUpperCase() || 'M';
   })();
 
-  const fullName = user?.firstName && user?.lastName
-    ? `${user.firstName} ${user.lastName}`
-    : user?.email?.split('@')[0] ?? 'Member';
+  const fullName =
+    user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user?.email?.split('@')[0] ?? 'Member';
 
-  const nav = (id: string) => navigate(`/member/${id}`);
+  const navToMemberRoute = (id: string): void => {
+    navigate(id === 'overview' ? '/member' : `/member/${id}`);
+  };
 
   return (
     <div className="ov-page">
-
-      {/* ── WELCOME BANNER ─────────────────────────────────── */}
-      <section className="ov-banner" aria-label="Welcome">
+      <section className="ov-banner" aria-label="Member welcome">
         <div className="ov-banner-text">
           <p className="ov-banner-eyebrow">Member Portal</p>
           <h1 className="ov-banner-title">
-            {greeting()}{displayName}!
+            {greeting()}
+            {displayName}!
           </h1>
           <p className="ov-banner-date">{formattedDate}</p>
         </div>
 
         <div className="ov-banner-actions">
-          <button
-            className="ov-btn-watch"
-            onClick={() => navigate('/member/sermons')}
-          >
-            <Icon name="play_circle" size={18} />
+          <button className="ov-btn-watch" onClick={() => navigate('/member/sermons')}>
+            <MemberIcon name="sermons" size={17} />
             Watch Latest Sermon
           </button>
-          <button
-            className="ov-btn-events"
-            onClick={() => navigate('/member/events')}
-          >
-            <Icon name="event" size={18} />
+          <button className="ov-btn-events" onClick={() => navigate('/member/events')}>
+            <MemberIcon name="events" size={17} />
             View Events
           </button>
         </div>
       </section>
 
-      {/* ── STATS ──────────────────────────────────────────── */}
       <section className="ov-stats" aria-label="Summary statistics">
-        {stats.map((s) => (
-          <div key={s.id} className="ov-stat">
+        {stats.map((item) => (
+          <article key={item.id} className="ov-stat">
             <div className="ov-stat-top">
-              <div className="ov-stat-icon" style={{ backgroundColor: s.bg }}>
-                <Icon name={s.icon} size={22} color={s.color} />
+              <div className="ov-stat-icon" style={{ backgroundColor: item.bg }}>
+                <MemberIcon name={item.icon} size={20} color={item.color} />
               </div>
-              <div className={`ov-stat-trend ${s.trend}`}>
-                {s.trend === 'up'   && <Icon name="trending_up"   size={13} />}
-                {s.trend === 'down' && <Icon name="trending_down" size={13} />}
-                <span>{s.change}</span>
+              <div className={`ov-stat-trend ${item.trend}`}>
+                {item.trend === 'up' && <MemberIcon name="trendUp" size={13} />}
+                {item.trend === 'down' && <MemberIcon name="trendDown" size={13} />}
+                <span>{item.change}</span>
               </div>
             </div>
+
             <div className="ov-stat-bottom">
-              <div className="ov-stat-value">{s.value}</div>
-              <div className="ov-stat-label">{s.label}</div>
+              <div className="ov-stat-value">{item.value}</div>
+              <div className="ov-stat-label">{item.label}</div>
             </div>
-          </div>
+          </article>
         ))}
       </section>
 
-      {/* ── MAIN GRID ──────────────────────────────────────── */}
       <div className="ov-grid">
-
-        {/* LEFT column */}
         <div className="ov-col">
-
-          {/* Quick Actions */}
           <section aria-label="Quick access">
             <div className="ov-section-head">
               <h2 className="ov-section-title">
-                <Icon name="bolt" size={18} />
+                <MemberIcon name="spark" size={17} />
                 Quick Access
               </h2>
             </div>
+
             <div className="ov-actions-grid">
-              {quickActions.map((a) => (
-                <button
-                  key={a.id}
-                  className="ov-action"
-                  onClick={() => nav(a.id)}
-                >
-                  <div className="ov-action-icon" style={{ backgroundColor: a.bg }}>
-                    <Icon name={a.icon} size={22} color={a.color} />
+              {quickActions.map((action) => (
+                <button key={action.id} className="ov-action" onClick={() => navToMemberRoute(action.id)}>
+                  <div className="ov-action-icon" style={{ backgroundColor: action.bg }}>
+                    <MemberIcon name={action.icon} size={20} color={action.color} />
                   </div>
+
                   <div className="ov-action-body">
                     <div className="ov-action-row">
-                      <span className="ov-action-label">{a.label}</span>
-                      {a.badge && (
-                        <span className="ov-action-badge">{a.badge}</span>
-                      )}
+                      <span className="ov-action-label">{action.label}</span>
+                      {action.badge && <span className="ov-action-badge">{action.badge}</span>}
                     </div>
-                    <p className="ov-action-desc">{a.desc}</p>
+                    <p className="ov-action-desc">{action.desc}</p>
                   </div>
                 </button>
               ))}
             </div>
           </section>
 
-          {/* Activity Feed */}
           <section aria-label="Recent activity">
             <div className="ov-section-head">
               <h2 className="ov-section-title">
-                <Icon name="notifications" size={18} />
+                <MemberIcon name="notifications" size={17} />
                 Recent Activity
               </h2>
-              <button className="ov-section-link">
-                View all <Icon name="arrow_forward" size={13} />
+              <button className="ov-section-link" onClick={() => navigate('/member/community')}>
+                View all
+                <MemberIcon name="arrowRight" size={13} />
               </button>
             </div>
+
             <div className="ov-feed">
               <div className="ov-feed-list">
-                {feedItems.map((item, i) => (
-                  <div
-                    key={item.id}
-                    className="ov-feed-item"
-                    style={{ animationDelay: `${i * 0.07}s` }}
-                  >
-                    <div
-                      className="ov-feed-icon"
-                      style={{ backgroundColor: item.bg }}
-                    >
-                      <Icon name={item.icon} size={19} color={item.color} />
+                {feedItems.map((item, index) => (
+                  <div key={item.id} className="ov-feed-item" style={{ animationDelay: `${index * 0.07}s` }}>
+                    <div className="ov-feed-icon" style={{ backgroundColor: item.bg }}>
+                      <MemberIcon name={item.icon} size={18} color={item.color} />
                     </div>
+
                     <div className="ov-feed-content">
                       <h4 className="ov-feed-title">{item.title}</h4>
                       <p className="ov-feed-desc">{item.desc}</p>
                       <span className="ov-feed-meta">
-                        <Icon name="schedule" size={12} />
+                        <MemberIcon name="clock" size={12} />
                         {item.time}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
-              <button className="ov-feed-footer">
-                View All Activity
-                <Icon name="arrow_forward" size={14} />
+
+              <button className="ov-feed-footer" onClick={() => navigate('/member/community')}>
+                View Community Activity
+                <MemberIcon name="arrowRight" size={14} />
               </button>
             </div>
           </section>
-
         </div>
 
-        {/* RIGHT column */}
         <div className="ov-col ov-col-right">
-
-          {/* Profile Card */}
-          <section aria-label="My profile">
+          <section aria-label="My account">
             <div className="ov-section-head">
               <h2 className="ov-section-title">
-                <Icon name="person" size={18} />
+                <MemberIcon name="user" size={17} />
                 My Account
               </h2>
             </div>
+
             <div className="ov-profile">
               <div className="ov-profile-banner">
                 <div className="ov-profile-avatar-wrap">
@@ -321,17 +361,18 @@ const MemberOverview: React.FC = () => {
                   )}
                 </div>
               </div>
+
               <div className="ov-profile-body">
                 <h3 className="ov-profile-name">{fullName}</h3>
                 <p className="ov-profile-email">{user?.email}</p>
 
                 <div className="ov-profile-badges">
                   <span className="ov-badge ov-badge-role">
-                    <Icon name="badge" size={11} />
+                    <MemberIcon name="verified" size={11} />
                     {user?.role ?? 'Member'}
                   </span>
                   <span className={`ov-badge ${user?.isActive ? 'ov-badge-active' : 'ov-badge-inactive'}`}>
-                    <Icon name="circle" size={8} />
+                    <MemberIcon name="verified" size={10} />
                     {user?.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -339,56 +380,52 @@ const MemberOverview: React.FC = () => {
                 <div className="ov-profile-meta">
                   <div className="ov-meta-row">
                     <span className="ov-meta-label">
-                      <Icon name="calendar_month" size={13} />
+                      <MemberIcon name="events" size={13} />
                       Member since
                     </span>
                     <span className="ov-meta-value">
                       {user?.dateJoined
                         ? new Date(user.dateJoined).toLocaleDateString('en-US', {
-                            month: 'short', year: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
                           })
                         : 'N/A'}
                     </span>
                   </div>
                   <div className="ov-meta-row">
                     <span className="ov-meta-label">
-                      <Icon name="verified" size={13} />
+                      <MemberIcon name="verified" size={13} />
                       Verified
                     </span>
                     <span className="ov-meta-value">Yes</span>
                   </div>
                 </div>
 
-                <button
-                  className="ov-btn-manage"
-                  onClick={() => navigate('/member/chat')}
-                >
-                  <Icon name="settings" size={16} />
-                  Open Chat
+                <button className="ov-btn-manage" onClick={() => navigate('/member/settings')}>
+                  <MemberIcon name="settings" size={16} />
+                  Manage Account
                 </button>
               </div>
             </div>
           </section>
 
-          {/* Upcoming Events */}
           <section aria-label="Upcoming events">
             <div className="ov-section-head">
               <h2 className="ov-section-title">
-                <Icon name="event" size={18} />
+                <MemberIcon name="events" size={17} />
                 Upcoming Events
               </h2>
-              <button
-                className="ov-section-link"
-                onClick={() => navigate('/member/events')}
-              >
-                All <Icon name="arrow_forward" size={13} />
+              <button className="ov-section-link" onClick={() => navigate('/member/events')}>
+                All
+                <MemberIcon name="arrowRight" size={13} />
               </button>
             </div>
+
             <div className="ov-events">
               <div className="ov-events-body">
-                {upcomingEvents.map((ev) => (
+                {upcomingEvents.map((event) => (
                   <div
-                    key={ev.id}
+                    key={event.id}
                     className="ov-event-item"
                     onClick={() => navigate('/member/events')}
                     role="button"
@@ -396,50 +433,53 @@ const MemberOverview: React.FC = () => {
                     onKeyDown={(e) => e.key === 'Enter' && navigate('/member/events')}
                   >
                     <div className="ov-event-date">
-                      <span className="ov-event-month">{ev.month}</span>
-                      <span className="ov-event-day">{ev.day}</span>
+                      <span className="ov-event-month">{event.month}</span>
+                      <span className="ov-event-day">{event.day}</span>
                     </div>
+
                     <div className="ov-event-info">
-                      <p className="ov-event-title">{ev.title}</p>
+                      <p className="ov-event-title">{event.title}</p>
                       <span className="ov-event-time">
-                        <Icon name="schedule" size={11} />
-                        {ev.time}
+                        <MemberIcon name="clock" size={11} />
+                        {event.time}
                       </span>
                     </div>
-                    <Icon name="chevron_right" size={16} color="var(--m-text-tertiary)" />
+
+                    <MemberIcon name="chevronRight" size={16} color="var(--m-text-tertiary)" />
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          {/* Helpful Links */}
           <section aria-label="Helpful links">
             <div className="ov-section-head">
               <h2 className="ov-section-title">
-                <Icon name="link" size={18} />
+                <MemberIcon name="link" size={17} />
                 Helpful Links
               </h2>
             </div>
+
             <div className="ov-links">
-              <button className="ov-link-item" onClick={() => navigate('/member/help')}>
-                <Icon name="help_outline" size={17} color="var(--m-text-secondary)" />
-                <span className="ov-link-text">Help &amp; Support</span>
-                <Icon name="arrow_forward" size={15} className="ov-link-arrow" />
+              <button className="ov-link-item" onClick={() => navigate('/contact')}>
+                <MemberIcon name="help" size={17} color="var(--m-text-secondary)" />
+                <span className="ov-link-text">Help and Support</span>
+                <MemberIcon name="arrowRight" size={15} className="ov-link-arrow" />
               </button>
+
               <button className="ov-link-item" onClick={() => navigate('/member/settings')}>
-                <Icon name="tune" size={17} color="var(--m-text-secondary)" />
+                <MemberIcon name="settings" size={17} color="var(--m-text-secondary)" />
                 <span className="ov-link-text">Preferences</span>
-                <Icon name="arrow_forward" size={15} className="ov-link-arrow" />
+                <MemberIcon name="arrowRight" size={15} className="ov-link-arrow" />
               </button>
-              <button className="ov-link-item" onClick={() => window.open('/terms', '_blank')}>
-                <Icon name="description" size={17} color="var(--m-text-secondary)" />
-                <span className="ov-link-text">Terms &amp; Privacy</span>
-                <Icon name="open_in_new" size={15} className="ov-link-arrow" />
+
+              <button className="ov-link-item" onClick={() => window.open('/privacy-policy', '_blank')}>
+                <MemberIcon name="link" size={17} color="var(--m-text-secondary)" />
+                <span className="ov-link-text">Privacy Policy</span>
+                <MemberIcon name="external" size={15} className="ov-link-arrow" />
               </button>
             </div>
           </section>
-
         </div>
       </div>
     </div>

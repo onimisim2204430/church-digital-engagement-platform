@@ -6,20 +6,21 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import MemberIcon, { type MemberIconName } from '../components/MemberIcon';
 
 interface Tab {
   id: string;
   label: string;
-  icon: string;
+  icon: MemberIconName;
   badge?: number;
 }
 
 const TABS: Tab[] = [
-  { id: 'overview',  label: 'Home',    icon: 'grid_view' },
-  { id: 'sermons',   label: 'Sermons', icon: 'play_circle' },
-  { id: 'events',    label: 'Events',  icon: 'event' },
-  { id: 'community', label: 'Connect', icon: 'forum' },
-  { id: 'settings',  label: 'Account', icon: 'person' },
+  { id: 'overview',  label: 'Home',    icon: 'dashboard' },
+  { id: 'sermons',   label: 'Sermons', icon: 'sermons' },
+  { id: 'events',    label: 'Events',  icon: 'events' },
+  { id: 'community', label: 'Connect', icon: 'community' },
+  { id: 'settings',  label: 'Account', icon: 'user' },
 ];
 
 interface BottomTabBarProps {
@@ -46,18 +47,7 @@ const MemberBottomTabBar: React.FC<BottomTabBarProps> = ({ activeView }) => {
             aria-label={tab.label}
           >
             <span className="m-tab-btn-icon">
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: '22px',
-                  fontVariationSettings: activeView === tab.id
-                    ? "'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24"
-                    : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
-                }}
-                aria-hidden="true"
-              >
-                {tab.icon}
-              </span>
+              <MemberIcon name={tab.icon} size={21} />
               {tab.badge && tab.badge > 0 && (
                 <span className="m-tab-btn-badge" aria-hidden="true">
                   {tab.badge}
