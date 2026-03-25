@@ -163,7 +163,7 @@ const MemberOverview: React.FC = () => {
   const nav = (id: string) => navigate(`/member/${id}`);
 
   return (
-    <div className="member-overview">
+    <div className="ov-page">
 
       {/* ── WELCOME BANNER ─────────────────────────────────── */}
       <section className="ov-banner" aria-label="Welcome">
@@ -177,14 +177,14 @@ const MemberOverview: React.FC = () => {
 
         <div className="ov-banner-actions">
           <button
-            className="ov-btn-primary"
+            className="ov-btn-watch"
             onClick={() => navigate('/member/sermons')}
           >
             <Icon name="play_circle" size={18} />
             Watch Latest Sermon
           </button>
           <button
-            className="ov-btn-ghost"
+            className="ov-btn-events"
             onClick={() => navigate('/member/events')}
           >
             <Icon name="event" size={18} />
@@ -313,7 +313,7 @@ const MemberOverview: React.FC = () => {
               <div className="ov-profile-banner">
                 <div className="ov-profile-avatar-wrap">
                   {user?.profilePicture ? (
-                    <div className="ov-profile-avatar ov-profile-avatar-img">
+                    <div className="ov-profile-avatar">
                       <img src={user.profilePicture} alt={fullName} />
                     </div>
                   ) : (
@@ -406,7 +406,7 @@ const MemberOverview: React.FC = () => {
                         {ev.time}
                       </span>
                     </div>
-                    <Icon name="chevron_right" size={16} color="var(--text-tertiary)" />
+                    <Icon name="chevron_right" size={16} color="var(--m-text-tertiary)" />
                   </div>
                 ))}
               </div>
@@ -423,17 +423,17 @@ const MemberOverview: React.FC = () => {
             </div>
             <div className="ov-links">
               <button className="ov-link-item" onClick={() => navigate('/member/help')}>
-                <Icon name="help_outline" size={17} color="var(--text-secondary)" />
+                <Icon name="help_outline" size={17} color="var(--m-text-secondary)" />
                 <span className="ov-link-text">Help &amp; Support</span>
                 <Icon name="arrow_forward" size={15} className="ov-link-arrow" />
               </button>
               <button className="ov-link-item" onClick={() => navigate('/member/settings')}>
-                <Icon name="tune" size={17} color="var(--text-secondary)" />
+                <Icon name="tune" size={17} color="var(--m-text-secondary)" />
                 <span className="ov-link-text">Preferences</span>
                 <Icon name="arrow_forward" size={15} className="ov-link-arrow" />
               </button>
               <button className="ov-link-item" onClick={() => window.open('/terms', '_blank')}>
-                <Icon name="description" size={17} color="var(--text-secondary)" />
+                <Icon name="description" size={17} color="var(--m-text-secondary)" />
                 <span className="ov-link-text">Terms &amp; Privacy</span>
                 <Icon name="open_in_new" size={15} className="ov-link-arrow" />
               </button>
