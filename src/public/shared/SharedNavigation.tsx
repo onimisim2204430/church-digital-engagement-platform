@@ -21,7 +21,7 @@ const MegaMenu = lazy(() =>
 
 interface SharedNavigationProps {
   isScrolled?: boolean;
-  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events' | 'bible' | 'giving';
+  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'contact' | 'events' | 'bible' | 'giving';
   fullWidth?: boolean; // If true, removes max-width and uses full width
 }
 

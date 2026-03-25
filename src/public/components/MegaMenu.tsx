@@ -4,7 +4,7 @@ import Icon from '../../components/common/Icon';
 import seriesService, { type Series } from '../../services/series.service';
 
 interface MegaMenuProps {
-  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'events' | 'bible' | 'giving';
+  currentPage?: 'home' | 'library' | 'series' | 'practices' | 'connect' | 'contact' | 'events' | 'bible' | 'giving';
 }
 
 /**
