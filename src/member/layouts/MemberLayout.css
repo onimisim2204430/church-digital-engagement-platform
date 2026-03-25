@@ -1,37 +1,37 @@
 /**
- * Member Layout Styles
- * Matches Admin Dashboard layout structure
+ * Member Layout — Shell CSS
+ * SOVEREIGN: zero shared classes with admin or public.
+ * All token references use --m- prefix from member.tokens.css.
  */
 
-.member-layout {
-  min-height: 100vh;
-  /* match public site background color - grain texture comes from global overlay in App.tsx */
-  background: var(--bg-primary);
-  position: relative;
-  z-index: 2;
+/* ── SKIP LINK ──────────────────────────────────────────────── */
+.m-skip-link {
+  position: absolute;
+  top: -999px;
+  left: var(--m-s4);
+  height: 40px;
+  padding: 0 var(--m-s4);
+  background: var(--m-brand-primary);
+  color: var(--m-text-inverse);
+  font-size: var(--m-text-sm);
+  font-weight: var(--m-w-semibold);
+  display: flex;
+  align-items: center;
+  border-radius: var(--m-r-md);
+  z-index: var(--m-z-tooltip);
+  text-decoration: none;
+  transition: top var(--m-t-fast) var(--m-ease-out);
 }
 
-.member-main-content {
-  margin-left: var(--sidebar-width);
-  min-height: 100vh;
-  transition: margin-left var(--transition-base);
+.m-skip-link:focus {
+  top: var(--m-s4);
 }
 
-.member-content-area {
-  margin-top: var(--topbar-height);
-  padding: var(--space-6);
-  min-height: calc(100vh - var(--topbar-height));
+/* ── CONTENT SLOT ───────────────────────────────────────────── */
+.member-content-slot {
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+  background: var(--m-bg);
 }
 
-/* Mobile Responsive */
-@media (max-width: 1024px) {
-  .member-main-content {
-    margin-left: 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .member-content-area {
-    padding: var(--space-4);
-  }
-}

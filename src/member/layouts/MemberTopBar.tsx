@@ -1,7 +1,13 @@
 /**
- * Member Top Bar Component
- * Professional header with mobile hamburger, theme toggle, user menu
- * Real-time notifications via WebSocket + REST API fallback
+ * Member TopBar — Sovereign Component
+ * SOVEREIGN: zero shared imports from admin or public layout.
+ *
+ * Features:
+ *  - Hamburger (mobile only)
+ *  - Dynamic title / breadcrumb slot
+ *  - Dark-mode toggle (persisted to localStorage under member-theme key)
+ *  - Notification bell with real-time WebSocket + REST fallback
+ *  - User avatar dropdown (profile, settings, sign out)
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -10,18 +16,9 @@ import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useNotificationWebSocket } from '../../hooks/useNotificationWebSocket';
 import notificationService, { Notification } from '../../services/notification.service';
-import {
-  SunIcon,
-  MoonIcon,
-  MenuIcon,
-  BellIcon,
-  LogOutIcon,
-  SettingsIcon,
-  UserIcon,
-  ChevronDownIcon
-} from '../../shared/components/Icons';
 import './MemberTopBar.css';
 
+/* ── Types ─────────────────────────────────────────────────── */
 interface Breadcrumb {
   label: string;
   onClick?: () => void;
@@ -35,303 +32,267 @@ interface TopBarProps {
   onMenuClick?: () => void;
 }
 
+/* ── Helpers ────────────────────────────────────────────────── */
+function formatTimeAgo(dateString: string): string {
+  const diff = Date.now() - new Date(dateString).getTime();
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins  < 1)  return 'Just now';
+  if (mins  < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days  < 7)  return `${days}d ago`;
+  return new Date(dateString).toLocaleDateString();
+}
+
+/* ── Component ──────────────────────────────────────────────── */
 const MemberTopBar: React.FC<TopBarProps> = ({
   title,
   subtitle,
   breadcrumbs,
   actions,
-  onMenuClick
+  onMenuClick,
 }) => {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const { user, logout } = useAuth();
-  const toast = useToast();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const notifMenuRef = useRef<HTMLDivElement>(null);
+  const toast     = useToast();
 
-  // Theme management
+  const [isDark,             setIsDark]             = useState(false);
+  const [showUserMenu,       setShowUserMenu]        = useState(false);
+  const [showNotifications,  setShowNotifications]   = useState(false);
+  const [notifications,      setNotifications]       = useState<Notification[]>([]);
+  const [unreadCount,        setUnreadCount]         = useState(0);
+  const [loadingNotifs,      setLoadingNotifs]       = useState(false);
+
+  const userMenuRef  = useRef<HTMLDivElement>(null);
+  const notifRef     = useRef<HTMLDivElement>(null);
+
+  /* ── Theme ────────────────────────────────────────────────── */
   useEffect(() => {
-    const savedTheme = localStorage.getItem('member-theme');
+    const saved      = localStorage.getItem('member-theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-    
-    setIsDarkMode(shouldBeDark);
-    document.documentElement.setAttribute('data-theme', shouldBeDark ? 'dark' : 'light');
+    const dark = saved === 'dark' || (!saved && prefersDark);
+    setIsDark(dark);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    const themeValue = newTheme ? 'dark' : 'light';
-    localStorage.setItem('member-theme', themeValue);
-    document.documentElement.setAttribute('data-theme', themeValue);
+    const next = !isDark;
+    setIsDark(next);
+    localStorage.setItem('member-theme', next ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
   };
 
-  // Fetch notifications on mount and when dropdown opens
+  /* ── Notifications ────────────────────────────────────────── */
   const fetchNotifications = useCallback(async () => {
-    setLoadingNotifications(true);
+    setLoadingNotifs(true);
     try {
-      const response = await notificationService.getUnreadNotifications(1, 10);
-      setNotifications(response.results || []);
-      setUnreadCount(response.unread_count || 0);
-    } catch (error) {
-      console.error('[Notifications] Failed to fetch:', error);
+      const r = await notificationService.getUnreadNotifications(1, 10);
+      setNotifications(r.results   ?? []);
+      setUnreadCount  (r.unread_count ?? 0);
+    } catch {
+      // silent — panel will show empty state
     } finally {
-      setLoadingNotifications(false);
+      setLoadingNotifs(false);
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
-    if (user?.id) {
-      fetchNotifications();
-    }
+    if (user?.id) fetchNotifications();
   }, [user?.id, fetchNotifications]);
 
-  // Fallback poll: refresh unread count every 60 s in case a WebSocket message
-  // was missed (e.g. browser was backgrounded, connection briefly dropped).
+  /* 60s fallback poll */
   useEffect(() => {
     if (!user?.id) return;
-    const interval = setInterval(async () => {
+    const id = setInterval(async () => {
       try {
         const r = await notificationService.getUnreadNotifications(1, 1);
         setUnreadCount(r.unread_count ?? 0);
-      } catch {
-        // silent — network may be temporarily unavailable
-      }
-    }, 60000);
-    return () => clearInterval(interval);
+      } catch { /* silent */ }
+    }, 60_000);
+    return () => clearInterval(id);
   }, [user?.id]);
 
-  // WebSocket integration
-  const handleWebSocketNotification = useCallback((notification: Notification) => {
-    console.log('[TopBar] WebSocket notification received:', notification);
-    
-    // Show toast notification
-    const notifType = notification.notification_type || '';
-    if (notifType.includes('PAYMENT_SUCCESS')) {
-      toast.success(`${notification.title}`, 5000);
-    } else if (notifType.includes('PAYMENT_FAILED')) {
-      toast.error(`${notification.title}`, 5000);
-    } else {
-      toast.info(`${notification.title}`, 5000);
-    }
-    
-    // Update local notification list
-    setNotifications(prev => [notification, ...prev]);
+  /* WebSocket */
+  const onWsNotification = useCallback((n: Notification) => {
+    const t = n.notification_type ?? '';
+    if (t.includes('PAYMENT_SUCCESS'))     toast.success(n.title, 5000);
+    else if (t.includes('PAYMENT_FAILED')) toast.error(n.title, 5000);
+    else                                   toast.info(n.title, 5000);
+    setNotifications(prev => [n, ...prev]);
     setUnreadCount(prev => prev + 1);
   }, [toast]);
 
   useNotificationWebSocket({
-    onNotification: handleWebSocketNotification,
-    onConnect: () => console.log('[TopBar] WebSocket connected'),
-    onDisconnect: () => console.log('[TopBar] WebSocket disconnected'),
+    onNotification:  onWsNotification,
+    onConnect:    () => {},
+    onDisconnect: () => {},
     enabled: Boolean(user?.id),
   });
 
-  // Handle notification dropdown toggle
-  const handleNotificationToggle = useCallback(() => {
-    const newState = !showNotifications;
-    setShowNotifications(newState);
-    
-    // Refresh notifications when opening
-    if (newState && user?.id) {
-      fetchNotifications();
-    }
+  const handleNotifToggle = useCallback(() => {
+    const next = !showNotifications;
+    setShowNotifications(next);
+    if (next && user?.id) fetchNotifications();
   }, [showNotifications, user?.id, fetchNotifications]);
 
-  // Handle notification click
-  const handleNotificationClick = useCallback(async (notification: Notification) => {
+  const handleNotifClick = useCallback(async (n: Notification) => {
     try {
-      // Mark as read
-      await notificationService.markAsRead(notification.id);
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      await notificationService.markAsRead(n.id);
+      setNotifications(prev => prev.filter(x => x.id !== n.id));
       setUnreadCount(prev => Math.max(0, prev - 1));
-      
-      // Navigate based on notification type
-      const notifType = notification.notification_type || '';
-      
-      if (notifType.includes('PAYMENT')) {
-        // Navigate to giving history with payment ID from metadata
-        const paymentId = notification.metadata?.payment_id || notification.metadata?.reference;
-        if (paymentId) {
-          navigate(`/member/giving?payment=${paymentId}`);
-        } else {
-          navigate('/member/giving');
-        }
+      const t = n.notification_type ?? '';
+      if (t.includes('PAYMENT')) {
+        const pid = n.metadata?.payment_id ?? n.metadata?.reference;
+        navigate(pid ? `/member/giving?payment=${pid}` : '/member/giving');
       }
-      
-      // Close dropdown
+    } catch { /* silent */ } finally {
       setShowNotifications(false);
-    } catch (error) {
-      console.error('[Notifications] Failed to handle click:', error);
     }
   }, [navigate]);
 
-  // Click outside to close menus
+  /* ── Click outside ────────────────────────────────────────── */
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setShowUserMenu(false);
       }
-      if (notifMenuRef.current && !notifMenuRef.current.contains(event.target as Node)) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setShowNotifications(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+  /* ── User ─────────────────────────────────────────────────── */
+  const initials = (() => {
+    const f = user?.firstName?.charAt(0) ?? '';
+    const l = user?.lastName?.charAt(0)  ?? '';
+    return (f + l).toUpperCase() || 'M';
+  })();
 
-  const getUserInitials = () => {
-    if (!user) return 'M';
-    const firstName = user.firstName || '';
-    const lastName = user.lastName || '';
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase();
-    }
-    if (firstName) return firstName.substring(0, 2).toUpperCase();
-    if (user.email) return user.email.substring(0, 2).toUpperCase();
-    return 'M';
-  };
+  const fullName =
+    user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user?.email?.split('@')[0] ?? 'Member';
 
-  const formatNotificationTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
-
+  /* ── Render ───────────────────────────────────────────────── */
   return (
-    <header className="member-topbar">
-      <div className="topbar-container">
-        {/* Left Side */}
-        <div className="topbar-left">
-          {/* Mobile Menu Button */}
-          <button 
-            className="topbar-menu-btn" 
+    <header className="m-topbar" role="banner">
+      <div className="m-topbar-inner">
+
+        {/* Left */}
+        <div className="m-topbar-left">
+          <button
+            className="m-topbar-menu-btn"
             onClick={onMenuClick}
-            aria-label="Toggle menu"
+            aria-label="Open navigation menu"
           >
-            <MenuIcon size={20} />
+            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>menu</span>
           </button>
 
-          {/* Title/Breadcrumbs */}
-          <div className="topbar-title-section">
+          <div className="m-topbar-title-section">
             {breadcrumbs && breadcrumbs.length > 0 ? (
-              <nav className="breadcrumbs" aria-label="Breadcrumb">
-                {breadcrumbs.map((crumb, index) => (
-                  <React.Fragment key={index}>
-                    {index > 0 && <span className="breadcrumb-separator">/</span>}
+              <nav className="m-topbar-breadcrumbs" aria-label="Breadcrumb">
+                {breadcrumbs.map((crumb, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span className="m-topbar-crumb-sep" aria-hidden="true">/</span>}
                     {crumb.onClick ? (
-                      <button className="breadcrumb-link" onClick={crumb.onClick}>
+                      <button className="m-topbar-crumb" onClick={crumb.onClick}>
                         {crumb.label}
                       </button>
                     ) : (
-                      <span className="breadcrumb-current">{crumb.label}</span>
+                      <span className="m-topbar-crumb current">{crumb.label}</span>
                     )}
                   </React.Fragment>
                 ))}
               </nav>
             ) : (
               <>
-                {title && <h1 className="topbar-title">{title}</h1>}
-                {subtitle && <p className="topbar-subtitle">{subtitle}</p>}
+                {title    && <h1 className="m-topbar-title">{title}</h1>}
+                {subtitle && <p  className="m-topbar-subtitle">{subtitle}</p>}
               </>
             )}
           </div>
         </div>
 
-        {/* Right Side */}
-        <div className="topbar-right">
-          {/* Custom Actions */}
-          {actions && <div className="topbar-actions">{actions}</div>}
+        {/* Right */}
+        <div className="m-topbar-right">
+          {actions && <div className="m-topbar-actions">{actions}</div>}
 
-          {/* Theme Toggle */}
-          <button 
-            className="topbar-icon-btn" 
+          {/* Theme toggle */}
+          <button
+            className="m-topbar-icon-btn"
             onClick={toggleTheme}
-            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDark ? 'Light mode' : 'Dark mode'}
           >
-            {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              {isDark ? 'light_mode' : 'dark_mode'}
+            </span>
           </button>
 
           {/* Notifications */}
-          <div className="topbar-dropdown" ref={notifMenuRef}>
-            <button 
-              className="topbar-icon-btn notif-btn-wrapper"
-              onClick={handleNotificationToggle}
-              title="Notifications"
+          <div className="m-topbar-dropdown-wrap" ref={notifRef}>
+            <button
+              className="m-topbar-icon-btn"
+              onClick={handleNotifToggle}
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+              aria-expanded={showNotifications}
+              aria-haspopup="true"
             >
-              <BellIcon size={18} />
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                notifications
+              </span>
               {unreadCount > 0 && (
-                <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                <span className={`m-topbar-notif-badge${unreadCount > 0 ? ' pulse' : ''}`}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
               )}
             </button>
 
             {showNotifications && (
-              <div className="dropdown-menu notifications-menu">
-                <div className="dropdown-header">
-                  <h3>Notifications</h3>
+              <div className="m-topbar-notif-panel" role="dialog" aria-label="Notifications">
+                <div className="m-notif-panel-header">
+                  <h2 className="m-notif-panel-title">Notifications</h2>
                   {unreadCount > 0 && (
-                    <span className="unread-count">{unreadCount} unread</span>
+                    <span className="m-notif-panel-count">{unreadCount} unread</span>
                   )}
                 </div>
-                
-                <div className="notifications-list">
-                  {loadingNotifications ? (
-                    <div className="notification-loading">
-                      <p>Loading...</p>
+
+                <div className="m-notif-panel-body">
+                  {loadingNotifs ? (
+                    <div className="m-notif-panel-loading" aria-busy="true">
+                      <div className="m-notif-panel-spinner" aria-hidden="true" />
                     </div>
                   ) : notifications.length > 0 ? (
-                    <>
-                      {notifications.map((notif) => {
-                        const isPayment = notif.notification_type?.includes('PAYMENT');
-                        const isSystem = notif.notification_type?.includes('SYSTEM');
-                        
-                        return (
-                          <div 
-                            key={notif.id} 
-                            className={`notification-item ${isPayment ? 'payment' : ''}`}
-                            onClick={() => handleNotificationClick(notif)}
-                          >
-                            <div className="notification-content">
-                              <div className="notification-header">
-                                <h4 className="notification-title">{notif.title}</h4>
-                                <span className="notification-time">
-                                  {formatNotificationTime(notif.created_at)}
-                                </span>
-                              </div>
-                              <p className="notification-message">{notif.message}</p>
-                              {isPayment && (
-                                <span className="notification-badge">Payment</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </>
+                    notifications.map(n => (
+                      <div
+                        key={n.id}
+                        className="m-notif-item unread"
+                        onClick={() => handleNotifClick(n)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && handleNotifClick(n)}
+                      >
+                        <div className="m-notif-dot" aria-hidden="true" />
+                        <div className="m-notif-content">
+                          <p className="m-notif-title">{n.title}</p>
+                          <p className="m-notif-msg">{n.message}</p>
+                          <span className="m-notif-time">{formatTimeAgo(n.created_at)}</span>
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="notification-empty">
-                      <BellIcon size={32} />
+                    <div className="m-notif-panel-empty">
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: '40px', opacity: 0.4 }}
+                        aria-hidden="true"
+                      >
+                        notifications_off
+                      </span>
                       <p>No new notifications</p>
                     </div>
                   )}
@@ -340,60 +301,73 @@ const MemberTopBar: React.FC<TopBarProps> = ({
             )}
           </div>
 
-          {/* User Menu */}
-          <div className="topbar-dropdown" ref={userMenuRef}>
+          {/* User menu */}
+          <div className="m-topbar-dropdown-wrap" ref={userMenuRef}>
             <button
-              className="topbar-user-btn"
-              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="m-topbar-user-btn"
+              onClick={() => setShowUserMenu(prev => !prev)}
+              aria-label="Open user menu"
+              aria-expanded={showUserMenu}
+              aria-haspopup="true"
             >
-              {user?.profilePicture ? (
-                <div className="user-avatar-small user-avatar-img">
-                  <img src={user.profilePicture} alt={user.firstName} />
-                </div>
-              ) : (
-                <div className="user-avatar-small">
-                  {getUserInitials()}
-                </div>
-              )}
-              <span className="user-name-desktop">{user?.firstName}</span>
-              <ChevronDownIcon size={16} />
+              <div className="m-avatar m-avatar-sm" aria-hidden="true">
+                {user?.profilePicture
+                  ? <img src={user.profilePicture} alt="" />
+                  : initials}
+              </div>
+              <span className="m-topbar-user-name">{user?.firstName ?? 'Member'}</span>
+              <span
+                className={`material-symbols-outlined m-topbar-chevron`}
+                style={{ fontSize: '16px' }}
+                aria-hidden="true"
+              >
+                expand_more
+              </span>
             </button>
 
             {showUserMenu && (
-              <div className="dropdown-menu user-menu">
-                <div className="user-menu-header">
-                  {user?.profilePicture ? (
-                    <div className="user-avatar-large user-avatar-img">
-                      <img src={user.profilePicture} alt={user.firstName} />
-                    </div>
-                  ) : (
-                    <div className="user-avatar-large">
-                      {getUserInitials()}
-                    </div>
-                  )}
-                  <div className="user-menu-info">
-                    <div className="user-menu-name">{user?.firstName} {user?.lastName}</div>
-                    <div className="user-menu-email">{user?.email}</div>
+              <div className="m-topbar-user-panel" role="menu">
+                {/* Header */}
+                <div className="m-user-panel-header">
+                  <div className="m-avatar m-avatar-md" aria-hidden="true">
+                    {user?.profilePicture
+                      ? <img src={user.profilePicture} alt="" />
+                      : initials}
+                  </div>
+                  <div className="m-user-panel-info">
+                    <p className="m-user-panel-name">{fullName}</p>
+                    <p className="m-user-panel-email">{user?.email ?? ''}</p>
                   </div>
                 </div>
 
-                <div className="dropdown-divider"></div>
-
-                <button className="dropdown-item" onClick={() => navigate('/member')}>
-                  <UserIcon size={16} />
-                  <span>My Profile</span>
+                {/* Menu items */}
+                <button
+                  className="m-dropdown-item"
+                  role="menuitem"
+                  onClick={() => { navigate('/member'); setShowUserMenu(false); }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>person</span>
+                  My Profile
                 </button>
 
-                <button className="dropdown-item" onClick={() => navigate('/member')}>
-                  <SettingsIcon size={16} />
-                  <span>Settings</span>
+                <button
+                  className="m-dropdown-item"
+                  role="menuitem"
+                  onClick={() => { navigate('/member/settings'); setShowUserMenu(false); }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>settings</span>
+                  Settings
                 </button>
 
-                <div className="dropdown-divider"></div>
+                <div className="m-dropdown-divider" aria-hidden="true" />
 
-                <button className="dropdown-item danger" onClick={handleLogout}>
-                  <LogOutIcon size={16} />
-                  <span>Sign Out</span>
+                <button
+                  className="m-dropdown-item danger"
+                  role="menuitem"
+                  onClick={() => { logout(); navigate('/'); }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>logout</span>
+                  Sign Out
                 </button>
               </div>
             )}

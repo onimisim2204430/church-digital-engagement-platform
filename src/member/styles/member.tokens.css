@@ -1,0 +1,232 @@
+/**
+ * Member Design Tokens
+ * Emotional Direction: WARM PRECISION
+ * — personal but professional, generous whitespace, warm neutrals, sharp type
+ *
+ * SOVEREIGN TERRITORY — no variable from admin or public appears here.
+ * All member CSS references only these --m- prefixed variables.
+ */
+
+:root {
+  /* ── MEMBER BRAND ──────────────────────────────────────────── */
+  --m-brand-primary:        #4338CA;
+  --m-brand-primary-hover:  #3730A3;
+  --m-brand-primary-active: #312E81;
+  --m-brand-primary-ghost:  rgba(67, 56, 202, 0.08);
+  --m-brand-primary-border: rgba(67, 56, 202, 0.20);
+  --m-brand-accent:         #D97706;
+  --m-brand-accent-hover:   #B45309;
+  --m-brand-accent-ghost:   rgba(217, 119, 6, 0.10);
+
+  /* ── MEMBER SIDEBAR ────────────────────────────────────────── */
+  --m-sidebar-bg:           #FFFFFF;
+  --m-sidebar-border:       #E8E6F0;
+  --m-sidebar-width:        256px;
+  --m-sidebar-width-collapsed: 64px;
+  --m-sidebar-item-color:   #4A4568;
+  --m-sidebar-item-hover-bg: rgba(67, 56, 202, 0.06);
+  --m-sidebar-item-active-bg: rgba(67, 56, 202, 0.10);
+  --m-sidebar-item-active-color: #4338CA;
+  --m-sidebar-item-active-border: #4338CA;
+  --m-sidebar-section-label: #A09CBB;
+  --m-sidebar-logo-bg:      #4338CA;
+  --m-sidebar-footer-bg:    #F7F6FF;
+
+  /* ── MEMBER TOPBAR ─────────────────────────────────────────── */
+  --m-topbar-height:        64px;
+  --m-topbar-bg:            rgba(255, 255, 255, 0.92);
+  --m-topbar-border:        #E8E6F0;
+  --m-topbar-blur:          12px;
+
+  /* ── MEMBER SURFACES ───────────────────────────────────────── */
+  --m-bg:           #F7F6FF;
+  --m-surface-1:    #FFFFFF;
+  --m-surface-2:    #F0EEFF;
+  --m-surface-3:    #E6E3F5;
+  --m-overlay:      rgba(15, 10, 40, 0.48);
+
+  /* ── MEMBER TEXT ────────────────────────────────────────────── */
+  --m-text-primary:    #0F0A28;
+  --m-text-secondary:  #4A4568;
+  --m-text-tertiary:   #9997AA;
+  --m-text-inverse:    #FFFFFF;
+  --m-text-link:       #4338CA;
+  --m-text-link-hover: #3730A3;
+  --m-text-disabled:   #C4C1D4;
+
+  /* ── MEMBER BORDERS ─────────────────────────────────────────── */
+  --m-border:        #E8E6F0;
+  --m-border-strong: #D1CDED;
+  --m-border-focus:  #4338CA;
+
+  /* ── MEMBER FEEDBACK COLORS ─────────────────────────────────── */
+  --m-success:          #16A34A;
+  --m-success-bg:       #F0FDF4;
+  --m-success-border:   #BBF7D0;
+  --m-success-text:     #15803D;
+  --m-warning:          #D97706;
+  --m-warning-bg:       #FFFBEB;
+  --m-warning-border:   #FDE68A;
+  --m-warning-text:     #B45309;
+  --m-error:            #DC2626;
+  --m-error-bg:         #FEF2F2;
+  --m-error-border:     #FECACA;
+  --m-error-text:       #B91C1C;
+  --m-info:             #2563EB;
+  --m-info-bg:          #EFF6FF;
+  --m-info-border:      #BFDBFE;
+  --m-info-text:        #1D4ED8;
+
+  /* ── MEMBER SPACING (8px grid) ──────────────────────────────── */
+  --m-s1:  4px;
+  --m-s2:  8px;
+  --m-s3:  12px;
+  --m-s4:  16px;
+  --m-s5:  24px;
+  --m-s6:  32px;
+  --m-s7:  48px;
+  --m-s8:  64px;
+  --m-s9:  96px;
+  --m-s10: 128px;
+  --m-s11: 160px;
+  --m-s12: 192px;
+
+  /* ── MEMBER TYPE SCALE ──────────────────────────────────────── */
+  --m-text-2xs:  10px;
+  --m-text-xs:   12px;
+  --m-text-sm:   13px;
+  --m-text-base: 15px;
+  --m-text-md:   17px;
+  --m-text-lg:   20px;
+  --m-text-xl:   24px;
+  --m-text-2xl:  30px;
+  --m-text-3xl:  38px;
+  --m-text-4xl:  48px;
+  --m-text-5xl:  60px;
+  --m-text-6xl:  76px;
+
+  /* ── MEMBER FONT WEIGHTS ────────────────────────────────────── */
+  --m-w-light:    300;
+  --m-w-regular:  400;
+  --m-w-medium:   500;
+  --m-w-semibold: 600;
+  --m-w-bold:     700;
+  --m-w-black:    900;
+
+  /* ── MEMBER LINE HEIGHTS ────────────────────────────────────── */
+  --m-lh-tight:   1.1;
+  --m-lh-snug:    1.25;
+  --m-lh-normal:  1.5;
+  --m-lh-relaxed: 1.625;
+  --m-lh-loose:   2;
+
+  /* ── MEMBER LETTER SPACING ──────────────────────────────────── */
+  --m-tracking-tight:  -0.04em;
+  --m-tracking-snug:   -0.02em;
+  --m-tracking-normal:  0em;
+  --m-tracking-wide:    0.04em;
+  --m-tracking-wider:   0.08em;
+  --m-tracking-caps:    0.12em;
+
+  /* ── MEMBER RADIUS ──────────────────────────────────────────── */
+  --m-r-none: 0;
+  --m-r-xs:   2px;
+  --m-r-sm:   4px;
+  --m-r-md:   8px;
+  --m-r-lg:   12px;
+  --m-r-xl:   16px;
+  --m-r-2xl:  24px;
+  --m-r-3xl:  32px;
+  --m-r-full: 9999px;
+
+  /* ── MEMBER SHADOWS ─────────────────────────────────────────── */
+  --m-shadow-xs:
+    0 1px 2px rgba(15, 10, 40, 0.04);
+  --m-shadow-sm:
+    0 2px 6px  rgba(15, 10, 40, 0.06),
+    0 1px 2px  rgba(15, 10, 40, 0.04);
+  --m-shadow-md:
+    0 4px 16px rgba(15, 10, 40, 0.08),
+    0 2px 4px  rgba(15, 10, 40, 0.04);
+  --m-shadow-lg:
+    0 8px 32px rgba(15, 10, 40, 0.10),
+    0 4px 8px  rgba(15, 10, 40, 0.04);
+  --m-shadow-xl:
+    0 16px 56px rgba(15, 10, 40, 0.14),
+    0  8px 16px rgba(15, 10, 40, 0.06);
+  --m-shadow-2xl:
+    0 32px 80px rgba(15, 10, 40, 0.18);
+  --m-shadow-inner:
+    inset 0 2px 4px rgba(15, 10, 40, 0.06);
+  --m-shadow-brand:
+    0 4px 20px rgba(67, 56, 202, 0.30);
+
+  /* ── MEMBER TRANSITIONS ─────────────────────────────────────── */
+  --m-ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);
+  --m-ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --m-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --m-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --m-t-instant:  80ms;
+  --m-t-fast:    150ms;
+  --m-t-base:    220ms;
+  --m-t-slow:    350ms;
+  --m-t-glacial: 500ms;
+
+  /* ── MEMBER Z-INDEX ─────────────────────────────────────────── */
+  --m-z-below:    -1;
+  --m-z-base:      0;
+  --m-z-raised:   10;
+  --m-z-dropdown: 100;
+  --m-z-sticky:   200;
+  --m-z-overlay:  300;
+  --m-z-modal:    400;
+  --m-z-toast:    500;
+  --m-z-tooltip:  600;
+
+  /* ── MEMBER BREAKPOINTS (reference only — use in media queries) */
+  --m-bp-xs:  320px;
+  --m-bp-sm:  480px;
+  --m-bp-md:  768px;
+  --m-bp-lg:  1024px;
+  --m-bp-xl:  1280px;
+  --m-bp-2xl: 1440px;
+}
+
+/* ── DARK MODE OVERRIDES ──────────────────────────────────────── */
+[data-theme="dark"] {
+  --m-bg:           #0A0820;
+  --m-surface-1:    #120F2E;
+  --m-surface-2:    #1C1840;
+  --m-surface-3:    #272254;
+  --m-overlay:      rgba(0, 0, 0, 0.60);
+
+  --m-sidebar-bg:         #120F2E;
+  --m-sidebar-border:     #1C1840;
+  --m-sidebar-item-color: #A09CBB;
+  --m-sidebar-item-hover-bg:    rgba(67, 56, 202, 0.15);
+  --m-sidebar-item-active-bg:   rgba(67, 56, 202, 0.25);
+  --m-sidebar-item-active-color: #818CF8;
+  --m-sidebar-section-label: #4A4568;
+  --m-sidebar-footer-bg:    #0D0B25;
+
+  --m-topbar-bg:    rgba(18, 15, 46, 0.92);
+  --m-topbar-border: #1C1840;
+
+  --m-text-primary:    #EAE8F5;
+  --m-text-secondary:  #9997AA;
+  --m-text-tertiary:   #4A4568;
+  --m-text-disabled:   #2A2545;
+
+  --m-border:        #1C1840;
+  --m-border-strong: #272254;
+
+  --m-shadow-sm:
+    0 2px 6px  rgba(0, 0, 0, 0.30),
+    0 1px 2px  rgba(0, 0, 0, 0.20);
+  --m-shadow-md:
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    0 2px 4px  rgba(0, 0, 0, 0.20);
+  --m-shadow-lg:
+    0 8px 32px rgba(0, 0, 0, 0.40),
+    0 4px 8px  rgba(0, 0, 0, 0.20);
+}

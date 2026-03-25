@@ -1,0 +1,290 @@
+/**
+ * Member Layout System
+ * Defines the shell structure: topbar + sidebar + content area.
+ * SOVEREIGN — zero shared rules with admin or public.
+ *
+ * Shell structure:
+ *  ┌─────────────────────────────────────────┐
+ *  │  MEMBER TOPBAR (fixed, 64px)            │
+ *  ├──────────────┬──────────────────────────┤
+ *  │  SIDEBAR     │  CONTENT AREA            │
+ *  │  (256px)     │  (flex, scrollable)      │
+ *  └──────────────┴──────────────────────────┘
+ *
+ * Responsive:
+ *  1440px+ → full sidebar + full content (max-width centered)
+ *  1280px  → sidebar 256px + content
+ *  1024px  → sidebar collapses to 64px icon-only
+ *   768px  → sidebar hidden, bottom tab bar
+ *   480px  → full screen content, bottom tab bar
+ */
+
+/* ── SHELL ──────────────────────────────────────────────────── */
+.member-shell {
+  min-height: 100vh;
+  background: var(--m-bg);
+  position: relative;
+}
+
+/* ── TOPBAR OFFSET ──────────────────────────────────────────── */
+.member-shell-body {
+  display: flex;
+  min-height: 100vh;
+  padding-top: var(--m-topbar-height);
+}
+
+/* ── SIDEBAR SLOT ───────────────────────────────────────────── */
+.member-sidebar-slot {
+  width: var(--m-sidebar-width);
+  flex-shrink: 0;
+  position: relative;
+  transition: width var(--m-t-base) var(--m-ease-out);
+}
+
+.member-sidebar-slot.collapsed {
+  width: var(--m-sidebar-width-collapsed);
+}
+
+/* ── CONTENT SLOT ───────────────────────────────────────────── */
+.member-content-slot {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── PAGE AREA ──────────────────────────────────────────────── */
+.member-page-area {
+  padding: var(--m-s6);
+  max-width: 1100px;
+  animation: m-page-enter var(--m-t-slow) var(--m-ease-out) both;
+}
+
+@keyframes m-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── PAGE HEADER ────────────────────────────────────────────── */
+.member-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--m-s4);
+  margin-bottom: var(--m-s6);
+}
+
+.member-page-title {
+  font-size: var(--m-text-2xl);
+  font-weight: var(--m-w-bold);
+  color: var(--m-text-primary);
+  line-height: var(--m-lh-snug);
+  letter-spacing: var(--m-tracking-snug);
+  margin: 0;
+}
+
+.member-page-subtitle {
+  font-size: var(--m-text-base);
+  color: var(--m-text-secondary);
+  margin: var(--m-s1) 0 0;
+  line-height: var(--m-lh-normal);
+}
+
+.member-page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--m-s3);
+  flex-shrink: 0;
+}
+
+/* ── BREADCRUMB ─────────────────────────────────────────────── */
+.m-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--m-s2);
+  margin-bottom: var(--m-s3);
+}
+
+.m-breadcrumb-item {
+  font-size: var(--m-text-sm);
+  color: var(--m-text-tertiary);
+  font-weight: var(--m-w-regular);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--m-t-fast) var(--m-ease-out);
+}
+
+.m-breadcrumb-item:hover {
+  color: var(--m-text-link);
+}
+
+.m-breadcrumb-item.current {
+  color: var(--m-text-secondary);
+  font-weight: var(--m-w-medium);
+  cursor: default;
+}
+
+.m-breadcrumb-sep {
+  color: var(--m-text-tertiary);
+  font-size: var(--m-text-xs);
+}
+
+/* ── SECTION ────────────────────────────────────────────────── */
+.m-section {
+  margin-bottom: var(--m-s6);
+}
+
+.m-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--m-s4);
+}
+
+.m-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--m-s2);
+  font-size: var(--m-text-lg);
+  font-weight: var(--m-w-semibold);
+  color: var(--m-text-primary);
+  margin: 0;
+  line-height: var(--m-lh-snug);
+}
+
+.m-section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--m-s1);
+  font-size: var(--m-text-sm);
+  font-weight: var(--m-w-medium);
+  color: var(--m-text-link);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--m-t-fast) var(--m-ease-out);
+}
+
+.m-section-link:hover {
+  color: var(--m-text-link-hover);
+  text-decoration: underline;
+}
+
+/* ── GRID LAYOUTS ───────────────────────────────────────────── */
+.m-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--m-s5);
+}
+
+.m-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--m-s5);
+}
+
+.m-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--m-s5);
+}
+
+.m-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--m-s5);
+}
+
+/* ── MAIN TWO-COLUMN LAYOUT ─────────────────────────────────── */
+.m-layout-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--m-s6);
+  align-items: start;
+}
+
+/* ── DIVIDER ────────────────────────────────────────────────── */
+.m-divider {
+  height: 1px;
+  background: var(--m-border);
+  border: none;
+  margin: 0;
+}
+
+.m-divider-v {
+  width: 1px;
+  background: var(--m-border);
+  align-self: stretch;
+}
+
+/* ── MOTION — reduced-motion override ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 1280px) {
+  .member-page-area {
+    padding: var(--m-s5);
+  }
+  .m-layout-main {
+    grid-template-columns: 1fr 300px;
+    gap: var(--m-s5);
+  }
+}
+
+@media (max-width: 1024px) {
+  .member-sidebar-slot {
+    width: var(--m-sidebar-width-collapsed);
+  }
+
+  .m-layout-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .member-sidebar-slot {
+    display: none;
+  }
+
+  .member-page-area {
+    padding: var(--m-s4);
+    /* leave space for bottom tab bar */
+    padding-bottom: calc(var(--m-s4) + 60px);
+  }
+
+  .member-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--m-s3);
+  }
+
+  .m-grid-2,
+  .m-grid-3,
+  .m-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .member-page-area {
+    padding: var(--m-s3);
+    padding-bottom: calc(var(--m-s4) + 60px);
+  }
+}
