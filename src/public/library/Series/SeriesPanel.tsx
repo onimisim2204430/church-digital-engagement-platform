@@ -42,6 +42,11 @@ const SeriesPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeStatus, setSubscribeStatus] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -55,6 +60,68 @@ const SeriesPanel: React.FC = () => {
 
   const episodes: SeriesPost[] = series?.posts ?? [];
   const displayedEpisodes = showAllEpisodes ? episodes : episodes.slice(0, 3);
+
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    if (series) {
+      // Backend guarantees this correctly now
+      setIsSubscribed(series.is_subscribed || false);
+    }
+  }, [series]);
+
+  const handleSubscribeToggle = async () => {
+    if (!series?.slug || subscribing) return;
+
+    setSubscribeStatus(null);
+    setSubscribing(true);
+
+    try {
+      const authToken = localStorage.getItem('auth_tokens') || localStorage.getItem('access_token');
+
+      if (isSubscribed && authToken) {
+        const response = await seriesService.unsubscribeFromSeriesAuthenticated(series.slug);
+        setSubscribeStatus({ type: 'success', message: response.detail });
+        setIsSubscribed(false);
+      } else if (authToken) {
+        const response = await seriesService.subscribeToSeries(series.slug);
+        setSubscribeStatus({ type: 'success', message: response.detail });
+        setIsSubscribed(true);
+      } else {
+        const email = window.prompt('Enter your email to receive series updates:')?.trim();
+        if (!email) return;
+
+        const response = await seriesService.subscribeToSeries(series.slug, email);
+        setSubscribeStatus({ type: 'success', message: response.detail });
+      }
+    } catch (err: any) {
+      let errorMessage = 'Unable to subscribe right now. Please try again.';
+      
+      if (err?.response?.data) {
+        const data = err.response.data;
+        if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.email && Array.isArray(data.email)) {
+          errorMessage = data.email[0];
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        } else {
+          // Extract first available field error
+          const firstKey = Object.keys(data)[0];
+          if (firstKey && Array.isArray(data[firstKey])) {
+            errorMessage = data[firstKey][0];
+          }
+        }
+      }
+
+      setSubscribeStatus({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -120,6 +187,9 @@ const SeriesPanel: React.FC = () => {
           <p className="text-xl md:text-2xl text-slate-200 mb-12 font-light italic">
             {series.description || '—'}
           </p>
+          <div className="mb-6 flex flex-col items-center justify-center">
+            {/* Subscription button was moved out of hero section */}
+          </div>
           {hasVideo && (
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button className="group flex min-w-[200px] items-center justify-center gap-3 rounded-full bg-primary px-8 py-4 text-lg font-bold text-background-dark hover:scale-105 transition-transform">
@@ -157,6 +227,41 @@ const SeriesPanel: React.FC = () => {
                 </div>
               )}
               <span className="text-lg font-medium text-slate-800">{authorName}</span>
+            </div>
+            
+            {/* YouTube Style Subscribe Button */}
+            <div className="mt-3 flex flex-col items-start gap-2">
+              <button
+                onClick={handleSubscribeToggle}
+                disabled={subscribing}
+                className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold tracking-wide transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 ${
+                  isSubscribed
+                    ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                    : 'bg-primary text-white hover:bg-primary-dark hover:scale-105 shadow-md shadow-primary/20'
+                }`}
+                title={isSubscribed ? "Unsubscribe from notifications" : "Subscribe for notifications"}
+              >
+                {subscribing ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <Icon name={isSubscribed ? 'notifications_active' : 'notifications_none'} size={18} className={isSubscribed ? 'text-primary' : ''} />
+                )}
+                <span>{isSubscribed ? 'Subscribed' : 'Subscribe'}</span>
+              </button>
+              
+              {subscribeStatus && (
+                <div
+                  className={`text-xs font-medium rounded p-2 max-w-full leading-snug animate-fade-in ${
+                    subscribeStatus.type === 'success'
+                      ? 'text-emerald-700 bg-emerald-50'
+                      : subscribeStatus.type === 'error'
+                      ? 'text-rose-700 bg-rose-50'
+                      : 'text-slate-600 bg-slate-100'
+                  }`}
+                >
+                  {subscribeStatus.message}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex flex-col gap-2">

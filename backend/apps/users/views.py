@@ -144,10 +144,19 @@ from .serializers import (
     UserSerializer,
     UserRegistrationSerializer,
     UserLoginSerializer,
+    GoogleLoginSerializer,
     TokenResponseSerializer,
     UserProfileUpdateSerializer,
     ChangePasswordSerializer,
     ChangeEmailSerializer,
+)
+from .services.google_oauth_service import (
+    GoogleOAuthService,
+    GoogleOAuthConfigurationError,
+    GoogleTokenInvalidError,
+    GoogleAudienceMismatchError,
+    GoogleEmailNotVerifiedError,
+    GoogleEmailConflictError,
 )
 
 
@@ -230,6 +239,109 @@ class UserLoginView(APIView):
             'access': str(refresh.access_token),
             'refresh': str(refresh)
         }, status=status.HTTP_200_OK)
+
+
+class GoogleLoginView(APIView):
+    """Google OAuth login/signup endpoint using server-side ID token verification."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = GoogleLoginSerializer
+
+    @extend_schema(
+        request=GoogleLoginSerializer,
+        responses={
+            200: TokenResponseSerializer,
+            201: TokenResponseSerializer,
+            400: OpenApiResponse(description='Invalid token or request payload'),
+            401: OpenApiResponse(description='Token audience mismatch'),
+            409: OpenApiResponse(description='Email conflict with password account'),
+            503: OpenApiResponse(description='Google OAuth not configured'),
+        },
+        tags=['Authentication']
+    )
+    def post(self, request):
+        request_meta = {
+            'origin': request.headers.get('Origin', ''),
+            'referer': request.headers.get('Referer', ''),
+            'user_agent': request.headers.get('User-Agent', ''),
+            'content_type': request.content_type,
+        }
+        logger.info('[GOOGLE_AUTH_DEBUG] STAGE B1: /auth/google/ request received %s', request_meta)
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        logger.info('[GOOGLE_AUTH_DEBUG] STAGE B2: request payload validated')
+
+        service = GoogleOAuthService()
+        raw_id_token = serializer.validated_data['id_token']
+        logger.info(
+            '[GOOGLE_AUTH_DEBUG] STAGE B3: id_token extracted token_length=%s',
+            len(raw_id_token or ''),
+        )
+
+        try:
+            profile = service.verify_id_token(raw_id_token)
+            logger.info(
+                '[GOOGLE_AUTH_DEBUG] STAGE B4: token verified email=%s sub_prefix=%s',
+                profile.email,
+                profile.sub[:8],
+            )
+            user, created = service.get_or_create_user(profile)
+            logger.info(
+                '[GOOGLE_AUTH_DEBUG] STAGE B5: user resolved user_id=%s created=%s role=%s',
+                str(user.id),
+                created,
+                user.role,
+            )
+        except GoogleOAuthConfigurationError:
+            logger.warning('[GOOGLE_AUTH_DEBUG] FAIL CODE=google_oauth_not_configured status=503')
+            return Response(
+                {'error': 'Google OAuth is not configured on the server', 'code': 'google_oauth_not_configured'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except GoogleAudienceMismatchError:
+            logger.warning('[GOOGLE_AUTH_DEBUG] FAIL CODE=google_audience_mismatch status=401')
+            return Response(
+                {'error': 'Google token audience mismatch', 'code': 'google_audience_mismatch'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        except GoogleEmailNotVerifiedError:
+            logger.warning('[GOOGLE_AUTH_DEBUG] FAIL CODE=google_email_not_verified status=400')
+            return Response(
+                {'error': 'Google email is not verified', 'code': 'google_email_not_verified'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except GoogleEmailConflictError as exc:
+            logger.warning('[GOOGLE_AUTH_DEBUG] FAIL CODE=google_email_conflict status=409 message=%s', str(exc))
+            return Response(
+                {'error': str(exc), 'code': 'google_email_conflict'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except GoogleTokenInvalidError:
+            logger.warning('[GOOGLE_AUTH_DEBUG] FAIL CODE=google_token_invalid status=400')
+            return Response(
+                {'error': 'Invalid or expired Google token', 'code': 'google_token_invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            logger.exception('[GOOGLE_AUTH_DEBUG] FAIL CODE=google_login_failed status=500 unexpected error')
+            return Response(
+                {'error': 'Unable to process Google sign-in right now', 'code': 'google_login_failed'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        refresh = _build_token_for_user(user)
+        logger.info('[GOOGLE_AUTH_DEBUG] STAGE B6: JWT refresh/access generated user_id=%s', str(user.id))
+        response_payload = {
+            'user': UserSerializer(user, context={'request': request}).data,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+        logger.info(
+            '[GOOGLE_AUTH_DEBUG] STAGE B7: response sent status=%s',
+            status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+        return Response(response_payload, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class UserLogoutView(APIView):

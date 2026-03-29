@@ -1,0 +1,568 @@
+/**
+ * Prayer Requests — Sanctuary
+ * CSS converted from reference HTML (Tailwind) exactly.
+ *
+ * Tokens:
+ *   primary:                  #000666
+ *   primary-container:        #1a237e
+ *   primary-fixed:            #e0e0ff
+ *   secondary:                #506169
+ *   secondary-container:      #d1e2ec
+ *   secondary-fixed-variant:  #394951
+ *   tertiary:                 #735c00
+ *   tertiary-fixed:           #ffe088
+ *   tertiary-container:       #cba72f
+ *   on-tertiary-fixed:        #241a00
+ *   on-tertiary-fixed-variant:#574500
+ *   surface:                  #f8f9fa
+ *   surface-container-low:    #f3f4f5
+ *   surface-container:        #edeeef
+ *   surface-container-lowest: #ffffff
+ *   on-surface:               #191c1d
+ *   on-surface-variant:       #454652
+ *   outline:                  #767683
+ *   outline-variant:          #c6c5d4
+ */
+
+/* ── Line-clamp utility ── */
+.line-clamp-2 {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Page ── */
+.pr-page {
+  background-color: #f8f9fa; /* bg-surface */
+  color: #191c1d; /* text-on-surface */
+  font-family: 'Manrope', sans-serif;
+  min-height: 100vh;
+  padding: 6rem 1.5rem 8rem; /* pt-24 pb-32 px-6 */
+  max-width: 64rem; /* max-w-5xl */
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ════════════════════════════════
+   HERO / ACTION SECTION
+   ════════════════════════════════ */
+.pr-hero-section {
+  margin-bottom: 3rem; /* mb-12 */
+}
+
+.pr-hero-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem; /* rounded-3xl */
+  padding: 2.5rem; /* p-10 */
+  background: #1a237e; /* bg-primary-container */
+  color: #ffffff; /* text-on-primary */
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Background image layer */
+.pr-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.pr-hero-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Gradient overlay on top of image */
+.pr-hero-overlay {
+  position: absolute;
+  inset: 0;
+  /* bg-gradient-to-t from-primary to-transparent */
+  background: linear-gradient(to top, #000666 0%, transparent 100%);
+}
+
+/* Content sits above bg */
+.pr-hero-content {
+  position: relative;
+  z-index: 10;
+  max-width: 42rem; /* max-w-2xl */
+}
+
+.pr-hero-heading {
+  font-family: 'Noto Serif', Georgia, serif; /* font-headline */
+  font-size: 3rem; /* text-5xl */
+  font-weight: 700;
+  margin: 0 0 1.5rem; /* mb-6 */
+  line-height: 1.15; /* leading-tight */
+  color: #ffffff;
+}
+
+@media (min-width: 768px) {
+  .pr-hero-heading {
+    font-size: 3.75rem; /* md:text-6xl */
+  }
+}
+
+.pr-hero-sub {
+  font-family: 'Manrope', sans-serif; /* font-body */
+  font-size: 1.125rem; /* text-lg */
+  opacity: 0.9;
+  margin: 0 0 2rem; /* mb-8 */
+  max-width: 32rem; /* max-w-lg */
+  color: #ffffff;
+  line-height: 1.5;
+}
+
+.pr-hero-btn {
+  /* bg-gradient-to-r from-tertiary to-tertiary-container */
+  background: linear-gradient(to right, #735c00, #cba72f);
+  color: #241a00; /* text-on-tertiary-fixed */
+  border: none;
+  border-radius: 0.75rem; /* rounded-xl */
+  padding: 1rem 2rem; /* px-8 py-4 */
+  font-weight: 700; /* font-bold */
+  font-size: 1.125rem; /* text-lg */
+  font-family: 'Manrope', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem; /* gap-3 */
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.pr-hero-btn:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* hover:shadow-lg */
+}
+
+.pr-hero-btn:active {
+  transform: scale(0.95); /* active:scale-95 */
+}
+
+.pr-hero-btn svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ════════════════════════════════
+   MAIN CONTENT GRID
+   ════════════════════════════════ */
+.pr-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem; /* gap-12 */
+}
+
+@media (min-width: 1024px) {
+  .pr-layout {
+    /* lg:grid-cols-12: feed=8, sidebar=4 */
+    grid-template-columns: 8fr 4fr;
+  }
+}
+
+/* ════════════════════════════════
+   FEED
+   ════════════════════════════════ */
+.pr-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem; /* space-y-8 */
+}
+
+.pr-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem; /* mb-4 */
+}
+
+.pr-feed-title {
+  font-family: 'Noto Serif', Georgia, serif; /* font-headline */
+  font-size: 1.5rem; /* text-2xl */
+  color: #1e3a8a; /* text-blue-900 */
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Toggle pill */
+.pr-toggle {
+  display: flex;
+  background: #edeeef; /* bg-surface-container */
+  padding: 0.25rem; /* p-1 */
+  border-radius: 9999px; /* rounded-full */
+}
+
+.pr-toggle-btn {
+  padding: 0.5rem 1.5rem; /* px-6 py-2 */
+  border-radius: 9999px; /* rounded-full */
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  font-family: 'Manrope', sans-serif;
+  border: none;
+  background: transparent;
+  color: #506169; /* text-secondary */
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pr-toggle-btn:hover:not(.pr-toggle-active) {
+  background: rgba(255, 255, 255, 0.5); /* hover:bg-white/50 */
+}
+
+.pr-toggle-active {
+  background: #ffffff; /* bg-white */
+  color: #000666; /* text-primary */
+  font-weight: 700; /* font-bold */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* shadow-sm */
+}
+
+/* ── Prayer Cards ── */
+.pr-card {
+  border-radius: 1.5rem; /* rounded-3xl */
+  padding: 2rem; /* p-8 */
+  transition: transform 0.2s ease;
+}
+
+.pr-card:hover {
+  transform: translateY(-4px); /* hover:-translate-y-1 */
+}
+
+/* Featured card: white bg, left amber border, shadow */
+.pr-card-featured {
+  background: #ffffff; /* bg-surface-container-lowest */
+  border-left: 4px solid #735c00; /* border-l-4 border-tertiary */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); /* shadow-sm */
+}
+
+/* Plain card: low surface, no border */
+.pr-card-plain {
+  background: #f3f4f5; /* bg-surface-container-low */
+}
+
+.pr-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem; /* mb-6 */
+}
+
+.pr-card-author {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* gap-4 */
+}
+
+/* Avatar circle */
+.pr-avatar {
+  width: 3rem; /* w-12 */
+  height: 3rem; /* h-12 */
+  border-radius: 9999px; /* rounded-full */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700; /* font-bold */
+  font-family: 'Noto Serif', Georgia, serif; /* font-headline */
+  font-size: 1.25rem; /* text-xl */
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+.pr-avatar-secondary {
+  background: #d1e2ec; /* bg-secondary-container */
+  color: #506169; /* text-secondary */
+}
+
+.pr-avatar-primary {
+  background: #e0e0ff; /* bg-primary-fixed */
+  color: #000666; /* text-primary */
+}
+
+.pr-author-name {
+  margin: 0;
+  font-weight: 700; /* font-bold */
+  color: #191c1d; /* text-on-surface */
+  font-size: 1rem;
+}
+
+.pr-author-meta {
+  margin: 0;
+  font-size: 0.75rem; /* text-xs */
+  color: #394951; /* text-secondary-fixed-variant */
+  text-transform: uppercase;
+  letter-spacing: 0.08em; /* tracking-widest */
+  font-weight: 600; /* font-semibold */
+  margin-top: 0.1rem;
+}
+
+.pr-group-badge {
+  background: #d1e2ec; /* bg-secondary-container */
+  color: #506169; /* text-secondary */
+  padding: 0.25rem 0.75rem; /* px-3 py-1 */
+  border-radius: 9999px; /* rounded-full */
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 700; /* font-bold */
+  letter-spacing: 0.05em; /* tracking-wide */
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Card prayer text */
+.pr-card-text {
+  font-family: 'Noto Serif', Georgia, serif; /* font-noto-serif */
+  font-size: 1.25rem; /* text-xl */
+  line-height: 1.75; /* leading-relaxed */
+  color: #454652; /* text-on-surface-variant */
+  margin: 0 0 2rem; /* mb-8 */
+}
+
+.pr-card-text-italic {
+  font-style: italic;
+}
+
+/* Card action row */
+.pr-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem; /* gap-6 */
+  padding-top: 1.5rem; /* pt-6 */
+  border-top: 1px solid rgba(198, 197, 212, 0.2); /* border-outline-variant/20 */
+}
+
+.pr-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem; /* gap-2 */
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.875rem;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.pr-action-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.pr-action-primary {
+  color: #000666; /* text-primary */
+}
+
+.pr-action-primary:hover {
+  color: #735c00; /* hover:text-tertiary */
+}
+
+.pr-action-secondary {
+  color: #506169; /* text-secondary */
+}
+
+.pr-action-secondary:hover {
+  color: #000666; /* hover:text-primary */
+}
+
+.pr-action-label {
+  font-weight: 700; /* font-bold */
+}
+
+/* ════════════════════════════════
+   SIDEBAR
+   ════════════════════════════════ */
+.pr-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem; /* space-y-10 */
+}
+
+.pr-sidebar-title {
+  font-family: 'Noto Serif', Georgia, serif; /* font-headline */
+  font-size: 1.25rem; /* text-xl */
+  color: #1e3a8a; /* text-blue-900 */
+  margin: 0 0 1.5rem; /* mb-6 */
+  font-weight: 700;
+}
+
+/* Prayer History card */
+.pr-history-card {
+  background: #ffffff; /* bg-surface-container-lowest */
+  padding: 2rem; /* p-8 */
+  border-radius: 1.5rem; /* rounded-3xl */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); /* shadow-sm */
+}
+
+.pr-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* space-y-6 */
+}
+
+.pr-history-item {
+  cursor: pointer;
+}
+
+.pr-history-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+.pr-history-status {
+  margin: 0;
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 700; /* font-bold */
+  text-transform: uppercase;
+  letter-spacing: 0.08em; /* tracking-wider */
+}
+
+.pr-history-answered {
+  color: #735c00; /* text-tertiary */
+}
+
+.pr-history-requested {
+  color: #506169; /* text-secondary */
+}
+
+.pr-history-date {
+  margin: 0;
+  font-size: 0.75rem; /* text-xs */
+  color: #767683; /* text-outline */
+}
+
+.pr-history-text {
+  color: #454652; /* text-on-surface-variant */
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  transition: color 0.2s ease;
+}
+
+.pr-history-item:hover .pr-history-text {
+  color: #191c1d; /* group-hover:text-on-surface */
+}
+
+.pr-history-btn {
+  width: 100%;
+  margin-top: 2rem; /* mt-8 */
+  padding: 0.75rem 0; /* py-3 */
+  border-radius: 0.75rem; /* rounded-xl */
+  border: 1px solid rgba(198, 197, 212, 0.3); /* border-outline-variant/30 */
+  background: transparent;
+  color: #000666; /* text-primary */
+  font-weight: 700; /* font-bold */
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.pr-history-btn:hover {
+  background: #f3f4f5; /* hover:bg-surface-container-low */
+}
+
+/* Reflection card */
+.pr-reflection-card {
+  /* bg-tertiary-fixed/30 → #ffe088 at 30% opacity */
+  background: rgba(255, 224, 136, 0.3);
+  padding: 2rem; /* p-8 */
+  border-radius: 1.5rem; /* rounded-3xl */
+}
+
+.pr-reflection-icon {
+  width: 2.25rem; /* text-4xl */
+  height: 2.25rem;
+  color: #735c00; /* text-tertiary */
+  display: block;
+  margin-bottom: 1rem; /* mb-4 */
+  line-height: 1;
+}
+
+.pr-reflection-title {
+  font-family: 'Noto Serif', Georgia, serif; /* font-headline */
+  font-size: 1.25rem; /* text-xl */
+  color: #241a00; /* text-on-tertiary-fixed */
+  margin: 0 0 1rem; /* mb-4 */
+  font-weight: 700;
+}
+
+.pr-reflection-verse {
+  font-family: 'Noto Serif', Georgia, serif; /* font-noto-serif */
+  color: #574500; /* text-on-tertiary-fixed-variant */
+  line-height: 1.625; /* leading-relaxed */
+  margin: 0 0 1.5rem; /* mb-6 */
+  font-style: italic;
+  font-size: 1rem;
+}
+
+/* Reflection textarea-style box */
+.pr-reflection-input {
+  height: 8rem; /* h-32 */
+  background: rgba(255, 255, 255, 0.5); /* bg-white/50 */
+  border-radius: 0.75rem; /* rounded-xl */
+  padding: 1rem; /* p-4 */
+  font-size: 0.875rem; /* text-sm */
+  color: #394951; /* text-secondary-fixed-variant */
+  /* plinth-input: border-bottom: 3px solid #735c00 */
+  border: none;
+  border-bottom: 3px solid #735c00;
+  box-sizing: border-box;
+  font-family: 'Manrope', sans-serif;
+  line-height: 1.5;
+}
+
+/* ════════════════════════════════
+   SCRIPTURE FOR COMFORT
+   ════════════════════════════════ */
+.pr-scripture-section {
+  margin-top: 5rem; /* mt-20 */
+  text-align: center;
+  max-width: 48rem; /* max-w-3xl */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Short decorative rule */
+.pr-scripture-rule {
+  width: 4rem; /* w-16 */
+  height: 0.25rem; /* h-1 */
+  background: #735c00; /* bg-tertiary */
+  border-radius: 9999px; /* rounded-full */
+  opacity: 0.3;
+  margin: 0 auto 2.5rem; /* mx-auto mb-10 */
+}
+
+.pr-scripture-heading {
+  font-family: 'Noto Serif', Georgia, serif; /* font-headline */
+  font-size: 1.875rem; /* text-3xl */
+  color: #1e3a8a; /* text-blue-900 */
+  margin: 0 0 1.5rem; /* mb-6 */
+  font-style: italic;
+  font-weight: 700;
+}
+
+.pr-scripture-quote {
+  font-family: 'Noto Serif', Georgia, serif; /* font-noto-serif */
+  font-size: 1.5rem; /* text-2xl */
+  color: #454652; /* text-on-surface-variant */
+  line-height: 1.75; /* leading-relaxed */
+  margin: 0 0 1.5rem;
+  font-style: normal;
+}
+
+.pr-scripture-cite {
+  display: block;
+  margin-top: 1.5rem; /* mt-6 */
+  font-weight: 700; /* font-bold */
+  color: #506169; /* text-secondary */
+  text-transform: uppercase;
+  letter-spacing: 0.1em; /* tracking-widest */
+  font-size: 0.875rem; /* text-sm */
+  font-style: normal;
+}

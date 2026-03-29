@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './auth/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ConfirmProvider } from './contexts/ConfirmContext';
@@ -30,7 +31,7 @@ class BibleErrorBoundary extends React.Component<{ children: React.ReactNode }> 
 }
 
 const App: React.FC = () => {
-  return (
+  const appTree = (
     <BibleErrorBoundary>
       <BibleProvider defaultTranslation="KJV">
         <AuthProvider>
@@ -49,6 +50,13 @@ const App: React.FC = () => {
       </BibleProvider>
     </BibleErrorBoundary>
   );
+
+  const googleClientId = (process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
+  if (!googleClientId) {
+    return appTree;
+  }
+
+  return <GoogleOAuthProvider clientId={googleClientId}>{appTree}</GoogleOAuthProvider>;
 };
 
 export default App;

@@ -5,10 +5,18 @@ import hmac
 import json
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import PaymentStatus, PaymentTransaction
+from .models import (
+    PaymentStatus,
+    PaymentTransaction,
+    RecurringFrequency,
+    RecurringGivingPlan,
+    RecurringPlanStatus,
+)
 
 
 @override_settings(ROOT_URLCONF='config.urls')
@@ -128,3 +136,63 @@ class WebhookSignatureSuccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         transaction = PaymentTransaction.objects.get(reference='PAY_TEST_VALID_WEBHOOK')
         self.assertEqual(transaction.status, PaymentStatus.SUCCESS)
+
+
+@override_settings(ROOT_URLCONF='config.urls')
+class MemberRecurringPlansTests(TestCase):
+    """Recurring tracking endpoints for authenticated members."""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.base_url = '/api/v1/payments/'
+        self.user = get_user_model().objects.create_user(
+            email='member@example.com',
+            password='password123',
+            first_name='Member',
+            last_name='Tester',
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_member_can_list_recurring_plans(self) -> None:
+        RecurringGivingPlan.objects.create(
+            user=self.user,
+            email=self.user.email,
+            amount=150000,
+            currency='NGN',
+            frequency=RecurringFrequency.MONTHLY,
+            status=RecurringPlanStatus.ACTIVE,
+            giving_title='General Fund',
+            next_payment_at=timezone.now(),
+        )
+
+        response = self.client.get(f'{self.base_url}my-recurring-plans/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['giving_title'], 'General Fund')
+
+    def test_member_can_view_recurring_plan_detail_history(self) -> None:
+        seed_tx = PaymentTransaction.objects.create(
+            user=self.user,
+            email=self.user.email,
+            amount=200000,
+            currency='NGN',
+            reference='PAY_RECUR_DETAIL_1',
+            status=PaymentStatus.SUCCESS,
+            metadata={'recurring': True},
+        )
+        plan = RecurringGivingPlan.objects.create(
+            user=self.user,
+            email=self.user.email,
+            amount=200000,
+            currency='NGN',
+            frequency=RecurringFrequency.MONTHLY,
+            status=RecurringPlanStatus.ACTIVE,
+            giving_title='Missions',
+            next_payment_at=timezone.now(),
+            source_transaction=seed_tx,
+        )
+
+        response = self.client.get(f'{self.base_url}my-recurring-plans/{plan.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['plan']['id'], str(plan.id))
+        self.assertEqual(response.data['history_count'], 1)

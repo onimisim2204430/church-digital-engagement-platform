@@ -1,487 +1,327 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * Member Overview — Sanctuary Bento Dashboard
+ * Layout matches the Sanctuary HTML design exactly:
+ *   • Greeting section (Noto Serif, navy)
+ *   • 12-col bento grid:
+ *       8 col — Word for the Day (image + Psalm quote)
+ *       4 col — Give CTA (navy + amber gradient button)
+ *       6 col — Recent Sermon (thumb + play button)
+ *       6 col — Upcoming Event (details + avatar stack + RSVP)
+ *      12 col — Daily Prayer | Community Post
+ *
+ * Auth: useAuth() for user first name only. All content is mock.
+ */
+
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowRight,
+  CalendarDays,
+  CirclePlus,
+  HandHeart,
+  Headphones,
+  Heart,
+  MessageCircle,
+  Play,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
-import MemberIcon, { type MemberIconName } from '../components/MemberIcon';
 import './MemberOverview.css';
 
-interface Stat {
-  id: number;
-  label: string;
-  value: number;
-  change: string;
-  trend: 'up' | 'down' | 'neutral';
-  icon: MemberIconName;
-  color: string;
-  bg: string;
-}
+/* ── Mock data ────────────────────────────────────────────────
+   Replace these with real API calls when your backend is ready.
+─────────────────────────────────────────────────────────────── */
+const DAILY_VERSE = {
+  label: 'Word for the Day',
+  quote:
+    '"The Lord is my shepherd; I shall not want. He makes me lie down in green pastures. He leads me beside still waters."',
+  citation: '— Psalm 23:1-2',
+  /* Unsplash free-to-use landscape image */
+  imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80',
+};
 
-interface QuickAction {
-  id: string;
-  label: string;
-  desc: string;
-  icon: MemberIconName;
-  color: string;
-  bg: string;
-  badge?: string;
-}
+const LATEST_SERMON = {
+  tag: 'Latest Sermon',
+  date: 'Sunday, Oct 22',
+  title: 'Finding Peace in the Midst of Storms',
+  desc:
+    'Join Pastor Marcus as he explores the theological depth of resilience and how we can anchor our souls during seasons of uncertainty.',
+  audioAvailable: true,
+  imageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=800&q=80',
+};
 
-interface FeedItem {
-  id: number;
-  title: string;
-  desc: string;
-  time: string;
-  icon: MemberIconName;
-  color: string;
-  bg: string;
-}
+const UPCOMING_EVENT = {
+  eyebrow: 'Next Up',
+  title: 'Community Harvest Festival',
+  desc:
+    "A time of gratitude and fellowship for the whole family. We'll have local produce, music, and children's activities in the North Courtyard.",
+  attendeeCount: '+12',
+};
 
-interface UpcomingEvent {
-  id: number;
-  title: string;
-  month: string;
-  day: number;
-  time: string;
-}
+const DAILY_PRAYER = {
+  quote: '"May your grace guide my hands today, and your wisdom speak through my words."',
+};
 
-const stats: Stat[] = [
-  {
-    id: 1,
-    label: 'New Sermons',
-    value: 3,
-    change: '+2 this week',
-    trend: 'up',
-    icon: 'sermons',
-    color: '#4338CA',
-    bg: 'rgba(67,56,202,0.10)',
-  },
-  {
-    id: 2,
-    label: 'Upcoming Events',
-    value: 5,
-    change: '+1 this month',
-    trend: 'up',
-    icon: 'events',
-    color: '#16A34A',
-    bg: 'rgba(22,163,74,0.10)',
-  },
-  {
-    id: 3,
-    label: 'Unread Messages',
-    value: 2,
-    change: 'New today',
-    trend: 'neutral',
-    icon: 'chat',
-    color: '#D97706',
-    bg: 'rgba(217,119,6,0.10)',
-  },
-  {
-    id: 4,
-    label: 'Prayer Requests',
-    value: 8,
-    change: '3 this week',
-    trend: 'up',
-    icon: 'prayer',
-    color: '#DC2626',
-    bg: 'rgba(220,38,38,0.10)',
-  },
-];
+const COMMUNITY_POST = {
+  author: 'Sarah J.',
+  role: '• Community Council',
+  text: '"Does anyone have recommendations for devotional books for the Advent season? Looking for something meditative..."',
+  replies: 8,
+  likes: 14,
+};
 
-const quickActions: QuickAction[] = [
-  {
-    id: 'sermons',
-    label: 'Sermons',
-    desc: 'Watch and grow',
-    icon: 'sermons',
-    color: '#4338CA',
-    bg: 'rgba(67,56,202,0.10)',
-    badge: '3 new',
-  },
-  {
-    id: 'events',
-    label: 'Events',
-    desc: 'Upcoming activities',
-    icon: 'events',
-    color: '#16A34A',
-    bg: 'rgba(22,163,74,0.10)',
-    badge: '5 upcoming',
-  },
-  {
-    id: 'community',
-    label: 'Community',
-    desc: 'Connect and discuss',
-    icon: 'community',
-    color: '#0891B2',
-    bg: 'rgba(8,145,178,0.10)',
-  },
-  {
-    id: 'prayer',
-    label: 'Prayer',
-    desc: 'Share and intercede',
-    icon: 'prayer',
-    color: '#E11D48',
-    bg: 'rgba(225,29,72,0.10)',
-  },
-  {
-    id: 'giving',
-    label: 'Giving',
-    desc: 'Support the ministry',
-    icon: 'giving',
-    color: '#D97706',
-    bg: 'rgba(217,119,6,0.10)',
-  },
-  {
-    id: 'chat',
-    label: 'Chat',
-    desc: 'Message your community',
-    icon: 'chat',
-    color: '#4F46E5',
-    bg: 'rgba(79,70,229,0.10)',
-  },
-];
-
-const feedItems: FeedItem[] = [
-  {
-    id: 1,
-    title: 'Walking in Faith - Part 3',
-    desc: 'A new sermon is now available to watch.',
-    time: '2 hours ago',
-    icon: 'sermons',
-    color: '#4338CA',
-    bg: 'rgba(67,56,202,0.10)',
-  },
-  {
-    id: 2,
-    title: 'Youth Fellowship Night',
-    desc: 'Event reminder: Tomorrow at 6:00 PM.',
-    time: '5 hours ago',
-    icon: 'events',
-    color: '#16A34A',
-    bg: 'rgba(22,163,74,0.10)',
-  },
-  {
-    id: 3,
-    title: 'Reply on your prayer request',
-    desc: 'A member of the community prayed with you.',
-    time: '1 day ago',
-    icon: 'chat',
-    color: '#D97706',
-    bg: 'rgba(217,119,6,0.10)',
-  },
-  {
-    id: 4,
-    title: 'New prayer request posted',
-    desc: 'A fresh request was shared in the prayer wall.',
-    time: '2 days ago',
-    icon: 'heart',
-    color: '#DC2626',
-    bg: 'rgba(220,38,38,0.10)',
-  },
-];
-
-const upcomingEvents: UpcomingEvent[] = [
-  { id: 1, title: 'Sunday Worship Service', month: 'MAR', day: 9, time: '10:00 AM' },
-  { id: 2, title: 'Youth Fellowship Night', month: 'MAR', day: 11, time: '6:00 PM' },
-  { id: 3, title: "Men's Bible Study", month: 'MAR', day: 14, time: '7:30 PM' },
-];
-
+/* ── Component ────────────────────────────────────────────────  */
 const MemberOverview: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [now, setNow] = useState(new Date());
+  const navigate  = useNavigate();
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const greeting = (): string => {
-    const hour = now.getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const formattedDate = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const displayName = user?.firstName ? `, ${user.firstName}` : '';
-
-  const initials = (() => {
-    const first = user?.firstName?.charAt(0) ?? '';
-    const last = user?.lastName?.charAt(0) ?? '';
-    return (first + last).toUpperCase() || 'M';
-  })();
-
-  const fullName =
-    user?.firstName && user?.lastName
-      ? `${user.firstName} ${user.lastName}`
-      : user?.email?.split('@')[0] ?? 'Member';
-
-  const navToMemberRoute = (id: string): void => {
-    navigate(id === 'overview' ? '/member' : `/member/${id}`);
-  };
+  const firstName = user?.firstName ?? 'Friend';
 
   return (
     <div className="ov-page">
-      <section className="ov-banner" aria-label="Member welcome">
-        <div className="ov-banner-text">
-          <p className="ov-banner-eyebrow">Member Portal</p>
-          <h1 className="ov-banner-title">
-            {greeting()}
-            {displayName}!
-          </h1>
-          <p className="ov-banner-date">{formattedDate}</p>
+
+      {/* ── Bento Grid ───────────────────────────────────── */}
+      <div className="ov-bento">
+
+        {/* 1 — Word for the Day (8 cols) */}
+        <div className="ov-word ov-card" aria-label="Word for the Day">
+          {/* Decorative background */}
+          <div className="ov-word-bg" aria-hidden="true" />
+
+          {/* Hero image */}
+          <img
+            className="ov-word-img"
+            src={DAILY_VERSE.imageUrl}
+            alt="Mountain landscape at dawn"
+            aria-hidden="true"
+          />
+
+          {/* Gradient overlay */}
+          <div className="ov-word-overlay" aria-hidden="true" />
+
+          {/* Content */}
+          <div className="ov-word-body">
+            <span className="ov-word-label">{DAILY_VERSE.label}</span>
+            <blockquote className="ov-word-quote">
+              {DAILY_VERSE.quote}
+            </blockquote>
+            <cite className="ov-word-cite">{DAILY_VERSE.citation}</cite>
+          </div>
         </div>
 
-        <div className="ov-banner-actions">
-          <button className="ov-btn-watch" onClick={() => navigate('/member/sermons')}>
-            <MemberIcon name="sermons" size={17} />
-            Watch Latest Sermon
+        {/* 2 — Give CTA (4 cols) */}
+        <div className="ov-give" aria-label="Give and support the mission">
+          <div>
+            <HandHeart
+              className="ov-give-icon"
+              size={40}
+              strokeWidth={1.9}
+              aria-hidden="true"
+            />
+            <h2 className="ov-give-title">Support the Mission</h2>
+            <p className="ov-give-desc">
+              Your generosity fuels our outreach, community care, and local
+              sanctuary improvements.
+            </p>
+          </div>
+
+          <button
+            className="ov-give-btn"
+            onClick={() => navigate('/member/giving')}
+            aria-label="Give tithe and offering"
+          >
+            <span>Give Tithe &amp; Offering</span>
+            <ArrowRight className="ov-give-btn-icon" size={16} strokeWidth={2.2} aria-hidden="true" />
           </button>
-          <button className="ov-btn-events" onClick={() => navigate('/member/events')}>
-            <MemberIcon name="events" size={17} />
-            View Events
-          </button>
         </div>
-      </section>
 
-      <section className="ov-stats" aria-label="Summary statistics">
-        {stats.map((item) => (
-          <article key={item.id} className="ov-stat">
-            <div className="ov-stat-top">
-              <div className="ov-stat-icon" style={{ backgroundColor: item.bg }}>
-                <MemberIcon name={item.icon} size={20} color={item.color} />
+        {/* 3 — Recent Sermon (6 cols) */}
+        <article
+          className="ov-sermon ov-card"
+          aria-label="Latest sermon"
+        >
+          {/* Thumbnail */}
+          <div className="ov-sermon-thumb">
+            <div className="ov-sermon-bg" aria-hidden="true" />
+            <img
+              className="ov-sermon-img"
+              src={LATEST_SERMON.imageUrl}
+              alt="Church sanctuary interior"
+            />
+            <div className="ov-sermon-tint" aria-hidden="true">
+              <button
+                className="ov-sermon-play"
+                onClick={() => navigate('/member/sermons')}
+                aria-label="Play latest sermon"
+              >
+                <Play className="ov-sermon-play-icon" size={30} strokeWidth={2.3} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="ov-sermon-body">
+            <div className="ov-sermon-meta">
+              <span className="ov-sermon-tag">{LATEST_SERMON.tag}</span>
+              <span className="ov-sermon-date">{LATEST_SERMON.date}</span>
+            </div>
+
+            <h3 className="ov-sermon-title">{LATEST_SERMON.title}</h3>
+            <p className="ov-sermon-desc">{LATEST_SERMON.desc}</p>
+
+            {LATEST_SERMON.audioAvailable && (
+              <div className="ov-sermon-audio" aria-label="Audio reflection available">
+                <Headphones className="ov-sermon-audio-icon" size={18} strokeWidth={2} aria-hidden="true" />
+                <span className="ov-sermon-audio-label">
+                  Audio Reflection Available
+                </span>
               </div>
-              <div className={`ov-stat-trend ${item.trend}`}>
-                {item.trend === 'up' && <MemberIcon name="trendUp" size={13} />}
-                {item.trend === 'down' && <MemberIcon name="trendDown" size={13} />}
-                <span>{item.change}</span>
+            )}
+          </div>
+        </article>
+
+        {/* 4 — Upcoming Event (6 cols) */}
+        <div
+          className="ov-event-card"
+          aria-label="Upcoming event"
+        >
+          <div>
+            {/* Eyebrow */}
+            <div className="ov-event-card-eyebrow">
+              <CalendarDays
+                className="ov-event-card-eyebrow-icon"
+                size={18}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+              <span className="ov-event-card-eyebrow-text">
+                {UPCOMING_EVENT.eyebrow}
+              </span>
+            </div>
+
+            <h2 className="ov-event-card-title">{UPCOMING_EVENT.title}</h2>
+            <p className="ov-event-card-desc">{UPCOMING_EVENT.desc}</p>
+          </div>
+
+          {/* Footer */}
+          <div className="ov-event-card-footer">
+            {/* Avatar stack */}
+            <div className="ov-event-avatars" aria-label="Attendees">
+              {/* Placeholder avatars — replace with real attendee data */}
+              <div className="ov-event-avatar" aria-hidden="true">
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(135deg, #506169 0%, #37474f 100%)',
+                  }}
+                />
+              </div>
+              <div className="ov-event-avatar" aria-hidden="true">
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(135deg, #000666 0%, #1a237e 100%)',
+                  }}
+                />
+              </div>
+              <div
+                className="ov-event-avatar-more"
+                aria-label={`${UPCOMING_EVENT.attendeeCount} more attendees`}
+              >
+                {UPCOMING_EVENT.attendeeCount}
               </div>
             </div>
 
-            <div className="ov-stat-bottom">
-              <div className="ov-stat-value">{item.value}</div>
-              <div className="ov-stat-label">{item.label}</div>
+            <button
+              className="ov-event-rsvp"
+              onClick={() => navigate('/member/events')}
+              aria-label="View event details and RSVP"
+            >
+              Details &amp; RSVP
+            </button>
+          </div>
+        </div>
+
+        {/* 5 — Bottom row: Prayer + Community (full 12 cols) */}
+        <div className="ov-bottom">
+
+          {/* Daily Prayer */}
+          <div className="ov-prayer" aria-label="Daily prayer">
+            <h3 className="ov-prayer-title">The Daily Prayer</h3>
+            <p className="ov-prayer-quote">{DAILY_PRAYER.quote}</p>
+
+            <button
+              className="ov-prayer-btn"
+              onClick={() => navigate('/member/prayer')}
+              aria-label="Submit a prayer request"
+            >
+              <span className="ov-prayer-btn-icon">
+                <CirclePlus
+                  className="ov-prayer-btn-icon-sym"
+                  size={18}
+                  strokeWidth={2.1}
+                  aria-hidden="true"
+                />
+              </span>
+              <span>Submit Prayer Request</span>
+            </button>
+          </div>
+
+          {/* Community Post */}
+          <div className="ov-community" aria-label="Recent community post">
+            <div className="ov-community-icon-wrap" aria-hidden="true">
+              <Users className="ov-community-icon-sym" size={22} strokeWidth={2} aria-hidden="true" />
             </div>
-          </article>
-        ))}
-      </section>
 
-      <div className="ov-grid">
-        <div className="ov-col">
-          <section aria-label="Quick access">
-            <div className="ov-section-head">
-              <h2 className="ov-section-title">
-                <MemberIcon name="spark" size={17} />
-                Quick Access
-              </h2>
-            </div>
+            <div className="ov-community-body">
+              <div className="ov-community-author-row">
+                <span className="ov-community-author">
+                  {COMMUNITY_POST.author}
+                </span>
+                <span className="ov-community-role">
+                  {COMMUNITY_POST.role}
+                </span>
+              </div>
 
-            <div className="ov-actions-grid">
-              {quickActions.map((action) => (
-                <button key={action.id} className="ov-action" onClick={() => navToMemberRoute(action.id)}>
-                  <div className="ov-action-icon" style={{ backgroundColor: action.bg }}>
-                    <MemberIcon name={action.icon} size={20} color={action.color} />
-                  </div>
+              <p className="ov-community-text">{COMMUNITY_POST.text}</p>
 
-                  <div className="ov-action-body">
-                    <div className="ov-action-row">
-                      <span className="ov-action-label">{action.label}</span>
-                      {action.badge && <span className="ov-action-badge">{action.badge}</span>}
-                    </div>
-                    <p className="ov-action-desc">{action.desc}</p>
-                  </div>
+              <div className="ov-community-actions">
+                <button
+                  className="ov-community-action-btn"
+                  onClick={() => navigate('/member/community')}
+                  aria-label={`${COMMUNITY_POST.replies} replies`}
+                >
+                  <MessageCircle
+                    className="ov-community-action-icon"
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+                  {COMMUNITY_POST.replies} replies
                 </button>
-              ))}
-            </div>
-          </section>
 
-          <section aria-label="Recent activity">
-            <div className="ov-section-head">
-              <h2 className="ov-section-title">
-                <MemberIcon name="notifications" size={17} />
-                Recent Activity
-              </h2>
-              <button className="ov-section-link" onClick={() => navigate('/member/community')}>
-                View all
-                <MemberIcon name="arrowRight" size={13} />
-              </button>
-            </div>
-
-            <div className="ov-feed">
-              <div className="ov-feed-list">
-                {feedItems.map((item, index) => (
-                  <div key={item.id} className="ov-feed-item" style={{ animationDelay: `${index * 0.07}s` }}>
-                    <div className="ov-feed-icon" style={{ backgroundColor: item.bg }}>
-                      <MemberIcon name={item.icon} size={18} color={item.color} />
-                    </div>
-
-                    <div className="ov-feed-content">
-                      <h4 className="ov-feed-title">{item.title}</h4>
-                      <p className="ov-feed-desc">{item.desc}</p>
-                      <span className="ov-feed-meta">
-                        <MemberIcon name="clock" size={12} />
-                        {item.time}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button className="ov-feed-footer" onClick={() => navigate('/member/community')}>
-                View Community Activity
-                <MemberIcon name="arrowRight" size={14} />
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <div className="ov-col ov-col-right">
-          <section aria-label="My account">
-            <div className="ov-section-head">
-              <h2 className="ov-section-title">
-                <MemberIcon name="user" size={17} />
-                My Account
-              </h2>
-            </div>
-
-            <div className="ov-profile">
-              <div className="ov-profile-banner">
-                <div className="ov-profile-avatar-wrap">
-                  {user?.profilePicture ? (
-                    <div className="ov-profile-avatar">
-                      <img src={user.profilePicture} alt={fullName} />
-                    </div>
-                  ) : (
-                    <div className="ov-profile-avatar">{initials}</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="ov-profile-body">
-                <h3 className="ov-profile-name">{fullName}</h3>
-                <p className="ov-profile-email">{user?.email}</p>
-
-                <div className="ov-profile-badges">
-                  <span className="ov-badge ov-badge-role">
-                    <MemberIcon name="verified" size={11} />
-                    {user?.role ?? 'Member'}
-                  </span>
-                  <span className={`ov-badge ${user?.isActive ? 'ov-badge-active' : 'ov-badge-inactive'}`}>
-                    <MemberIcon name="verified" size={10} />
-                    {user?.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-
-                <div className="ov-profile-meta">
-                  <div className="ov-meta-row">
-                    <span className="ov-meta-label">
-                      <MemberIcon name="events" size={13} />
-                      Member since
-                    </span>
-                    <span className="ov-meta-value">
-                      {user?.dateJoined
-                        ? new Date(user.dateJoined).toLocaleDateString('en-US', {
-                            month: 'short',
-                            year: 'numeric',
-                          })
-                        : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="ov-meta-row">
-                    <span className="ov-meta-label">
-                      <MemberIcon name="verified" size={13} />
-                      Verified
-                    </span>
-                    <span className="ov-meta-value">Yes</span>
-                  </div>
-                </div>
-
-                <button className="ov-btn-manage" onClick={() => navigate('/member/settings')}>
-                  <MemberIcon name="settings" size={16} />
-                  Manage Account
+                <button
+                  className="ov-community-action-btn"
+                  onClick={() => navigate('/member/community')}
+                  aria-label={`${COMMUNITY_POST.likes} likes`}
+                >
+                  <Heart
+                    className="ov-community-action-icon"
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+                  {COMMUNITY_POST.likes}
                 </button>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section aria-label="Upcoming events">
-            <div className="ov-section-head">
-              <h2 className="ov-section-title">
-                <MemberIcon name="events" size={17} />
-                Upcoming Events
-              </h2>
-              <button className="ov-section-link" onClick={() => navigate('/member/events')}>
-                All
-                <MemberIcon name="arrowRight" size={13} />
-              </button>
-            </div>
+        </div>{/* /.ov-bottom */}
 
-            <div className="ov-events">
-              <div className="ov-events-body">
-                {upcomingEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="ov-event-item"
-                    onClick={() => navigate('/member/events')}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate('/member/events')}
-                  >
-                    <div className="ov-event-date">
-                      <span className="ov-event-month">{event.month}</span>
-                      <span className="ov-event-day">{event.day}</span>
-                    </div>
-
-                    <div className="ov-event-info">
-                      <p className="ov-event-title">{event.title}</p>
-                      <span className="ov-event-time">
-                        <MemberIcon name="clock" size={11} />
-                        {event.time}
-                      </span>
-                    </div>
-
-                    <MemberIcon name="chevronRight" size={16} color="var(--m-text-tertiary)" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section aria-label="Helpful links">
-            <div className="ov-section-head">
-              <h2 className="ov-section-title">
-                <MemberIcon name="link" size={17} />
-                Helpful Links
-              </h2>
-            </div>
-
-            <div className="ov-links">
-              <button className="ov-link-item" onClick={() => navigate('/contact')}>
-                <MemberIcon name="help" size={17} color="var(--m-text-secondary)" />
-                <span className="ov-link-text">Help and Support</span>
-                <MemberIcon name="arrowRight" size={15} className="ov-link-arrow" />
-              </button>
-
-              <button className="ov-link-item" onClick={() => navigate('/member/settings')}>
-                <MemberIcon name="settings" size={17} color="var(--m-text-secondary)" />
-                <span className="ov-link-text">Preferences</span>
-                <MemberIcon name="arrowRight" size={15} className="ov-link-arrow" />
-              </button>
-
-              <button className="ov-link-item" onClick={() => window.open('/privacy-policy', '_blank')}>
-                <MemberIcon name="link" size={17} color="var(--m-text-secondary)" />
-                <span className="ov-link-text">Privacy Policy</span>
-                <MemberIcon name="external" size={15} className="ov-link-arrow" />
-              </button>
-            </div>
-          </section>
-        </div>
-      </div>
+      </div>{/* /.ov-bento */}
     </div>
   );
 };

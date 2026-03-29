@@ -23,12 +23,16 @@ import { AuthState } from '../types/auth.types';
 import { authService } from '../services/auth.service';
 import { getPermissionsFromToken } from '../utils/jwt';
 import axios from 'axios';
+import { googleLogout } from '@react-oauth/google';
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+  process.env.REACT_APP_API_BASE_URL ||
+  process.env.REACT_APP_API_URL ||
+  'http://localhost:8000/api/v1';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ role: string } | void>;
+  loginWithGoogle: (idToken: string) => Promise<{ role: string } | void>;
   loginWithTokens: (
     user: import('../types/auth.types').User,
     tokens: import('../types/auth.types').AuthTokens
@@ -146,6 +150,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { role: user.role };
   };
 
+  // ─── loginWithGoogle() ────────────────────────────────────────────────────
+  const loginWithGoogle = async (idToken: string): Promise<{ role: string } | void> => {
+    const { user, tokens } = await authService.loginWithGoogle(idToken);
+
+    let permissions: string[] = getPermissionsFromToken(tokens.access);
+    if (user.role === 'MODERATOR') {
+      permissions = await fetchDbPermissions(tokens.access);
+    }
+
+    setAuthState({
+      user,
+      tokens,
+      isAuthenticated: true,
+      isLoading: false,
+      permissions,
+    });
+
+    return { role: user.role };
+  };
+
   // ─── loginWithTokens() ────────────────────────────────────────────────────
   // Used by AdminAuth after admin-specific login endpoint.
   // Made async so callers can await full permissions load before navigating.
@@ -173,6 +197,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       await authService.logout();
+    } catch {}
+
+    try {
+      googleLogout();
     } catch {}
 
     localStorage.removeItem('auth_tokens');
@@ -266,6 +294,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     ...authState,
     login,
+    loginWithGoogle,
     loginWithTokens,
     logout,
     register,

@@ -6,6 +6,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .comment_views import PublicCommentViewSet, MemberCommentViewSet, AdminCommentViewSet
 from .reaction_views import react_to_post, get_post_reactions
+from .saved_views import toggle_saved_post, list_member_saved_posts
 
 app_name = 'comments'
 
@@ -29,4 +30,6 @@ urlpatterns = [
     # Reaction endpoints
     path('posts/<uuid:post_id>/reaction/', react_to_post, name='react-to-post'),
     path('posts/<uuid:post_id>/reactions/', get_post_reactions, name='get-post-reactions'),
+    path('posts/<uuid:post_id>/save/', toggle_saved_post, name='toggle-saved-post'),
+    path('member/saved-posts/', list_member_saved_posts, name='list-member-saved-posts'),
 ]

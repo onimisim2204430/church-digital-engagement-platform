@@ -201,3 +201,31 @@ class Question(models.Model):
         """Close the question"""
         self.is_closed = True
         self.save()
+
+
+class SavedPost(models.Model):
+    """Persistent saved/bookmarked posts for members."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='saved_posts',
+    )
+    post = models.ForeignKey(
+        'content.Post',
+        on_delete=models.CASCADE,
+        related_name='saved_by_users',
+    )
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-saved_at']
+        unique_together = ['user', 'post']
+        indexes = [
+            models.Index(fields=['user', '-saved_at']),
+            models.Index(fields=['post', '-saved_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} saved {self.post.title}"

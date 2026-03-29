@@ -1,38 +1,48 @@
 /**
- * Member Sidebar — Sovereign Navigation Component
- * SOVEREIGN: zero shared classes or imports from admin or public.
- *
- * Desktop: 256px expanded, collapses to 64px icon-only at 1024px.
- * Mobile: hidden, replaced by MemberBottomTabBar.
+ * Member Sidebar — Sanctuary Design
+ * 320px fixed desktop · Drawer mobile
+ * Retains: auth context, role-based admin link, context switcher, profile.
+ * SOVEREIGN: zero shared imports from admin or public.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  CalendarDays,
+  HandCoins,
+  HandHeart,
+  LayoutDashboard,
+  MessageSquareText,
+  PlayCircle,
+  Settings,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { UserRole } from '../../types/auth.types';
-import MemberIcon, { type MemberIconName } from '../components/MemberIcon';
+import MemberIcon from '../components/MemberIcon';
 import './MemberSidebar.css';
 
 /* ── Nav items ─────────────────────────────────────────────── */
 interface NavItem {
   id: string;
   label: string;
-  iconName: MemberIconName;
+  icon: LucideIcon;
   badge?: number;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'overview',   label: 'Dashboard',             iconName: 'dashboard' },
-  { id: 'sermons',    label: 'Sermons & Teachings',   iconName: 'sermons' },
-  { id: 'events',     label: 'Events & Activities',   iconName: 'events' },
-  { id: 'community',  label: 'Community',             iconName: 'community' },
-  { id: 'prayer',     label: 'Prayer Requests',       iconName: 'prayer' },
-  { id: 'giving',     label: 'Giving History',        iconName: 'giving' },
-  { id: 'chat',       label: 'Chat',                  iconName: 'chat' },
+  { id: 'overview',  label: 'Dashboard',           icon: LayoutDashboard },
+  { id: 'sermons',   label: 'Sermons & Teachings', icon: PlayCircle },
+  { id: 'events',    label: 'Events & Activities', icon: CalendarDays },
+  { id: 'community', label: 'Community',           icon: Users },
+  { id: 'prayer',    label: 'Prayer Requests',     icon: HandHeart },
+  { id: 'giving',    label: 'Giving History',      icon: HandCoins },
+  { id: 'chat',      label: 'Chat',                icon: MessageSquareText },
 ];
 
 const ACCOUNT_ITEMS: NavItem[] = [
-  { id: 'settings', label: 'Settings', iconName: 'settings' },
+  { id: 'settings', label: 'Account Settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -41,13 +51,19 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-/* ── Sidebar component ─────────────────────────────────────── */
-const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) => {
+/* ── Component ─────────────────────────────────────────────── */
+const MemberSidebar: React.FC<SidebarProps> = ({
+  activeView,
+  isOpen,
+  onClose,
+}) => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const sidebarRef = useRef<HTMLElement>(null);
+  const navigate         = useNavigate();
+  const sidebarRef       = useRef<HTMLElement>(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const avatarUrl = user?.profilePicture;
 
-  const navigate_to = (view: string) => {
+  const navigateTo = (view: string) => {
     const path = view === 'overview' ? '/member' : `/member/${view}`;
     navigate(path);
     onClose();
@@ -56,18 +72,24 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
   const canAccessAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.MODERATOR;
 
+  /* Derived user display values */
   const initials = (() => {
     const f = user?.firstName?.charAt(0) ?? '';
-    const l = user?.lastName?.charAt(0) ?? '';
+    const l = user?.lastName?.charAt(0)  ?? '';
     return (f + l).toUpperCase() || 'M';
   })();
 
   const fullName =
     user?.firstName && user?.lastName
       ? `${user.firstName} ${user.lastName}`
-      : user?.email?.split('@')[0] ?? 'Member';
+      : user?.email?.split('@')[0] ?? 'Beloved Member';
 
-  /* Close sidebar on Escape */
+  const greeting =
+    user?.firstName
+      ? `Grace and Peace, ${user.firstName}`
+      : 'Grace and Peace be with you';
+
+  /* Close on Escape */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) onClose();
@@ -76,16 +98,17 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  /* Trap focus when open on mobile */
+  /* Reset avatar error state when URL changes */
+  useEffect(() => { setAvatarLoadFailed(false); }, [avatarUrl]);
+
+  /* Focus trap — focus sidebar when opened on mobile */
   useEffect(() => {
-    if (isOpen && sidebarRef.current) {
-      sidebarRef.current.focus();
-    }
+    if (isOpen && sidebarRef.current) sidebarRef.current.focus();
   }, [isOpen]);
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile backdrop overlay */}
       {isOpen && (
         <div
           className="m-sidebar-overlay"
@@ -100,31 +123,46 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
         aria-label="Member navigation"
         tabIndex={-1}
       >
-        {/* Brand */}
-        <div className="m-sidebar-brand">
-          <div className="m-sidebar-logo" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 2L3 7L12 12L21 7L12 2Z" fill="currentColor" opacity="0.9" />
-              <path d="M12 22L3 17V7L12 12V22Z" fill="currentColor" />
-              <path d="M12 22L21 17V7L12 12V22Z" fill="currentColor" opacity="0.65" />
-            </svg>
+        {/* ── Header: Wordmark + User ───────────────────── */}
+        <div className="m-sidebar-header">
+          {/* Wordmark row */}
+          <div className="m-sidebar-brand-row">
+            <span className="m-sidebar-wordmark">Serene</span>
+            {/* Mobile close button */}
+            <button
+              className="m-sidebar-close"
+              onClick={onClose}
+              aria-label="Close sidebar"
+            >
+              <MemberIcon name="close" size={18} />
+            </button>
           </div>
-          <div className="m-sidebar-brand-text">
-            <div className="m-sidebar-brand-name">Member Portal</div>
-            <div className="m-sidebar-brand-sub">Church Community</div>
+
+          {/* User section */}
+          <div className="m-sidebar-user">
+            <div className="m-sidebar-avatar" aria-hidden="true">
+              {avatarUrl && !avatarLoadFailed ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  onError={() => setAvatarLoadFailed(true)}
+                />
+              ) : (
+                initials
+              )}
+            </div>
+            <div className="m-sidebar-user-info">
+              <p className="m-sidebar-user-name">{fullName}</p>
+              <p className="m-sidebar-user-greeting">{greeting}</p>
+            </div>
           </div>
-          {/* Mobile close */}
-          <button
-            className="m-sidebar-close"
-            onClick={onClose}
-            aria-label="Close sidebar"
-          >
-            <MemberIcon name="close" size={18} />
-          </button>
         </div>
 
-        {/* Navigation */}
+        <div className="m-sidebar-divider" />
+
+        {/* ── Navigation ───────────────────────────────── */}
         <nav className="m-sidebar-nav" aria-label="Main navigation">
+          {/* Main nav */}
           <div className="m-nav-section">
             <span className="m-nav-section-label">Navigation</span>
 
@@ -132,10 +170,15 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
               <button
                 key={item.id}
                 className={`m-nav-item${activeView === item.id ? ' m-nav-item--active' : ''}`}
-                onClick={() => navigate_to(item.id)}
+                onClick={() => navigateTo(item.id)}
                 aria-current={activeView === item.id ? 'page' : undefined}
               >
-                <MemberIcon name={item.iconName} size={20} className="m-nav-icon" />
+                <item.icon
+                  size={19}
+                  strokeWidth={1.9}
+                  className="m-nav-icon"
+                  aria-hidden="true"
+                />
                 <span className="m-nav-label">{item.label}</span>
                 {item.badge && item.badge > 0 && (
                   <span className="m-nav-badge" aria-label={`${item.badge} unread`}>
@@ -146,6 +189,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
             ))}
           </div>
 
+          {/* Account nav */}
           <div className="m-nav-section">
             <span className="m-nav-section-label">Account</span>
 
@@ -153,17 +197,22 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
               <button
                 key={item.id}
                 className={`m-nav-item${activeView === item.id ? ' m-nav-item--active' : ''}`}
-                onClick={() => navigate_to(item.id)}
+                onClick={() => navigateTo(item.id)}
                 aria-current={activeView === item.id ? 'page' : undefined}
               >
-                <MemberIcon name={item.iconName} size={20} className="m-nav-icon" />
+                <item.icon
+                  size={19}
+                  strokeWidth={1.9}
+                  className="m-nav-icon"
+                  aria-hidden="true"
+                />
                 <span className="m-nav-label">{item.label}</span>
               </button>
             ))}
           </div>
         </nav>
 
-        {/* Footer — profile + context switcher */}
+        {/* ── Footer ───────────────────────────────────── */}
         <div className="m-sidebar-footer">
           {/* Context switcher */}
           <div className="m-sidebar-context-switcher">
@@ -172,7 +221,7 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
               onClick={() => navigate('/')}
               title="Visit public site"
             >
-              <MemberIcon name="public" size={16} />
+              <MemberIcon name="public" size={15} />
               <span className="m-context-label">Public Site</span>
             </button>
 
@@ -182,34 +231,21 @@ const MemberSidebar: React.FC<SidebarProps> = ({ activeView, isOpen, onClose }) 
                 onClick={() => navigate('/admin')}
                 title="Go to admin area"
               >
-                <MemberIcon name="admin" size={16} />
+                <MemberIcon name="admin" size={15} />
                 <span className="m-context-label">Admin Area</span>
               </button>
             )}
           </div>
 
-          {/* Profile pill */}
-          <div className="m-sidebar-profile">
-            <div className="m-avatar m-avatar-sm" aria-hidden="true">
-              {user?.profilePicture ? (
-                <img src={user.profilePicture} alt="" />
-              ) : (
-                initials
-              )}
-            </div>
-            <div className="m-sidebar-profile-info">
-              <div className="m-sidebar-profile-name m-truncate">{fullName}</div>
-              <div className="m-sidebar-profile-email m-truncate">{user?.email ?? ''}</div>
-            </div>
-            <button
-              className="m-sidebar-logout"
-              onClick={() => { logout(); navigate('/'); }}
-              title="Sign out"
-              aria-label="Sign out"
-            >
-              <MemberIcon name="logout" size={18} />
-            </button>
-          </div>
+          {/* Sign out */}
+          <button
+            className="m-sidebar-signout"
+            onClick={() => { logout(); navigate('/'); }}
+            aria-label="Sign out"
+          >
+            <MemberIcon name="logout" size={16} />
+            Sign Out
+          </button>
         </div>
       </aside>
     </>

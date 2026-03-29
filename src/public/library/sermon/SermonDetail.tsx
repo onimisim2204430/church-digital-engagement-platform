@@ -5,6 +5,9 @@ import { PublicLayout } from '../../layouts';
 import publicContentService, { PublicPost } from '../../../services/publicContent.service';
 import Icon from '../../../components/common/Icon';
 import DiscussionSection from '../../../components/DiscussionSection';
+import defaultBookCover from '../../../assets/default-book-cover.png';
+
+const DEFAULT_BOOK_COVER_IMAGE = defaultBookCover;
 
 interface SermonDetailProps {
   sermonId?: string;
@@ -49,6 +52,15 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
     return '<5mins'; // Default until duration_minutes field is added to backend
   };
 
+  const featuredImage = (post?.featured_image || '').trim() || DEFAULT_BOOK_COVER_IMAGE;
+
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (event.currentTarget.src === DEFAULT_BOOK_COVER_IMAGE) {
+      return;
+    }
+    event.currentTarget.src = DEFAULT_BOOK_COVER_IMAGE;
+  };
+
   if (isLoading) {
     return (
       <PublicLayout currentPage="library">
@@ -79,17 +91,12 @@ const SermonDetail: React.FC<SermonDetailProps> = () => {
     <PublicLayout currentPage="library">
       {/* Image Section */}
       <div className="w-full bg-black relative overflow-hidden h-[260px] md:h-[480px]">
-        {post.featured_image ? (
-          <img
-            alt={post.title}
-            className="absolute inset-0 w-full h-full object-cover"
-            src={post.featured_image}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-            <Icon name="article" size={96} className="text-white opacity-40" />
-          </div>
-        )}
+        <img
+          alt={post.title}
+          className="absolute inset-0 w-full h-full object-cover"
+          src={featuredImage}
+          onError={handleImageError}
+        />
       </div>
 
         {/* Content Section */}

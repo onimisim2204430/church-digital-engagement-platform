@@ -5,6 +5,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 logger = logging.getLogger('payments')
 
@@ -98,6 +99,93 @@ class PaymentTransaction(models.Model):
             return False
         self.status = new_status
         return True
+
+
+class RecurringFrequency(models.TextChoices):
+    """Supported recurring schedule frequencies."""
+
+    WEEKLY = 'weekly', 'Weekly'
+    BI_WEEKLY = 'bi_weekly', 'Bi-weekly'
+    MONTHLY = 'monthly', 'Monthly'
+    QUARTERLY = 'quarterly', 'Quarterly'
+    YEARLY = 'yearly', 'Yearly'
+
+
+class RecurringPlanStatus(models.TextChoices):
+    """Lifecycle status for a recurring giving plan."""
+
+    ACTIVE = 'active', 'Active'
+    PAUSED = 'paused', 'Paused'
+    CANCELLED = 'cancelled', 'Cancelled'
+
+
+class RecurringGivingPlan(models.Model):
+    """Recurring giving tracker used for member visibility and reminders."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='recurring_giving_plans',
+    )
+    email = models.EmailField()
+    giving_item = models.ForeignKey(
+        'giving.GivingItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recurring_giving_plans',
+    )
+    giving_title = models.CharField(max_length=200, blank=True)
+    amount = models.PositiveBigIntegerField(help_text='Amount in the smallest currency unit')
+    currency = models.CharField(max_length=10, default='NGN')
+    frequency = models.CharField(
+        max_length=20,
+        choices=RecurringFrequency.choices,
+        default=RecurringFrequency.MONTHLY,
+        db_index=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=RecurringPlanStatus.choices,
+        default=RecurringPlanStatus.ACTIVE,
+        db_index=True,
+    )
+    next_payment_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    last_payment_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(default=timezone.now)
+    paused_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    paystack_plan_code = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    paystack_subscription_code = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    source_transaction = models.ForeignKey(
+        PaymentTransaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='seeded_recurring_plans',
+    )
+    inferred_from_metadata = models.BooleanField(default=False)
+    confidence_level = models.CharField(
+        max_length=10,
+        choices=(('HIGH', 'High'), ('MEDIUM', 'Medium'), ('LOW', 'Low')),
+        default='MEDIUM',
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'recurring_giving_plans'
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user', 'status'], name='rec_plan_usr_st_idx'),
+            models.Index(fields=['next_payment_at'], name='rec_plan_nextpay_idx'),
+            models.Index(fields=['paystack_subscription_code'], name='rec_plan_subcode_idx'),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.email} — {self.get_frequency_display()} {self.get_status_display()}'
 
 class PaymentIntent(models.Model):
     """Pre-authorization for payments to prevent abuse and fraud."""

@@ -71,6 +71,13 @@ class AdminNotificationListView(APIView):
             allowed = {'SYSTEM_ALERT', 'ADMIN_MESSAGE'}
             if any(str(p).startswith('fin.') for p in perms):
                 allowed |= {'PAYMENT_SUCCESS', 'PAYMENT_FAILED'}
+            if any(str(p).startswith('content.') for p in perms):
+                allowed |= {
+                    'SERIES_REQUEST_SUBMITTED',
+                    'SERIES_REQUEST_APPROVED',
+                    'SERIES_REQUEST_REJECTED',
+                    'SERIES_DELIVERY_COMPLETED',
+                }
             return allowed
         return set()  # no access
 

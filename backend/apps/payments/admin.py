@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 
-from .models import PaymentTransaction, PaymentIntent, PaymentAuditLog
+from .models import PaymentTransaction, PaymentIntent, PaymentAuditLog, RecurringGivingPlan
 
 
 @admin.register(PaymentTransaction)
@@ -104,3 +104,22 @@ class PaymentAuditLogAdmin(admin.ModelAdmin):
     
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(RecurringGivingPlan)
+class RecurringGivingPlanAdmin(admin.ModelAdmin):
+    """Recurring giving tracker records visible to finance/admin teams."""
+
+    list_display = (
+        'email',
+        'giving_title',
+        'amount',
+        'currency',
+        'frequency',
+        'status',
+        'next_payment_at',
+        'updated_at',
+    )
+    search_fields = ('email', 'giving_title', 'paystack_subscription_code', 'paystack_plan_code')
+    list_filter = ('status', 'frequency', 'currency', 'updated_at')
+    readonly_fields = ('id', 'created_at', 'updated_at', 'source_transaction')

@@ -22,6 +22,7 @@ from .views import (
     SelfPermissionsView,
     UserRegistrationView,
     UserLoginView,
+    GoogleLoginView,
     UserLogoutView,
     CurrentUserView,
     ChangePasswordView,
@@ -59,6 +60,7 @@ urlpatterns = [
     # Authentication endpoints
     path('auth/register/', UserRegistrationView.as_view(), name='register'),
     path('auth/login/', UserLoginView.as_view(), name='login'),
+    path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
     path('auth/logout/', UserLogoutView.as_view(), name='logout'),
     path('auth/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('auth/my-permissions/', SelfPermissionsView.as_view(), name='my-permissions'),

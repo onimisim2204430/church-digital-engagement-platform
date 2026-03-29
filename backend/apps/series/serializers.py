@@ -3,7 +3,15 @@ Series Serializers
 """
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Series, SeriesVisibility, CurrentSeriesSpotlight
+from .models import (
+    Series,
+    SeriesVisibility,
+    CurrentSeriesSpotlight,
+    SeriesSubscription,
+    SeriesSubscriptionStatus,
+    SeriesAnnouncementRequest,
+    SeriesAnnouncementRequestStatus,
+)
 from apps.content.models import Post
 from apps.users.models import UserRole
 
@@ -228,6 +236,7 @@ class SeriesDetailSerializer(serializers.ModelSerializer):
     published_post_count = serializers.SerializerMethodField()
     date_range = serializers.SerializerMethodField()
     next_part_number = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField()
     
     class Meta:
         model = Series
@@ -236,10 +245,20 @@ class SeriesDetailSerializer(serializers.ModelSerializer):
             'author', 'author_name', 'author_email',
             'visibility', 'is_featured', 'featured_priority',
             'total_views', 'post_count', 'published_post_count',
-            'date_range', 'next_part_number', 'posts',
+            'date_range', 'next_part_number', 'is_subscribed', 'posts',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'slug', 'total_views', 'created_at', 'updated_at']
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SeriesSubscription.objects.filter(
+                series=obj,
+                user=request.user,
+                status=SeriesSubscriptionStatus.ACTIVE
+            ).exists()
+        return False
     
     def get_posts(self, obj):
         posts = obj.posts.filter(is_deleted=False).order_by('series_order', 'created_at')
@@ -308,3 +327,131 @@ class ReorderSeriesPostsSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"Post {item['post_id']} not found")
         
         return value
+
+
+class SeriesSubscriptionSerializer(serializers.ModelSerializer):
+    series_title = serializers.CharField(source='series.title', read_only=True)
+
+    class Meta:
+        model = SeriesSubscription
+        fields = [
+            'id',
+            'series',
+            'series_title',
+            'email',
+            'status',
+            'verified_at',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = fields
+
+
+class CreateSeriesSubscriptionSerializer(serializers.Serializer):
+    series_slug = serializers.SlugField(required=True)
+    email = serializers.EmailField(required=False)
+
+
+class VerifySeriesSubscriptionSerializer(serializers.Serializer):
+    token = serializers.CharField(required=True, trim_whitespace=True)
+
+
+class UnsubscribeSeriesSubscriptionSerializer(serializers.Serializer):
+    token = serializers.UUIDField(required=True)
+
+
+class SeriesAnnouncementRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SeriesAnnouncementRequest
+        fields = ['series', 'request_type', 'title', 'message', 'related_post']
+
+    def validate_series(self, value):
+        request = self.context['request']
+        if request.user.role == UserRole.MODERATOR and value.author != request.user:
+            raise serializers.ValidationError('You can only send updates for series that you created.')
+        return value
+
+    def validate_message(self, value):
+        clean_value = (value or '').strip()
+        if len(clean_value) < 10:
+            raise serializers.ValidationError('Message is too short.')
+        if len(clean_value) > 2000:
+            raise serializers.ValidationError('Message must be at most 2000 characters.')
+        return clean_value
+
+
+class SeriesAnnouncementRequestSerializer(serializers.ModelSerializer):
+    series_title = serializers.CharField(source='series.title', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = SeriesAnnouncementRequest
+        fields = [
+            'id',
+            'series',
+            'series_title',
+            'created_by',
+            'created_by_name',
+            'approved_by',
+            'approved_by_name',
+            'related_post',
+            'request_type',
+            'title',
+            'message',
+            'status',
+            'admin_note',
+            'requested_at',
+            'reviewed_at',
+            'delivery_started_at',
+            'delivery_completed_at',
+            'audience_snapshot_count',
+            'delivered_count',
+            'failed_count',
+            'idempotency_key',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = fields
+
+
+class SeriesAnnouncementReviewSerializer(serializers.Serializer):
+    admin_note = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+
+
+class MemberRecentSermonSerializer(serializers.ModelSerializer):
+    speaker_name = serializers.SerializerMethodField()
+    speaker_avatar = serializers.SerializerMethodField()
+    series_id = serializers.UUIDField(source='series.id', read_only=True)
+    series_title = serializers.CharField(source='series.title', read_only=True)
+
+    class Meta:
+        model = Post
+        fields = [
+            'id',
+            'title',
+            'speaker_name',
+            'speaker_avatar',
+            'series_id',
+            'series_title',
+            'featured_image',
+            'published_at',
+            'created_at',
+            'content',
+        ]
+        read_only_fields = fields
+
+    def get_speaker_name(self, obj):
+        if not obj.author:
+            return ''
+        name = obj.author.get_full_name()
+        return name.strip() if name and name.strip() else obj.author.email
+
+    def get_speaker_avatar(self, obj):
+        if not obj.author or not obj.author.profile_picture:
+            return None
+        request = self.context.get('request')
+        url = obj.author.profile_picture.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url

@@ -48,18 +48,72 @@ export interface MemberPaymentTransactionsResponse {
   message?: string;
 }
 
+export interface MemberRecurringPlan {
+  id: string;
+  email: string;
+  giving_item_id?: string | null;
+  giving_title: string;
+  amount: number;
+  currency: string;
+  frequency: string;
+  frequency_label: string;
+  status: string;
+  status_label: string;
+  next_payment_at?: string | null;
+  last_payment_at?: string | null;
+  started_at?: string | null;
+  paused_at?: string | null;
+  cancelled_at?: string | null;
+  paystack_plan_code?: string | null;
+  paystack_subscription_code?: string | null;
+  inferred_from_metadata: boolean;
+  confidence_level: 'HIGH' | 'MEDIUM' | 'LOW';
+  metadata?: Record<string, any>;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface MemberRecurringPlansResponse {
+  status: 'success' | 'error';
+  count: number;
+  summary?: {
+    active: number;
+    paused: number;
+    cancelled: number;
+  };
+  results: MemberRecurringPlan[];
+  message?: string;
+}
+
+export interface MemberRecurringPlanDetailResponse {
+  status: 'success' | 'error';
+  plan: MemberRecurringPlan;
+  history_count: number;
+  history: MemberPaymentTransaction[];
+  message?: string;
+}
+
 class PaymentService {
   async initializePayment(payload: InitializePaymentRequest): Promise<InitializePaymentResponse> {
-    return apiService.post<InitializePaymentResponse>('/payments/initialize/', payload);
+    return apiService.post<InitializePaymentResponse>('payments/initialize/', payload);
   }
 
   async verifyPayment(reference: string): Promise<VerifyPaymentResponse> {
-    return apiService.get<VerifyPaymentResponse>(`/payments/verify/${reference}/`);
+    return apiService.get<VerifyPaymentResponse>(`payments/verify/${reference}/`);
   }
 
   async getMyTransactions(statusFilter?: string): Promise<MemberPaymentTransactionsResponse> {
     const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
-    return apiService.get<MemberPaymentTransactionsResponse>(`/payments/my-transactions/${query}`);
+    return apiService.get<MemberPaymentTransactionsResponse>(`payments/my-transactions/${query}`);
+  }
+
+  async getMyRecurringPlans(statusFilter?: string): Promise<MemberRecurringPlansResponse> {
+    const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
+    return apiService.get<MemberRecurringPlansResponse>(`payments/my-recurring-plans/${query}`);
+  }
+
+  async getMyRecurringPlan(planId: string): Promise<MemberRecurringPlanDetailResponse> {
+    return apiService.get<MemberRecurringPlanDetailResponse>(`payments/my-recurring-plans/${planId}/`);
   }
 }
 

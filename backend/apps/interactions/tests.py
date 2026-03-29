@@ -9,6 +9,7 @@ from rest_framework import status
 
 from apps.content.models import Post, PostStatus
 from apps.interactions.models import Comment, Reaction, ReactionType
+from apps.series.models import Series
 
 
 User = get_user_model()
@@ -268,3 +269,123 @@ class ReactionToggleTestCase(TestCase):
             {'emoji': '👍'}
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class SavedPostApiTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email='admin2@church.com',
+            password='testpass123',
+            role='ADMIN',
+            first_name='Admin',
+            last_name='User'
+        )
+        self.member = User.objects.create_user(
+            email='member2@church.com',
+            password='testpass123',
+            role='MEMBER',
+            first_name='Member',
+            last_name='User'
+        )
+        self.member_b = User.objects.create_user(
+            email='member3@church.com',
+            password='testpass123',
+            role='MEMBER',
+            first_name='Member',
+            last_name='Other'
+        )
+
+        self.series = Series.objects.create(
+            title='Class A Series',
+            description='Test class a series',
+            author=self.admin,
+        )
+        self.series_b = Series.objects.create(
+            title='Class A Series B',
+            description='Test class a series b',
+            author=self.admin,
+        )
+
+        # Class A eligible posts (multipart series)
+        self.post_a1 = Post.objects.create(
+            title='Series A Part 1',
+            content='Part one',
+            author=self.admin,
+            post_type='SERMON',
+            series=self.series,
+            status=PostStatus.PUBLISHED,
+            is_published=True,
+        )
+        self.post_a2 = Post.objects.create(
+            title='Series A Part 2',
+            content='Part two',
+            author=self.admin,
+            post_type='SERMON',
+            series=self.series,
+            status=PostStatus.PUBLISHED,
+            is_published=True,
+        )
+        self.post_b1 = Post.objects.create(
+            title='Series B Part 1',
+            content='Part one b',
+            author=self.admin,
+            post_type='ARTICLE',
+            series=self.series_b,
+            status=PostStatus.PUBLISHED,
+            is_published=True,
+        )
+        self.post_b2 = Post.objects.create(
+            title='Series B Part 2',
+            content='Part two b',
+            author=self.admin,
+            post_type='ARTICLE',
+            series=self.series_b,
+            status=PostStatus.PUBLISHED,
+            is_published=True,
+        )
+
+        # Not class A: standalone post
+        self.standalone = Post.objects.create(
+            title='Standalone',
+            content='Standalone content',
+            author=self.admin,
+            post_type='SERMON',
+            status=PostStatus.PUBLISHED,
+            is_published=True,
+        )
+
+        self.client = APIClient()
+
+    def test_toggle_save_requires_auth(self):
+        response = self.client.post(f'/api/v1/posts/{self.post_a2.id}/save/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_toggle_save_and_unsave_class_a_post(self):
+        self.client.force_authenticate(user=self.member)
+
+        save_resp = self.client.post(f'/api/v1/posts/{self.post_a2.id}/save/')
+        self.assertEqual(save_resp.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(save_resp.data['saved'])
+
+        unsave_resp = self.client.post(f'/api/v1/posts/{self.post_a2.id}/save/')
+        self.assertEqual(unsave_resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(unsave_resp.data['saved'])
+
+    def test_toggle_save_rejects_non_class_a_post(self):
+        self.client.force_authenticate(user=self.member)
+        response = self.client.post(f'/api/v1/posts/{self.standalone.id}/save/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_list_saved_posts_is_user_scoped(self):
+        self.client.force_authenticate(user=self.member)
+        self.client.post(f'/api/v1/posts/{self.post_a1.id}/save/')
+
+        self.client.force_authenticate(user=self.member_b)
+        self.client.post(f'/api/v1/posts/{self.post_b2.id}/save/')
+
+        self.client.force_authenticate(user=self.member)
+        response = self.client.get('/api/v1/member/saved-posts/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['post']['id'], str(self.post_a1.id))

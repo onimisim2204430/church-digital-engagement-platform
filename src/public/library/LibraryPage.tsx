@@ -22,6 +22,9 @@ import { Link } from 'react-router-dom';
 import { PublicLayout } from '../layouts';
 import publicContentService, { PublicContentType, PublicPost } from '../../services/publicContent.service';
 import Icon from '../../components/common/Icon';
+import defaultBookCover from '../../assets/default-book-cover.png';
+
+const DEFAULT_BOOK_COVER_IMAGE = defaultBookCover;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -223,6 +226,15 @@ const SermonCard = memo(({ post }: { post: PublicPost }) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }, [post.published_at]);
 
+  const featuredImage = (post.featured_image || '').trim() || DEFAULT_BOOK_COVER_IMAGE;
+
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (event.currentTarget.src === DEFAULT_BOOK_COVER_IMAGE) {
+      return;
+    }
+    event.currentTarget.src = DEFAULT_BOOK_COVER_IMAGE;
+  };
+
   return (
     <Link to={`/library/sermon/${post.id}`} className="block">
       <article className="group cursor-pointer flex flex-col h-full">
@@ -231,21 +243,16 @@ const SermonCard = memo(({ post }: { post: PublicPost }) => {
         className="relative aspect-video overflow-hidden bg-gray-100 mb-4 rounded-none"
         style={{ aspectRatio: '16/9' }}
       >
-        {post.featured_image ? (
-          <img 
-            alt={`${post.title} thumbnail`}
-            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" 
-            src={post.featured_image}
-            loading="lazy"
-            decoding="async"
-            width="400"
-            height="225"
-          />
-        ) : (
-          <div className="w-full h-full bg-accent-sand/20 flex items-center justify-center">
-            <Icon name="article" size={36} className="text-text-muted" />
-          </div>
-        )}
+        <img
+          alt={`${post.title} thumbnail`}
+          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+          src={featuredImage}
+          onError={handleImageError}
+          loading="lazy"
+          decoding="async"
+          width="400"
+          height="225"
+        />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
       </div>
       

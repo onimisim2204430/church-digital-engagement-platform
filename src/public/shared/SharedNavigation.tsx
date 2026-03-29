@@ -362,7 +362,7 @@ const SharedNavigation = memo(({ isScrolled = false, currentPage, fullWidth = tr
             {/* Sidebar Footer */}
             <div className="p-6 border-t border-accent-sand/30 bg-white/50 backdrop-blur-sm flex-shrink-0">
               <p className="text-sm text-text-muted text-center">
-                © 2024 Serene Sanctuary
+                © 2026 Serene Sanctuary
               </p>
             </div>
           </div>

@@ -140,6 +140,20 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         help_text='User biography or description'
     )
+
+    google_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text='Google account subject identifier for OAuth-linked accounts'
+    )
+
+    google_profile_picture_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text='Google-hosted profile picture URL for OAuth-linked accounts'
+    )
     
     # Email subscription management
     email_subscribed = models.BooleanField(

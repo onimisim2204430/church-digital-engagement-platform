@@ -25,7 +25,7 @@ def convert_to_custom_types(apps, schema_editor):
     # Get list of converted types for logging
     remaining_system = PostContentType.objects.filter(is_system=True).values_list('slug', flat=True)
     
-    print(f"✓ Converted {types_converted} content types from system to custom")
+    print(f"[OK] Converted {types_converted} content types from system to custom")
     if remaining_system:
         print(f"  System types remaining: {', '.join(remaining_system)}")
     print("  All associated posts and data have been preserved")

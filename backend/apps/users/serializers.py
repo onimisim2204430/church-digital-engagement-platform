@@ -16,10 +16,27 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, UserRole
 
 
+def resolve_profile_picture_url(user: User, request=None):
+    """Return a valid profile picture URL, preferring uploaded image when file exists."""
+    if user.profile_picture:
+        try:
+            name = user.profile_picture.name
+            if name and user.profile_picture.storage.exists(name):
+                url = user.profile_picture.url
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+        except Exception:
+            # Ignore broken file references and fall back to Google-hosted URL.
+            pass
+    return user.google_profile_picture_url
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model - used for profile display."""
     
     full_name = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -40,6 +57,10 @@ class UserSerializer(serializers.ModelSerializer):
             email_name = obj.email.split('@')[0]
             return email_name.replace('.', ' ').replace('-', ' ').title() or obj.email
         return full_name
+
+    def get_profile_picture(self, obj):
+        """Return uploaded image URL, falling back to Google-hosted profile picture."""
+        return resolve_profile_picture_url(obj, self.context.get('request'))
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -143,6 +164,12 @@ class UserLoginSerializer(serializers.Serializer):
                 'Must include "email" and "password".',
                 code='authorization'
             )
+
+
+class GoogleLoginSerializer(serializers.Serializer):
+    """Serializer for Google OAuth ID token exchange."""
+
+    id_token = serializers.CharField(required=True, allow_blank=False, trim_whitespace=True)
 
 
 class TokenResponseSerializer(serializers.Serializer):
@@ -295,13 +322,7 @@ class AdminUserListSerializer(serializers.ModelSerializer):
 
     def get_profile_picture(self, obj):
         """Return absolute URL for profile picture, or None."""
-        if not obj.profile_picture:
-            return None
-        url = obj.profile_picture.url
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(url)
-        return url
+        return resolve_profile_picture_url(obj, self.context.get('request'))
 
 
 class AdminUserDetailSerializer(serializers.ModelSerializer):
@@ -351,13 +372,7 @@ class AdminUserDetailSerializer(serializers.ModelSerializer):
 
     def get_profile_picture(self, obj):
         """Return absolute URL for profile picture, or None."""
-        if not obj.profile_picture:
-            return None
-        url = obj.profile_picture.url
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(url)
-        return url
+        return resolve_profile_picture_url(obj, self.context.get('request'))
 
 
 class ChangeRoleSerializer(serializers.Serializer):

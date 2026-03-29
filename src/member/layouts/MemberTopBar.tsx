@@ -1,13 +1,8 @@
 /**
- * Member TopBar — Sovereign Component
- * SOVEREIGN: zero shared imports from admin or public layout.
- *
- * Features:
- *  - Hamburger (mobile only)
- *  - Dynamic title / breadcrumb slot
- *  - Dark-mode toggle (persisted to localStorage under member-theme key)
- *  - Notification bell with real-time WebSocket + REST fallback
- *  - User avatar dropdown (profile, settings, sign out)
+ * Member TopBar — Sanctuary Design
+ * Full-width glassmorphic header.
+ * Retains: notifications (WebSocket + REST), user menu.
+ * SOVEREIGN: zero shared imports from admin or public.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -35,7 +30,7 @@ interface TopBarProps {
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function formatTimeAgo(dateString: string): string {
-  const diff = Date.now() - new Date(dateString).getTime();
+  const diff  = Date.now() - new Date(dateString).getTime();
   const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
   const days  = Math.floor(diff / 86_400_000);
@@ -54,46 +49,39 @@ const MemberTopBar: React.FC<TopBarProps> = ({
   actions,
   onMenuClick,
 }) => {
-  const navigate  = useNavigate();
+  const navigate         = useNavigate();
   const { user, logout } = useAuth();
-  const toast     = useToast();
+  const toast            = useToast();
 
-  const [isDark,             setIsDark]             = useState(false);
-  const [showUserMenu,       setShowUserMenu]        = useState(false);
-  const [showNotifications,  setShowNotifications]   = useState(false);
-  const [notifications,      setNotifications]       = useState<Notification[]>([]);
-  const [unreadCount,        setUnreadCount]         = useState(0);
-  const [loadingNotifs,      setLoadingNotifs]       = useState(false);
+  const [showUserMenu,      setShowUserMenu]       = useState(false);
+  const [showNotifications, setShowNotifications]  = useState(false);
+  const [notifications,     setNotifications]      = useState<Notification[]>([]);
+  const [unreadCount,       setUnreadCount]        = useState(0);
+  const [loadingNotifs,     setLoadingNotifs]      = useState(false);
+  const [avatarLoadFailed,  setAvatarLoadFailed]   = useState(false);
 
-  const userMenuRef  = useRef<HTMLDivElement>(null);
-  const notifRef     = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notifRef    = useRef<HTMLDivElement>(null);
+  const avatarUrl   = user?.profilePicture;
 
-  /* ── Theme ────────────────────────────────────────────────── */
+  /* ── Theme (locked to light in member) ──────────────────── */
   useEffect(() => {
-    const saved      = localStorage.getItem('member-theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const dark = saved === 'dark' || (!saved && prefersDark);
-    setIsDark(dark);
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('member-theme', 'light');
   }, []);
 
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    localStorage.setItem('member-theme', next ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
-  };
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [avatarUrl]);
 
-  /* ── Notifications ────────────────────────────────────────── */
+  /* ── Notifications ──────────────────────────────────────── */
   const fetchNotifications = useCallback(async () => {
     setLoadingNotifs(true);
     try {
       const r = await notificationService.getUnreadNotifications(1, 10);
-      setNotifications(r.results   ?? []);
+      setNotifications(r.results      ?? []);
       setUnreadCount  (r.unread_count ?? 0);
-    } catch {
-      // silent — panel will show empty state
-    } finally {
+    } catch { /* silent */ } finally {
       setLoadingNotifs(false);
     }
   }, []);
@@ -102,7 +90,7 @@ const MemberTopBar: React.FC<TopBarProps> = ({
     if (user?.id) fetchNotifications();
   }, [user?.id, fetchNotifications]);
 
-  /* 60s fallback poll */
+  /* 60 s fallback poll */
   useEffect(() => {
     if (!user?.id) return;
     const id = setInterval(async () => {
@@ -114,12 +102,12 @@ const MemberTopBar: React.FC<TopBarProps> = ({
     return () => clearInterval(id);
   }, [user?.id]);
 
-  /* WebSocket */
+  /* WebSocket push */
   const onWsNotification = useCallback((n: Notification) => {
     const t = n.notification_type ?? '';
-    if (t.includes('PAYMENT_SUCCESS'))     toast.success(n.title, 5000);
-    else if (t.includes('PAYMENT_FAILED')) toast.error(n.title, 5000);
-    else                                   toast.info(n.title, 5000);
+    if      (t.includes('PAYMENT_SUCCESS')) toast.success(n.title, 5000);
+    else if (t.includes('PAYMENT_FAILED'))  toast.error(n.title, 5000);
+    else                                    toast.info(n.title, 5000);
     setNotifications(prev => [n, ...prev]);
     setUnreadCount(prev => prev + 1);
   }, [toast]);
@@ -152,21 +140,19 @@ const MemberTopBar: React.FC<TopBarProps> = ({
     }
   }, [navigate]);
 
-  /* ── Click outside ────────────────────────────────────────── */
+  /* ── Click outside ──────────────────────────────────────── */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
         setShowUserMenu(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node))
         setShowNotifications(false);
-      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  /* ── User ─────────────────────────────────────────────────── */
+  /* ── User ────────────────────────────────────────────────── */
   const initials = (() => {
     const f = user?.firstName?.charAt(0) ?? '';
     const l = user?.lastName?.charAt(0)  ?? '';
@@ -178,27 +164,34 @@ const MemberTopBar: React.FC<TopBarProps> = ({
       ? `${user.firstName} ${user.lastName}`
       : user?.email?.split('@')[0] ?? 'Member';
 
-  /* ── Render ───────────────────────────────────────────────── */
+  /* ── Render ──────────────────────────────────────────────── */
   return (
     <header className="m-topbar" role="banner">
       <div className="m-topbar-inner">
 
-        {/* Left */}
+        {/* ── Left ───────────────────────────────────────── */}
         <div className="m-topbar-left">
+          {/* Hamburger — mobile only */}
           <button
             className="m-topbar-menu-btn"
             onClick={onMenuClick}
             aria-label="Open navigation menu"
           >
-            <MemberIcon name="menu" size={20} />
+            <MemberIcon name="menu" size={22} />
           </button>
 
+          {/* Mobile wordmark (hidden on desktop — sidebar shows it) */}
+          <span className="m-topbar-wordmark">Serene</span>
+
+          {/* Title / breadcrumb slot */}
           <div className="m-topbar-title-section">
             {breadcrumbs && breadcrumbs.length > 0 ? (
               <nav className="m-topbar-breadcrumbs" aria-label="Breadcrumb">
                 {breadcrumbs.map((crumb, i) => (
                   <React.Fragment key={i}>
-                    {i > 0 && <span className="m-topbar-crumb-sep" aria-hidden="true">/</span>}
+                    {i > 0 && (
+                      <span className="m-topbar-crumb-sep" aria-hidden="true">/</span>
+                    )}
                     {crumb.onClick ? (
                       <button className="m-topbar-crumb" onClick={crumb.onClick}>
                         {crumb.label}
@@ -218,19 +211,9 @@ const MemberTopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
 
-        {/* Right */}
+        {/* ── Right ──────────────────────────────────────── */}
         <div className="m-topbar-right">
           {actions && <div className="m-topbar-actions">{actions}</div>}
-
-          {/* Theme toggle */}
-          <button
-            className="m-topbar-icon-btn"
-            onClick={toggleTheme}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={isDark ? 'Light mode' : 'Dark mode'}
-          >
-            <MemberIcon name={isDark ? 'sun' : 'moon'} size={18} />
-          </button>
 
           {/* Notifications */}
           <div className="m-topbar-dropdown-wrap" ref={notifRef}>
@@ -250,7 +233,11 @@ const MemberTopBar: React.FC<TopBarProps> = ({
             </button>
 
             {showNotifications && (
-              <div className="m-topbar-notif-panel" role="dialog" aria-label="Notifications">
+              <div
+                className="m-topbar-notif-panel"
+                role="dialog"
+                aria-label="Notifications"
+              >
                 <div className="m-notif-panel-header">
                   <h2 className="m-notif-panel-title">Notifications</h2>
                   {unreadCount > 0 && (
@@ -277,13 +264,19 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                         <div className="m-notif-content">
                           <p className="m-notif-title">{n.title}</p>
                           <p className="m-notif-msg">{n.message}</p>
-                          <span className="m-notif-time">{formatTimeAgo(n.created_at)}</span>
+                          <span className="m-notif-time">
+                            {formatTimeAgo(n.created_at)}
+                          </span>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="m-notif-panel-empty">
-                      <MemberIcon name="notificationsOff" size={40} color="var(--m-text-tertiary)" />
+                      <MemberIcon
+                        name="notificationsOff"
+                        size={40}
+                        color="#767683"
+                      />
                       <p>No new notifications</p>
                     </div>
                   )}
@@ -302,12 +295,24 @@ const MemberTopBar: React.FC<TopBarProps> = ({
               aria-haspopup="true"
             >
               <div className="m-avatar m-avatar-sm" aria-hidden="true">
-                {user?.profilePicture
-                  ? <img src={user.profilePicture} alt="" />
-                  : initials}
+                {avatarUrl && !avatarLoadFailed ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : (
+                  initials
+                )}
               </div>
-              <span className="m-topbar-user-name">{user?.firstName ?? 'Member'}</span>
-              <MemberIcon name="chevronDown" size={16} className="m-topbar-chevron" />
+              <span className="m-topbar-user-name">
+                {user?.firstName ?? 'Member'}
+              </span>
+              <MemberIcon
+                name="chevronDown"
+                size={16}
+                className="m-topbar-chevron"
+              />
             </button>
 
             {showUserMenu && (
@@ -315,9 +320,15 @@ const MemberTopBar: React.FC<TopBarProps> = ({
                 {/* Header */}
                 <div className="m-user-panel-header">
                   <div className="m-avatar m-avatar-md" aria-hidden="true">
-                    {user?.profilePicture
-                      ? <img src={user.profilePicture} alt="" />
-                      : initials}
+                    {avatarUrl && !avatarLoadFailed ? (
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        onError={() => setAvatarLoadFailed(true)}
+                      />
+                    ) : (
+                      initials
+                    )}
                   </div>
                   <div className="m-user-panel-info">
                     <p className="m-user-panel-name">{fullName}</p>

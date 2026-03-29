@@ -358,6 +358,7 @@ function getRouteLabel(pathname: string): { title: string; sub: string } {
     'growth-dashboard':    ['Growth & Data',      'Analytics, KPIs & reports'],
     'content':             ['Posts & Sermons',    'Manage media content'],
     'series':              ['Series',             'Teaching series management'],
+    'series-announcements':['Series Announcements','Approval queue & subscriber updates'],
     // 'drafts':              ['Post Drafts',        'Unpublished content'],
     'weekly-flow':         ['Weekly Flow',        'Service schedule planner'],
     'podcasting':          ['Podcasting',         'Episode & feed management'],

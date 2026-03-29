@@ -29,6 +29,8 @@ import GivingPage from '../public/GivingPage';
 import LoginPage from '../public/LoginPage';
 import RegisterPage from '../public/RegisterPage';
 import ForgotPasswordPage from '../public/ForgotPasswordPage';
+import SeriesSubscriptionVerifyPage from '../public/SeriesSubscriptionVerifyPage';
+import SeriesSubscriptionUnsubscribePage from '../public/SeriesSubscriptionUnsubscribePage';
 import AdminAuth from '../pages/AdminAuth';
 import DebugAuth from '../pages/DebugAuth';
 import Forbidden from '../pages/Forbidden';
@@ -59,9 +61,9 @@ import UserManager from '../admin/UserManagement';
 import InteractionModeration from '../admin/InteractionManagement';
 import EmailCampaigns from '../admin/EmailCampaigns';
 import ModerationReports from '../admin/ModerationReports';
+import SeriesAnnouncementQueue from '../admin/SeriesAnnouncementQueue';
 import AdminSettings from '../admin/setting/index';
 //import AppSettings from '../admin/AppSettings';
-import DraftsManager from '../admin/DraftsManager';
 // import DailyWordsPage from '../admin/DailyWordsPage'; // TODO: Restore if bulk daily word management needed
 import WeeklyFlowPage from '../admin/WeeklyFlowManagement';
 import EventManager from '../admin/EventManagement/EventManager';
@@ -71,8 +73,6 @@ import SeedManager from '../admin/SeedManagement';
 import {
   FinancialHub,
   PaymentRecords,
-  FinancialReports,
-  FinancialDashboard,
 } from '../admin/FinancialManagement';
 import ContentDashboard from '../admin/ContentManagement/dashboard/ContentDashboard';
 import NotificationsPage from '../admin/NotificationsPage';
@@ -87,7 +87,10 @@ import AdminOnlyRoute from '../admin/components/AdminOnlyRoute';
 import PermissionGatedRoute from '../admin/components/PermissionGatedRoute';
 
 // Placed after all imports — must not be inside any function
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL ||
+  process.env.REACT_APP_API_URL ||
+  'http://localhost:8000/api/v1';
 
 /**
  * AdminAccessGate
@@ -197,6 +200,8 @@ const AppRouter: React.FC = () => {
         {/* TODO: remove after auth debugging */}
         <Route path="/debug-auth" element={<DebugAuth />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/series-subscriptions/verify" element={<SeriesSubscriptionVerifyPage />} />
+        <Route path="/series-subscriptions/unsubscribe" element={<SeriesSubscriptionUnsubscribePage />} />
         <Route path="/content" element={<Navigate to="/library" replace />} />
         <Route path="/content/:id" element={<Navigate to="/library" replace />} />
         <Route path="/daily-word/:date" element={<DailyWordDetailPage />} />
@@ -256,6 +261,7 @@ const AppRouter: React.FC = () => {
           <Route path="homepage-content" element={<AdminOnlyRoute><HomepageContentHub /></AdminOnlyRoute>} />
           <Route path="privacy-policy" element={<AdminOnlyRoute><PrivacyPolicyManager /></AdminOnlyRoute>} />
           <Route path="series" element={<PermissionGatedRoute code="content.series"><SeriesManager /></PermissionGatedRoute>} />
+          <Route path="series-announcements" element={<PermissionGatedRoute code="content.series"><SeriesAnnouncementQueue /></PermissionGatedRoute>} />
           <Route path="featured-series" element={<Navigate to="/admin/homepage-content?tab=featured-series" replace />} />
           <Route path="current-series-spotlight" element={<Navigate to="/admin/homepage-content?tab=current-spotlight" replace />} />
           <Route path="spiritual-practices" element={<Navigate to="/admin/homepage-content?tab=spiritual-practices" replace />} />

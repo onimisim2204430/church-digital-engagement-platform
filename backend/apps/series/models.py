@@ -3,10 +3,14 @@ Series Models
 Manages content series and collections for organizing related posts
 """
 import uuid
+import hashlib
+import secrets
+from datetime import timedelta
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 
 class SeriesVisibility(models.TextChoices):
@@ -307,3 +311,198 @@ class CurrentSeriesSpotlight(models.Model):
         self.latest_part_label = f'Part {self.latest_part_number} {status_label}'
 
         super().save(*args, **kwargs)
+
+
+class SeriesSubscriptionStatus(models.TextChoices):
+    PENDING_VERIFICATION = 'PENDING_VERIFICATION', 'Pending Verification'
+    ACTIVE = 'ACTIVE', 'Active'
+    UNSUBSCRIBED = 'UNSUBSCRIBED', 'Unsubscribed'
+
+
+class SeriesSubscription(models.Model):
+    """Subscription to series updates for authenticated and public users."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    series = models.ForeignKey(
+        Series,
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='series_subscriptions',
+    )
+    email = models.EmailField(blank=True)
+    status = models.CharField(
+        max_length=30,
+        choices=SeriesSubscriptionStatus.choices,
+        default=SeriesSubscriptionStatus.PENDING_VERIFICATION,
+    )
+    verification_token_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    verification_token_expires_at = models.DateTimeField(null=True, blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    unsubscribed_at = models.DateTimeField(null=True, blank=True)
+    unsubscribe_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['series', 'user'],
+                condition=Q(user__isnull=False),
+                name='uniq_series_subscription_user',
+            ),
+            models.UniqueConstraint(
+                fields=['series', 'email'],
+                condition=Q(user__isnull=True) & ~Q(email=''),
+                name='uniq_series_subscription_public_email',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['series', 'status']),
+            models.Index(fields=['email', 'status']),
+            models.Index(fields=['user', 'status']),
+        ]
+
+    def __str__(self):
+        identity = self.user_id or self.email
+        return f'{self.series.title} :: {identity} :: {self.status}'
+
+    def clean(self):
+        super().clean()
+        if not self.user and not self.email:
+            raise ValidationError('Either user or email must be provided for a subscription.')
+        if self.email:
+            self.email = self.email.strip().lower()
+
+    @staticmethod
+    def _hash_token(raw_token: str) -> str:
+        return hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+
+    def create_verification_token(self, ttl_minutes: int = 30) -> str:
+        raw_token = secrets.token_urlsafe(32)
+        self.verification_token_hash = self._hash_token(raw_token)
+        self.verification_token_expires_at = timezone.now() + timedelta(minutes=ttl_minutes)
+        self.save(update_fields=['verification_token_hash', 'verification_token_expires_at', 'updated_at'])
+        return raw_token
+
+    def mark_active(self):
+        now = timezone.now()
+        self.status = SeriesSubscriptionStatus.ACTIVE
+        self.verified_at = now
+        self.verification_token_hash = ''
+        self.verification_token_expires_at = None
+        self.unsubscribed_at = None
+        self.save(
+            update_fields=[
+                'status',
+                'verified_at',
+                'verification_token_hash',
+                'verification_token_expires_at',
+                'unsubscribed_at',
+                'updated_at',
+            ]
+        )
+
+    def mark_unsubscribed(self):
+        self.status = SeriesSubscriptionStatus.UNSUBSCRIBED
+        self.unsubscribed_at = timezone.now()
+        self.save(update_fields=['status', 'unsubscribed_at', 'updated_at'])
+
+    def matches_verification_token(self, raw_token: str) -> bool:
+        if not self.verification_token_hash or not self.verification_token_expires_at:
+            return False
+        if timezone.now() > self.verification_token_expires_at:
+            return False
+        return self.verification_token_hash == self._hash_token(raw_token)
+
+
+class SeriesAnnouncementRequestType(models.TextChoices):
+    ANNOUNCEMENT = 'ANNOUNCEMENT', 'Announcement'
+    NEW_ARTICLE = 'NEW_ARTICLE', 'New Article Update'
+
+
+class SeriesAnnouncementRequestStatus(models.TextChoices):
+    PENDING_ADMIN_APPROVAL = 'PENDING_ADMIN_APPROVAL', 'Pending Admin Approval'
+    APPROVED = 'APPROVED', 'Approved'
+    REJECTED = 'REJECTED', 'Rejected'
+    PROCESSING = 'PROCESSING', 'Processing'
+    DELIVERED = 'DELIVERED', 'Delivered'
+    FAILED = 'FAILED', 'Failed'
+
+
+class SeriesAnnouncementRequest(models.Model):
+    """Moderator-submitted send requests that require admin approval before delivery."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    series = models.ForeignKey(
+        Series,
+        on_delete=models.CASCADE,
+        related_name='announcement_requests',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='created_series_announcement_requests',
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_series_announcement_requests',
+    )
+    related_post = models.ForeignKey(
+        'content.Post',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='series_announcement_requests',
+    )
+    request_type = models.CharField(
+        max_length=24,
+        choices=SeriesAnnouncementRequestType.choices,
+        default=SeriesAnnouncementRequestType.ANNOUNCEMENT,
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    status = models.CharField(
+        max_length=32,
+        choices=SeriesAnnouncementRequestStatus.choices,
+        default=SeriesAnnouncementRequestStatus.PENDING_ADMIN_APPROVAL,
+        db_index=True,
+    )
+    admin_note = models.TextField(blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    audience_snapshot_count = models.IntegerField(
+        default=0,
+        help_text='Number of active subscribers frozen at admin-approval time.',
+    )
+    audience_snapshot_frozen_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When the subscriber audience was frozen for delivery.',
+    )
+    delivery_started_at = models.DateTimeField(null=True, blank=True)
+    delivery_completed_at = models.DateTimeField(null=True, blank=True)
+    delivered_count = models.IntegerField(default=0)
+    failed_count = models.IntegerField(default=0)
+    idempotency_key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['series', 'status', '-created_at']),
+            models.Index(fields=['created_by', 'status', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.series.title} :: {self.request_type} :: {self.status}'

@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
 import dj_database_url
+import platform as _platform
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -278,6 +279,14 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# ============================================================================== 
+# GOOGLE OAUTH CONFIGURATION
+# ============================================================================== 
+
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='').strip()
+GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET', default='').strip()
+
+
 # ==============================================================================
 # REST FRAMEWORK CONFIGURATION
 # ==============================================================================
@@ -351,13 +360,18 @@ SIMPLE_JWT = {
 # CORS settings
 # NOTE: CORS_ALLOW_ALL_ORIGINS = True does NOT work with CORS_ALLOW_CREDENTIALS = True
 # Must explicitly list allowed origins when using credentials
-CORS_ALLOWED_ORIGINS = [
+DEFAULT_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://g98l5wj0-3000.uks1.devtunnels.ms',  # React Dev Tunnel
     'https://g98l5wj0-8000.uks1.devtunnels.ms',  # Django Dev Tunnel (for cross-origin)
     'https://church-digital-engagement-platform.onrender.com',  # Production on Render
 ]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default=','.join(DEFAULT_ALLOWED_ORIGINS),
+    cast=Csv(),
+)
 # Set to False since we removed withCredentials from frontend (JWT-only, no cookies)
 CORS_ALLOW_CREDENTIALS = False
 
@@ -387,12 +401,10 @@ CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 # CSRF CONFIGURATION
 # ==============================================================================
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://g98l5wj0-3000.uks1.devtunnels.ms',  # React Dev Tunnel
-    'https://g98l5wj0-8000.uks1.devtunnels.ms',  # Django Dev Tunnel
-    'https://church-digital-engagement-platform.onrender.com',  # Production on Render
+    *CORS_ALLOWED_ORIGINS,
 ]
+# Required for popup OAuth providers to communicate back to the opener window.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 # Allow Dev Tunnel origin for cookies
 SESSION_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True
@@ -551,7 +563,7 @@ EMAIL_UNSUBSCRIBE_SECRET = os.environ.get('EMAIL_UNSUBSCRIBE_SECRET', '')
 # CELERY CONFIGURATION (for background tasks)
 # ==============================================================================
 
-import platform as _platform
+
 
 CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')

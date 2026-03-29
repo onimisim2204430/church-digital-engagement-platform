@@ -1,12 +1,14 @@
 /**
- * Member Bottom Tab Bar — Mobile Navigation
- * SOVEREIGN: shown only on mobile (≤768px), replaces sidebar.
- * Max 5 tabs. Uses --m- tokens from member.tokens.css.
+ * Member Bottom Tab Bar — Sanctuary Design
+ * Mobile navigation (≤768px) · replaces sidebar on small screens.
+ * Max 5 tabs. Glassmorphic, rounded-t-3xl.
+ * SOVEREIGN: zero shared imports from admin or public.
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import MemberIcon, { type MemberIconName } from '../components/MemberIcon';
+import './MemberBottomTabBar.css';
 
 interface Tab {
   id: string;
@@ -16,11 +18,11 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: 'overview',  label: 'Home',    icon: 'dashboard' },
-  { id: 'sermons',   label: 'Sermons', icon: 'sermons' },
-  { id: 'events',    label: 'Events',  icon: 'events' },
-  { id: 'community', label: 'Connect', icon: 'community' },
-  { id: 'settings',  label: 'Account', icon: 'user' },
+  { id: 'overview',  label: 'Dashboard', icon: 'dashboard' },
+  { id: 'sermons',   label: 'Sermons',   icon: 'sermons' },
+  { id: 'events',    label: 'Events',    icon: 'events' },
+  { id: 'community', label: 'Connect',   icon: 'community' },
+  { id: 'settings',  label: 'Account',   icon: 'user' },
 ];
 
 interface BottomTabBarProps {
@@ -47,7 +49,7 @@ const MemberBottomTabBar: React.FC<BottomTabBarProps> = ({ activeView }) => {
             aria-label={tab.label}
           >
             <span className="m-tab-btn-icon">
-              <MemberIcon name={tab.icon} size={21} />
+              <MemberIcon name={tab.icon} size={22} />
               {tab.badge && tab.badge > 0 && (
                 <span className="m-tab-btn-badge" aria-hidden="true">
                   {tab.badge}

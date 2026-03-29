@@ -37,6 +37,7 @@ const navGroups = [
       { id: 'homepage-content', label: 'Homepage Content', icon: 'widgets', path: '/admin/homepage-content', roles: [UserRole.ADMIN] },
       { id: 'privacy-policy', label: 'Privacy Policy', icon: 'policy', path: '/admin/privacy-policy', roles: [UserRole.ADMIN] },
       { id: 'series',      label: 'Series',          icon: 'library_books', path: '/admin/series',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.series'       },
+      { id: 'series-announcements', label: 'Series Announcements', icon: 'campaign', path: '/admin/series-announcements', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.series' },
       // { id: 'drafts',      label: 'Post Drafts',     icon: 'edit_note',     path: '/admin/drafts',      roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'content.drafts'       },
       { id: 'weekly-flow', label: 'Weekly Flow',     icon: 'schedule',      path: '/admin/weekly-flow', roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.weekly_flow' },
       { id: 'podcasting',  label: 'Podcasting',      icon: 'podcasts',      path: '/admin/podcasting',  roles: [UserRole.ADMIN, UserRole.MODERATOR], permCode: 'schedule.podcasting'  },

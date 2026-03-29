@@ -129,9 +129,9 @@ const MegaMenu: React.FC<MegaMenuProps> = memo(({ currentPage }) => {
       </div>
       <div>
         <h5 className="text-base font-bold uppercase tracking-widest text-text-muted mb-4">Latest Series</h5>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {latestItems.map((item) => (
-            <Link key={item.id} to={item.to} className="flex gap-4 group/item cursor-pointer">
+            <Link key={item.id} to={item.to} className="flex gap-3 group/item cursor-pointer rounded-lg p-2 -m-2 hover:bg-accent-sand/10 transition-colors">
               <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-accent-sand/20">
                 {item.image ? (
                   <img
@@ -149,9 +149,11 @@ const MegaMenu: React.FC<MegaMenuProps> = memo(({ currentPage }) => {
                   </div>
                 )}
               </div>
-              <div>
-                <p className="text-lg font-semibold leading-tight group-hover/item:text-primary">{item.title}</p>
-                <p className="text-base text-text-muted mt-1">{item.description}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-normal leading-snug [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden group-hover/item:text-primary transition-colors">
+                  {item.title}
+                </p>
+                <p className="text-sm text-text-muted mt-1">{item.description}</p>
               </div>
             </Link>
           ))}

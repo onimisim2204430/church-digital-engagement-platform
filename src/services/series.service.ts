@@ -6,6 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 
 const API_URL = 'http://localhost:8000/api/v1/admin/series';
 const PUBLIC_API_URL = 'http://localhost:8000/api/v1/public/series';
+const MEMBER_API_URL = 'http://localhost:8000/api/v1';
 
 // Enhanced interfaces for series
 export interface SeriesAuthor {
@@ -86,6 +87,7 @@ export interface Series {
 
 export interface SeriesDetail extends Series {
   next_part_number: number;
+  is_subscribed?: boolean;
 }
 
 export interface SeriesCreateData {
@@ -167,9 +169,57 @@ export interface SeriesFilters {
   page_size?: number;
 }
 
+export interface SeriesSubscriptionResponse {
+  detail: string;
+  verification_required: boolean;
+  subscription?: {
+    id: string;
+    series: string;
+    series_title: string;
+    email: string;
+    status: 'PENDING_VERIFICATION' | 'ACTIVE' | 'UNSUBSCRIBED';
+    verified_at?: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
+export interface MemberRecentSermon {
+  id: string;
+  title: string;
+  content: string;
+  speaker_name: string;
+  speaker_avatar?: string | null;
+  series_id?: string | null;
+  series_title?: string | null;
+  featured_image?: string | null;
+  published_at?: string | null;
+  created_at: string;
+}
+
+export interface MemberRecentSermonsResponse {
+  results: MemberRecentSermon[];
+}
+
+export interface MemberSavedPostItem {
+  id: string;
+  saved_at: string;
+  post: MemberRecentSermon;
+}
+
+export interface MemberSavedPostsResponse {
+  results: MemberSavedPostItem[];
+}
+
+export interface ToggleSavedPostResponse {
+  saved: boolean;
+  post_id: string;
+}
+
 class SeriesService {
   private api: AxiosInstance;
   private publicApi: AxiosInstance;
+  private memberApi: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
@@ -186,28 +236,36 @@ class SeriesService {
       },
     });
 
+    this.memberApi = axios.create({
+      baseURL: MEMBER_API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
     // Add request interceptor to include JWT token
-    this.api.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('auth_tokens');
-        if (token) {
-          if (token.startsWith('{')) {
-            try {
-              const tokens = JSON.parse(token);
-              config.headers.Authorization = `Bearer ${tokens.access}`;
-            } catch {
-              config.headers.Authorization = `Bearer ${token}`;
-            }
-          } else {
+    const authInterceptor = (config: any) => {
+      const token = localStorage.getItem('access_token') || localStorage.getItem('auth_tokens');
+      if (token && config.headers) {
+        if (token.startsWith('{')) {
+          try {
+            const tokens = JSON.parse(token);
+            config.headers.Authorization = `Bearer ${tokens.access}`;
+          } catch {
             config.headers.Authorization = `Bearer ${token}`;
           }
+        } else {
+          config.headers.Authorization = `Bearer ${token}`;
         }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
       }
-    );
+      return config;
+    };
+
+    const errorInterceptor = (error: any) => Promise.reject(error);
+
+    this.api.interceptors.request.use(authInterceptor, errorInterceptor);
+    this.publicApi.interceptors.request.use(authInterceptor, errorInterceptor);
+    this.memberApi.interceptors.request.use(authInterceptor, errorInterceptor);
   }
 
   /**
@@ -357,6 +415,38 @@ class SeriesService {
   }
 
   /**
+   * Subscribe authenticated users (no email required) or guests (email required)
+   */
+  async subscribeToSeries(seriesSlug: string, email?: string): Promise<SeriesSubscriptionResponse> {
+    const payload: Record<string, string> = { series_slug: seriesSlug };
+    if (email) {
+      payload.email = email;
+    }
+    const response = await this.publicApi.post('subscriptions/', payload);
+    return response.data;
+  }
+
+  /**
+   * Unsubscribe authenticated users from a series directly via UI
+   */
+  async unsubscribeFromSeriesAuthenticated(seriesSlug: string): Promise<{ detail: string }> {
+    const response = await this.publicApi.delete('subscriptions/', {
+      data: { series_slug: seriesSlug }
+    });
+    return response.data;
+  }
+
+  async verifySeriesSubscription(token: string): Promise<{ detail: string; series_title?: string }> {
+    const response = await this.publicApi.post('subscriptions/verify/', { token });
+    return response.data;
+  }
+
+  async unsubscribeByToken(token: string): Promise<{ detail: string; series_title?: string }> {
+    const response = await this.publicApi.post('subscriptions/unsubscribe/', { token });
+    return response.data;
+  }
+
+  /**
    * Get featured series for homepage
    */
   async getFeaturedSeries(): Promise<Series[]> {
@@ -378,6 +468,24 @@ class SeriesService {
     if (!response.data || Object.keys(response.data).length === 0) {
       return null;
     }
+    return response.data;
+  }
+
+  /**
+   * Get recent sermons for member page: subscription-first, unique-series, random fallback.
+   */
+  async getMemberRecentSermons(): Promise<MemberRecentSermon[]> {
+    const response = await this.publicApi.get<MemberRecentSermonsResponse>('member/recent-sermons/');
+    return Array.isArray(response.data?.results) ? response.data.results : [];
+  }
+
+  async getMemberSavedPosts(): Promise<MemberSavedPostItem[]> {
+    const response = await this.memberApi.get<MemberSavedPostsResponse>('member/saved-posts/');
+    return Array.isArray(response.data?.results) ? response.data.results : [];
+  }
+
+  async toggleSavedPost(postId: string): Promise<ToggleSavedPostResponse> {
+    const response = await this.memberApi.post<ToggleSavedPostResponse>(`posts/${postId}/save/`);
     return response.data;
   }
 }

@@ -798,6 +798,8 @@ See [Section 13: Deployment](#13-deployment) below.
 | `DEFAULT_FROM_EMAIL` | — | `noreply@yourdomain.com` | "From" name/email in emails sent |
 | `CORS_ALLOWED_ORIGINS` | ✅ | `http://localhost:3000,https://yourdomain.com` | Frontend URL(s) allowed to call the API |
 | `JWT_SECRET_KEY` | — | (auto-uses SECRET_KEY) | Optional: separate JWT signing key |
+| `GOOGLE_CLIENT_ID` | ✅ (for Google auth) | `1234567890-abc.apps.googleusercontent.com` | Google OAuth Web Client ID used for backend token audience verification |
+| `GOOGLE_CLIENT_SECRET` | ✅ (for Google auth) | `GOCSPX-...` | Google OAuth Web Client Secret (backend only, never expose to frontend) |
 | **Payment Configuration** |
 | `PAYSTACK_PUBLIC_KEY` | ✅ | `pk_test_8bd23795b032...` | Paystack public key (test or live) |
 | `PAYSTACK_SECRET_KEY` | ✅ | `sk_test_635e1263d362...` | Paystack secret key (test or live) |
@@ -808,7 +810,29 @@ See [Section 13: Deployment](#13-deployment) below.
 | Variable | Required | Example | Description |
 |---|:---:|---|---|
 | `REACT_APP_API_BASE_URL` | ✅ | `http://localhost:8000/api/v1` | Backend API base URL |
+| `REACT_APP_GOOGLE_CLIENT_ID` | ✅ (for Google auth) | `1234567890-abc.apps.googleusercontent.com` | Public Google OAuth client ID used by Google Sign-In UI |
 | `REACT_APP_WS_URL` | — | `ws://localhost:8000/ws` | WebSocket server URL (auto-constructed if omitted) |
+
+### Google OAuth Setup (Google Cloud Console)
+
+1. Go to Google Cloud Console and create/select a project.
+2. Open APIs & Services > OAuth consent screen and configure app details.
+3. Open APIs & Services > Credentials > Create Credentials > OAuth client ID.
+4. Choose application type `Web application`.
+5. Add Authorized JavaScript origins:
+   - Local dev: `http://localhost:3000`
+   - Production frontend origin(s): `https://yourdomain.com`
+6. Add Authorized redirect URIs:
+   - For Google Identity Services button-only flow, a dedicated redirect URI is typically not required.
+   - If your organization policy requires one, use your frontend auth callback URL (for example `https://yourdomain.com/login`).
+7. Copy credentials into env files:
+   - Backend: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+   - Frontend: `REACT_APP_GOOGLE_CLIENT_ID`
+
+Security notes:
+- The backend verifies Google ID tokens and enforces audience match against `GOOGLE_CLIENT_ID`.
+- Never expose `GOOGLE_CLIENT_SECRET` in frontend code or `REACT_APP_*` variables.
+- Keep production origins HTTPS-only in Google Console.
 
 ### Docker Environment
 

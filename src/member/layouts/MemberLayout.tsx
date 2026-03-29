@@ -1,18 +1,20 @@
 /**
- * Member Layout — Shell Component
+ * Member Layout — Sanctuary Shell Component
  * The outermost frame for all member pages.
  * Imports the sovereign member design system.
  *
  * Structure:
  *   member-shell
- *     ├── MemberTopBar  (fixed, 64px)
+ *     ├── MemberTopBar   (fixed, 72px, full-width on mobile / starts at 320px on desktop)
  *     └── member-shell-body
- *           ├── MemberSidebar  (256px desktop / 64px collapsed / hidden mobile)
- *           └── member-content-slot
- *                 └── member-page-area  (page content via <Outlet />)
+ *           ├── MemberSidebar     (320px fixed desktop / drawer mobile)
+ *           ├── member-sidebar-slot  (320px spacer, hidden mobile)
+ *           └── member-content-slot  (flex:1, page content via <Outlet />)
+ *
+ *   MemberBottomTabBar  (fixed bottom, mobile only ≤768px)
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import MemberSidebar from './MemberSidebar';
 import MemberTopBar from './MemberTopBar';
@@ -33,6 +35,12 @@ const MemberLayout: React.FC<MemberLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('member-theme', 'light');
+  }, []);
+
+  /* Derive active view from pathname */
   const getActiveView = (): string => {
     const path = location.pathname;
     if (path === '/member' || path === '/member/') return 'overview';
@@ -40,38 +48,45 @@ const MemberLayout: React.FC<MemberLayoutProps> = ({ children }) => {
     return match ? match[1] : 'overview';
   };
 
+  const activeView = getActiveView();
+  const topBarTitle = activeView === 'settings' ? 'Settings' : undefined;
+
   return (
     <div className="member-shell">
       {/* Fixed topbar — always on top */}
       <MemberTopBar
+        title={topBarTitle}
         onMenuClick={() => setIsSidebarOpen(prev => !prev)}
       />
 
       {/* Body: sidebar + content */}
       <div className="member-shell-body">
+        {/* Fixed sidebar — 320px desktop, drawer mobile */}
         <MemberSidebar
-          activeView={getActiveView()}
+          activeView={activeView}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Flow spacer keeps content from rendering beneath fixed sidebar */}
+        {/* Flow spacer — pushes content right by 320px (hidden on mobile) */}
         <div className="member-sidebar-slot" aria-hidden="true" />
 
-        <main className="member-content-slot" id="member-main" tabIndex={-1}>
-          {/* Skip-to-content target */}
-          <a href="#member-main" className="m-skip-link" tabIndex={0}>
-            Skip to main content
-          </a>
+        {/* Main content */}
+        <main
+          className={`member-content-slot member-content-slot-${activeView}`}
+          id="member-main"
+          tabIndex={-1}
+        >
 
-          <div className="member-page-area">
+
+          <div className={`member-page-area member-page-area-${activeView}`}>
             {children ?? <Outlet />}
           </div>
         </main>
       </div>
 
-      {/* Mobile bottom tab bar */}
-      <MemberBottomTabBar activeView={getActiveView()} />
+      {/* Mobile bottom tab bar — only visible ≤768px */}
+      {/* <MemberBottomTabBar activeView={activeView} /> */}
     </div>
   );
 };

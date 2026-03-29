@@ -6,6 +6,7 @@ import os
 from json import JSONDecodeError
 from typing import Any, Dict
 
+from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
@@ -18,7 +19,13 @@ from .exceptions import (
     PaymentVerificationError,
     WebhookValidationError,
 )
-from .models import PaymentStatus, PaymentTransaction, PaymentAuditLog
+from .models import (
+    PaymentStatus,
+    PaymentTransaction,
+    PaymentAuditLog,
+    RecurringGivingPlan,
+    RecurringPlanStatus,
+)
 from .services import initialize_transaction, verify_transaction
 from .services import fetch_paystack_balance, initiate_refund
 from .utils import (
@@ -34,6 +41,38 @@ from .monitoring import send_payment_alert, AlertSeverity
 from .webhooks import apply_verified_payment, process_paystack_webhook
 
 logger = logging.getLogger('payments')
+
+
+def _serialize_recurring_plan(plan: RecurringGivingPlan) -> Dict[str, Any]:
+    """Serialize recurring plan for member API responses."""
+    title = plan.giving_title
+    if not title and plan.giving_item is not None:
+        title = plan.giving_item.title
+
+    return {
+        'id': str(plan.id),
+        'email': plan.email,
+        'giving_item_id': str(plan.giving_item_id) if plan.giving_item_id else None,
+        'giving_title': title or 'General Fund',
+        'amount': plan.amount,
+        'currency': plan.currency,
+        'frequency': plan.frequency,
+        'frequency_label': plan.get_frequency_display(),
+        'status': plan.status,
+        'status_label': plan.get_status_display(),
+        'next_payment_at': plan.next_payment_at.isoformat() if plan.next_payment_at else None,
+        'last_payment_at': plan.last_payment_at.isoformat() if plan.last_payment_at else None,
+        'started_at': plan.started_at.isoformat() if plan.started_at else None,
+        'paused_at': plan.paused_at.isoformat() if plan.paused_at else None,
+        'cancelled_at': plan.cancelled_at.isoformat() if plan.cancelled_at else None,
+        'paystack_plan_code': plan.paystack_plan_code,
+        'paystack_subscription_code': plan.paystack_subscription_code,
+        'inferred_from_metadata': plan.inferred_from_metadata,
+        'confidence_level': plan.confidence_level,
+        'metadata': plan.metadata or {},
+        'created_at': plan.created_at.isoformat() if plan.created_at else None,
+        'updated_at': plan.updated_at.isoformat() if plan.updated_at else None,
+    }
 
 
 class MemberPaymentTransactionsView(APIView):
@@ -74,6 +113,92 @@ class MemberPaymentTransactionsView(APIView):
 
         return Response(
             {'status': 'success', 'count': len(results), 'results': results},
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberRecurringPlansView(APIView):
+    """Return current authenticated member recurring giving plans."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs) -> Response:
+        status_filter = str(request.query_params.get('status', '')).lower().strip()
+        allowed_statuses = {choice for choice, _ in RecurringPlanStatus.choices}
+
+        queryset = RecurringGivingPlan.objects.filter(user=request.user).select_related('giving_item').order_by('-updated_at')
+        if status_filter:
+            if status_filter not in allowed_statuses:
+                return Response(
+                    {'status': 'error', 'message': 'Invalid status filter'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            queryset = queryset.filter(status=status_filter)
+
+        plans = list(queryset[:100])
+        results = [_serialize_recurring_plan(plan) for plan in plans]
+        summary = {
+            'active': len([p for p in plans if p.status == RecurringPlanStatus.ACTIVE]),
+            'paused': len([p for p in plans if p.status == RecurringPlanStatus.PAUSED]),
+            'cancelled': len([p for p in plans if p.status == RecurringPlanStatus.CANCELLED]),
+        }
+
+        return Response(
+            {'status': 'success', 'count': len(results), 'summary': summary, 'results': results},
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberRecurringPlanDetailView(APIView):
+    """Return one recurring giving plan and related recurring payment history."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, plan_id: str, *args, **kwargs) -> Response:
+        plan = (
+            RecurringGivingPlan.objects.filter(user=request.user, id=plan_id)
+            .select_related('giving_item', 'source_transaction')
+            .first()
+        )
+        if plan is None:
+            return Response(
+                {'status': 'error', 'message': 'Recurring plan not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        recurring_flag_q = Q(metadata__recurring=True) | Q(metadata__recurring='true')
+        history_filter = Q(metadata__recurring_plan_id=str(plan.id))
+
+        if plan.source_transaction_id:
+            history_filter |= Q(id=plan.source_transaction_id)
+
+        if plan.giving_item_id:
+            history_filter |= (Q(metadata__giving_option_id=str(plan.giving_item_id)) & recurring_flag_q)
+
+        history_queryset = PaymentTransaction.objects.filter(user=request.user).filter(history_filter).order_by('-created_at')[:50]
+        history = [
+            {
+                'id': str(tx.id),
+                'reference': tx.reference,
+                'amount': tx.amount,
+                'currency': tx.currency,
+                'status': tx.status,
+                'status_label': tx.get_status_display(),
+                'payment_method': tx.payment_method,
+                'paid_at': tx.paid_at.isoformat() if tx.paid_at else None,
+                'created_at': tx.created_at.isoformat() if tx.created_at else None,
+                'metadata': tx.metadata or {},
+            }
+            for tx in history_queryset
+        ]
+
+        return Response(
+            {
+                'status': 'success',
+                'plan': _serialize_recurring_plan(plan),
+                'history_count': len(history),
+                'history': history,
+            },
             status=status.HTTP_200_OK,
         )
 
